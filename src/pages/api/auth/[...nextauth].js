@@ -1,8 +1,8 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectDB } from "@/pages/lib/db";
-import { User } from "@/pages/models/User";
-import dashboardUsers from "@/pages/models/dashboardUsers";
+import { connectDB } from "@/lib/db";
+import { User } from "@/models/User";
+import dashboardUsers from "@/models/dashboardUsers";
 import bcrypt from "bcryptjs";
 
 async function findUser(credentials) {

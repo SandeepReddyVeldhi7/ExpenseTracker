@@ -1,8 +1,8 @@
-import { connectDB } from "@/pages/lib/db";
-import Attendance from "@/pages/models/Attendance";
-import Expense from "@/pages/models/Expense";
-import Staff from "@/pages/models/Staff";
-import SalaryPayment from "@/pages/models/SalaryPayment";
+import { connectDB } from "@/lib/db";
+import Attendance from "@/models/Attendance";
+import Expense from "@/models/Expense";
+import Staff from "@/models/Staff";
+import SalaryPayment from "@/models/SalaryPayment";
 
 export default async function handler(req, res) {
   await connectDB();

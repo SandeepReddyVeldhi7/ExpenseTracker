@@ -1,7 +1,7 @@
 
 import bcrypt from "bcryptjs";
-import dashboardUsers from "@/pages/models/dashboardUsers";
-import { connectDB } from "@/pages/lib/db";
+import dashboardUsers from "@/models/dashboardUsers";
+import { connectDB } from "@/lib/db";
 
 
 

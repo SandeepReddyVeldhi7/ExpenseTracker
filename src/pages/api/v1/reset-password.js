@@ -1,7 +1,7 @@
-import { User } from "@/pages/models/User";
+import { User } from "@/models/User";
 import bcrypt from "bcrypt";
-import dashboardUsers from "@/pages/models/dashboardUsers";
-import { connectDB } from "@/pages/lib/db";
+import dashboardUsers from "@/models/dashboardUsers";
+import { connectDB } from "@/lib/db";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

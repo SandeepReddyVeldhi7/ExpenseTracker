@@ -1,7 +1,7 @@
 // pages/api/v1/staff/get-staff.js
 
-import { connectDB } from '@/pages/lib/db'
-import Staff from '@/pages/models/Staff'
+import { connectDB } from '@/lib/db'
+import Staff from '@/models/Staff'
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {

@@ -1,7 +1,7 @@
 
 
-import { connectDB } from '@/pages/lib/db';
-import Attendance from '@/pages/models/Attendance';
+import { connectDB } from '@/lib/db';
+import Attendance from '@/models/Attendance';
 
 export default async function handler(req, res) {
 await connectDB()

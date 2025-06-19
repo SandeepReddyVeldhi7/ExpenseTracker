@@ -1,8 +1,8 @@
 // pages/api/v1/staff/with-advances.js
 
-import { connectDB } from "@/pages/lib/db";
-import Staff from "@/pages/models/Staff";
-import Expense from "@/pages/models/Expense";
+import { connectDB } from "@/lib/db";
+import Staff from "@/models/Staff";
+import Expense from "@/models/Expense";
 
 export default async function handler(req, res) {
   await connectDB();

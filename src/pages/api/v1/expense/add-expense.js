@@ -1,5 +1,5 @@
-import { connectDB } from "@/pages/lib/db"
-import Expense from "@/pages/models/Expense"
+import { connectDB } from "@/lib/db"
+import Expense from "@/models/Expense"
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

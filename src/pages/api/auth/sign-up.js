@@ -1,5 +1,5 @@
-  import { connectDB } from "@/pages/lib/db";
-  import {User} from "@/pages/models/User";
+  import { connectDB } from "@/lib/db";
+  import {User} from "@/models/User";
   import bcrypt from 'bcryptjs'
 
   export default async function handler(req, res) {

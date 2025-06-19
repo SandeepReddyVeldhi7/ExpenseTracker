@@ -1,5 +1,5 @@
-import { connectDB } from '@/pages/lib/db'
-import Staff from '@/pages/models/Staff'
+import { connectDB } from '@/lib/db'
+import Staff from '@/models/Staff'
 
 
 
