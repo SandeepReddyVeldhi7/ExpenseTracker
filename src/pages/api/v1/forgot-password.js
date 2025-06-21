@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { User } from "@/models/User";
-import dashboardUsers from "@/models/DashboardUsers";
+import dashboardUsers from "@/models/dashboardUsers";
 import { connectDB } from "@/lib/db";
 
 

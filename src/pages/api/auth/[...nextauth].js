@@ -2,8 +2,9 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
-import dashboardUsers from "@/models/DashboardUsers";
+
 import bcrypt from "bcryptjs";
+import DashboardUsers from "@/models/dashboardUsers";
 
 async function findUser(credentials) {
   await connectDB();
@@ -14,7 +15,7 @@ async function findUser(credentials) {
 
   // If not found, try finding staff by email OR username
   if (!user) {
-    user = await dashboardUsers.findOne({
+    user = await DashboardUsers.findOne({
       $or: [{ email: credentials.email }, { username: credentials.email }],
     });
     role = "staff123";
