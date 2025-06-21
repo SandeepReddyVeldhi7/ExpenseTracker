@@ -17,17 +17,15 @@ export default async function handler(req, res) {
     for (const staff of staffList) {
       let filter = { advance: staff._id };
 
-      // ✅ Only filter if BOTH month and year
-      if (month && year) {
-        const m = parseInt(month) - 1;
-        const y = parseInt(year);
-        const start = new Date(y, m, 1);
-        const end = new Date(y, m + 1, 0);
-        filter.date = {
-          $gte: start.toISOString().split("T")[0],
-          $lte: end.toISOString().split("T")[0],
-        };
-      }
+   const pad = (n) => (n < 10 ? `0${n}` : n);
+const startStr = `${year}-${pad(month)}-01`;
+const endStr = `${year}-${pad(month)}-31`;
+
+filter.date = {
+  $gte: startStr,
+  $lte: endStr,
+};
+
 
       const advances = await Expense.find(filter);
 

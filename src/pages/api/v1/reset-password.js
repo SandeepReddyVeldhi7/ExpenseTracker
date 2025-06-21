@@ -1,6 +1,6 @@
 import { User } from "@/models/User";
 import bcrypt from "bcrypt";
-import dashboardUsers from "@/models/dashboardUsers";
+import dashboardUsers from "@/models/DashboardUsers";
 import { connectDB } from "@/lib/db";
 
 export default async function handler(req, res) {

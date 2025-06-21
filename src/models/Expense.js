@@ -12,7 +12,7 @@ const itemSchema = new mongoose.Schema({
 const expenseSchema = new mongoose.Schema(
   {
     date: {
-      type: String, // Use 'YYYY-MM-DD' format
+      type:Date, // Use 'YYYY-MM-DD' format
       required: true,
     },
 
@@ -40,6 +40,26 @@ const expenseSchema = new mongoose.Schema(
       type: [itemSchema], // Only for casher
       default: [],
     },
+    addons: [
+  {
+    name: String,
+    price: Number,
+  }
+],
+ staffAdvances: [
+    {
+      staffId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Staff",
+        required: true,
+      },
+      amount: {
+        type: Number,
+        required: true,
+      },
+    },
+  ],
+
 
     totalCashersAmount: {
       type: Number,
@@ -79,6 +99,6 @@ const expenseSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+expenseSchema.index({ date: 1, category: 1 }, { unique: true });
 export default mongoose.models.Expense ||
   mongoose.model("Expense", expenseSchema);

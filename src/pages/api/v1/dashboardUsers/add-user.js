@@ -1,7 +1,8 @@
 
 import bcrypt from "bcryptjs";
-import dashboardUsers from "@/models/dashboardUsers";
+
 import { connectDB } from "@/lib/db";
+import dashboardUsers from "@/models/dashboardUsers";
 
 
 

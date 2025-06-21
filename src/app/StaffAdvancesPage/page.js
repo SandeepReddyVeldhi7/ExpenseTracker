@@ -39,6 +39,7 @@ export default function StaffWithAdvancesPage() {
   }, []);
 
   const handleFilter = () => {
+ 
     if (!month || !year) {
       toast.error("Please select both month and year");
       return;
@@ -135,7 +136,7 @@ export default function StaffWithAdvancesPage() {
                   <td className="p-2 border text-center">{idx + 1}</td>
                   <td className="p-2 border">{s.name}</td>
                   <td className="p-2 border">{s.designation}</td>
-                  <td className="p-2 border text-right">₹ {s.totalAdvance}</td>
+                  <td className="p-2 border text-right">₹ {s.totalAdvance.toLocaleString("en-IN")}</td>
                 </tr>
               ))
             ) : (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import toast, { Toaster } from 'react-hot-toast'
 import CreatableSelect from 'react-select/creatable'
 
 export default function AddStaffForm() {
@@ -19,7 +20,7 @@ export default function AddStaffForm() {
 
  const handleSubmit = async (e) => {
   e.preventDefault()
-
+const toastId = toast.loading("Saving staff...");
   const res = await fetch('/api/v1/staff/add-staff', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -31,19 +32,20 @@ export default function AddStaffForm() {
   })
 
   if (res.ok) {
-    alert('✅ Staff saved!')
+    toast.success('Staff saved!',{id: toastId})
     setName('')
     setDesignation('')
     setSalary('')
   } else {
     const err = await res.json()
-    alert('❌ Failed: ' + err.error)
+    toast.error( err.message ,{id: toastId})
   }
 }
 
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+     <Toaster/>
       <form
         onSubmit={handleSubmit}
         className="bg-gray-500 p-6 rounded-xl shadow-lg w-full max-w-md space-y-4"
