@@ -42,7 +42,7 @@ export default function PayDetailsPage() {
       const newPayAmounts = {};
       payrollResults.forEach((p, idx) => {
         if (p.payable === 0) newPaidStatus[staff[idx]._id] = true;
-        newPayAmounts[staff[idx]._id] = p.payable;
+        newPayAmounts[staff[idx]._id] = Math.floor(p.payable || 0);
       });
       setPaidStatus(newPaidStatus);
       setPayAmounts(newPayAmounts);
@@ -62,7 +62,7 @@ export default function PayDetailsPage() {
   };
 
   const handlePay = async (staffId) => {
-    const amount = parseFloat(payAmounts[staffId]);
+    const amount = Math.floor(parseFloat(payAmounts[staffId]));
     if (isNaN(amount) || amount < 0) {
       toast.error("Please enter a valid amount.");
       return;
@@ -116,16 +116,15 @@ export default function PayDetailsPage() {
   };
 
   if (loading) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="flex flex-col items-center">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-600 font-medium">Loading Pay Details list...</p>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading Pay Details list...</p>
+        </div>
       </div>
-    </div>
-  );
-}
-
+    );
+  }
 
   return (
     <div className="max-w-6xl flex justify-center items-center flex-col h-screen mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-500 font-sans">
@@ -220,7 +219,9 @@ export default function PayDetailsPage() {
                           : "-"}
                       </td>
                       <td className="p-2 border text-center">{p.presentDays}</td>
-                      <td className="p-2 border text-right">₹ {p.earnedSalary?.toFixed(2)}</td>
+                      <td className="p-2 border text-right">
+                        ₹ {Math.floor(p.earnedSalary || 0)}
+                      </td>
                       <td className="p-2 border text-left">
                         {p?.advances?.length > 0 ? (
                           p?.advances.map((adv, i) => (
@@ -233,9 +234,11 @@ export default function PayDetailsPage() {
                         )}
                       </td>
                       <td className="p-2 border text-right">
-                        ₹ {p?.previousCarryForward?.toFixed(2)}
+                        ₹ {Math.floor(p.previousCarryForward || 0)}
                       </td>
-                      <td className="p-2 border text-right">₹ {p.payable?.toFixed(2)}</td>
+                      <td className="p-2 border text-right">
+                        ₹ {Math.floor(p.payable || 0)}
+                      </td>
                       <td className="p-2 border text-center">
                         <input
                           type="number"

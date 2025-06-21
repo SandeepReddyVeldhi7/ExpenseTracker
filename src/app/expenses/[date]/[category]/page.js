@@ -3,237 +3,359 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Poppins } from "next/font/google";
 import { FaArrowLeft } from "react-icons/fa";
+import toast, { Toaster } from "react-hot-toast";
 
+// ✅ Google Font
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
 
-const isCasher = (cat) => cat === "casher1" || cat === "casher2";
+// ✅ Utility functions
+const isCasher = (cat) => ["casher1", "casher2", "casher3"].includes(cat);
 const isDrink = (cat) => cat === "tea" || cat === "juice";
 const isTotalDetails = (cat) => cat === "totalDetails";
 
+// ✅ Wrapper with forced remount
 export default function CategoryPage() {
+  const router = useRouter();
   const { date, category } = useParams();
+  return (
+    <CategoryPageContent
+      key={router.asPath} // ✅ force remount
+      date={date}
+      category={category}
+    />
+  );
+}
+
+// ✅ Actual page logic here
+function CategoryPageContent({ date, category }) {
   const router = useRouter();
   const [soldAmount, setSoldAmount] = useState("");
   const [casherName, setCasherName] = useState("");
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
   const [totalDetails, setTotalDetails] = useState(null);
-
   const [dropdownInputs, setDropdownInputs] = useState([]);
+  console.log("drop::::::::::::::", dropdownInputs);
   const [staffAdvances, setStaffAdvances] = useState([]);
   const [drinkTotal, setDrinkTotal] = useState(0);
   const [commission, setCommission] = useState("");
   const [staffList, setStaffList] = useState([]);
   const [totalSale, setTotalSale] = useState("");
   const [moneyLift, setMoneyLift] = useState("");
+  const [loading, setLoading] = useState(true);
+  const localKey = `expense-form-${date}-${category}`;
 
+  // ✅ Helper: save all data
+  const saveToLocalStorage = (newFields = {}) => {
+    // Always merge possible new changes
+    const localCasherName = newFields.casherName ?? casherName;
+    const localItems = newFields.items ?? items;
+    const localDropdownInputs = newFields.dropdownInputs ?? dropdownInputs;
+    const localStaffAdvances = newFields.staffAdvances ?? staffAdvances;
+    const localTotalSale = newFields.totalSale ?? totalSale;
+    const localMoneyLift = newFields.moneyLift ?? moneyLift;
+
+    const itemsTotal = localItems.reduce(
+      (sum, i) => sum + (parseFloat(i.price) || 0),
+      0
+    );
+    const dropdownTotal = localDropdownInputs.reduce(
+      (sum, d) => sum + (parseFloat(d.price) || 0),
+      0
+    );
+    const staffAdvanceTotal = localStaffAdvances.reduce(
+      (sum, s) => sum + (parseFloat(s.amount) || 0),
+      0
+    );
+    const total = itemsTotal + dropdownTotal + staffAdvanceTotal;
+
+    const remaining = parseFloat(localTotalSale || 0) - total;
+    const shot = remaining - parseFloat(localMoneyLift || 0);
+
+    const data = {
+      casherName: localCasherName,
+      items: localItems,
+      dropdownInputs: localDropdownInputs,
+      staffAdvances: localStaffAdvances,
+      totalSale: localTotalSale,
+      moneyLift: localMoneyLift,
+      soldAmount,
+      commission,
+      category,
+      remaining,
+      shot,
+      ...newFields,
+    };
+
+    localStorage.setItem(localKey, JSON.stringify(data));
+  };
+
+  // ✅ Fetch staff list once
   useEffect(() => {
+    const fetchStaffList = async () => {
+      try {
+        const response = await fetch("/api/v1/staff/get-staff-for-form");
+        if (!response.ok) throw new Error("Failed to fetch staff list");
+        const data = await response.json();
+        setStaffList(data);
+      } catch (error) {
+        console.error(error);
+        setStaffList([]);
+      }
+    };
     fetchStaffList();
   }, []);
 
-  const fetchStaffList = async () => {
-    try {
-      const response = await fetch("/api/v1/staff/get-staff"); // Adjust the API endpoint as needed
-      if (!response.ok) {
-        throw new Error("Failed to fetch staff list");
-      }
-      const data = await response.json();
-      setStaffList(data);
-    } catch (error) {
-      console.error("Error fetching staff list:", error);
-      setStaffList([]); // Reset to empty if fetch fails
-    }
-  };
-
-
   useEffect(() => {
-  if (!isTotalDetails(category)) return;
+    if (!isTotalDetails(category)) return;
 
-  const fetchTotalDetails = async () => {
-    try {
-      const res = await fetch(`/api/v1/expense/get-by-date?date=${date}`);
-      const data = await res.json();
-      if (res.ok) {
-        setTotalDetails(data);
-      } else {
+    const buildLiveSummary = async () => {
+      setLoading(true);
+      try {
+        // ✅ 1) Backend fallback
+        const res = await fetch(`/api/v1/expense/get-by-date?date=${date}`);
+        const backend = res.ok ? await res.json() : { cashers: [], drinks: [] };
+
+        let cashers = backend.cashers || [];
+        let drinks = backend.drinks || [];
+
+        // ✅ 2) Merge local storage cashers
+        ["casher1", "casher2", "casher3"].forEach((key) => {
+          const localKey = `expense-form-${date}-${key}`;
+          const raw = localStorage.getItem(localKey);
+          if (raw) {
+            const data = JSON.parse(raw);
+
+            const items = data.items || [];
+            const addons = (data.dropdownInputs || []).map((a) => ({
+              name: a.value,
+              price: a.price,
+            }));
+            const advances = data.staffAdvances || [];
+
+            const totalItems = items.reduce(
+              (sum, i) => sum + (parseFloat(i.price) || 0),
+              0
+            );
+            const totalAddons = addons.reduce(
+              (sum, i) => sum + (parseFloat(i.price) || 0),
+              0
+            );
+            const totalAdvances = advances.reduce(
+              (sum, i) => sum + (parseFloat(i.amount) || 0),
+              0
+            );
+            const totalExpenses = totalItems + totalAddons + totalAdvances;
+
+            const casherData = {
+              casherName: data.casherName || key,
+              category: key,
+              items,
+              addons,
+              staffAdvances: advances,
+              totalCashersAmount: totalExpenses,
+              totalSealAmount: parseFloat(data.totalSale || 0),
+              totalMoneyLift: parseFloat(data.moneyLift || 0),
+              shot:
+                parseFloat(data.totalSale || 0) -
+                totalExpenses -
+                parseFloat(data.moneyLift || 0),
+            };
+
+            const index = cashers.findIndex(
+              (c) => c.casherName === casherData.casherName
+            );
+            if (index >= 0) {
+              cashers[index] = casherData;
+            } else {
+              cashers.push(casherData);
+            }
+          }
+        });
+
+        // ✅ 3) Merge local storage drinks
+        ["tea", "juice"].forEach((key) => {
+          const localKey = `expense-form-${date}-${key}`;
+          const raw = localStorage.getItem(localKey);
+          if (raw) {
+            const data = JSON.parse(raw);
+            const soldAmount = parseFloat(data.soldAmount || 0);
+            const commission = parseFloat(data.commission || 0);
+
+            const rawAddons = cashers.flatMap((c) =>
+              c.addons.filter((a) => a.name === key)
+            );
+            const drinkTotal = rawAddons.reduce(
+              (sum, a) => sum + (parseFloat(a.price) || 0),
+              0
+            );
+
+            const commissionValue =
+              key === "tea" ? (soldAmount * commission) / 100 : commission;
+
+            const drinkData = {
+              drinkType: key,
+              soldAmount,
+              commissionPercent: commission,
+              commissionValue: parseFloat(commissionValue.toFixed(2)),
+              finalNetAmount: parseFloat(
+                (soldAmount - drinkTotal - commissionValue).toFixed(2)
+              ),
+            };
+
+            const index = drinks.findIndex((d) => d.drinkType === key);
+            if (index >= 0) {
+              drinks[index] = drinkData;
+            } else {
+              drinks.push(drinkData);
+            }
+          }
+        });
+
+        // ✅ 4) Totals
+        const totalCashersAmount = cashers.reduce(
+          (s, c) => s + (c.totalCashersAmount || 0),
+          0
+        );
+        const totalDrinksAmount = drinks.reduce(
+          (s, d) => s + (d.finalNetAmount || 0),
+          0
+        );
+        const totalCashersSale = cashers.reduce(
+          (s, c) => s + (c.totalSealAmount || 0),
+          0
+        );
+
+        const totalTeaJuiceInCashers = cashers.reduce((s, c) => {
+          const teaJuice = c.addons
+            .filter((a) => a.name === "tea" || a.name === "juice")
+            .reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
+          return s + teaJuice;
+        }, 0);
+
+        const totalCashersExpensesExclTeaJuice = cashers.reduce((s, c) => {
+          const items = c.items.reduce(
+            (sum, i) => sum + (parseFloat(i.price) || 0),
+            0
+          );
+          const otherAddons = c.addons
+            .filter((a) => a.name !== "tea" && a.name !== "juice")
+            .reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
+          const advances = c.staffAdvances
+            ? c.staffAdvances.reduce(
+                (sum, a) => sum + (parseFloat(a.amount) || 0),
+                0
+              )
+            : 0;
+          return s + items + otherAddons + advances;
+        }, 0);
+
+        const totalBusiness = totalCashersSale + totalDrinksAmount;
+        const payout =
+          totalCashersSale -
+          totalDrinksAmount -
+          totalCashersExpensesExclTeaJuice;
+
+        // ✅ 5) Save all to state
+        setTotalDetails({
+          date,
+          cashers,
+          drinks,
+          totalCashersAmount,
+          totalDrinksAmount,
+          grandTotal: totalCashersAmount + totalDrinksAmount,
+          totalCashersSale,
+          totalTeaJuiceInCashers,
+          totalCashersExpensesExclTeaJuice,
+          totalBusiness,
+          payout,
+        });
+      } catch (err) {
+        console.error(err);
         setTotalDetails(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch total details:", error);
-      setTotalDetails(null);
+    };
+
+    buildLiveSummary();
+  }, [category, date]);
+
+  // ✅ Load saved form from localStorage every time path changes
+  useEffect(() => {
+    if (!date || !category) return;
+    const saved = localStorage.getItem(localKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setCasherName(parsed.casherName || "");
+      setItems(parsed.items || [{ id: 1, name: "", price: "" }]);
+      setDropdownInputs(parsed.dropdownInputs || []);
+      setStaffAdvances(parsed.staffAdvances || []);
+      setTotalSale(parsed.totalSale || "");
+      setMoneyLift(parsed.moneyLift || "");
+      setSoldAmount(parsed.soldAmount || "");
+      setCommission(parsed.commission || "");
     }
-  };
+  }, [localKey, router.asPath]);
 
-  fetchTotalDetails();
-}, [category, date]);
+  //   const needed=["tea","juice"]
+  // const filter= dropdownInputs.filter(e =>needed.includes(e.value)).reduce((sum,item)=>sum+item.price)
 
+  // console.log("filters::::::::::::::::::::",filter)
 
-  const handleSubmit = async () => {
-    try {
-      // 1. Check if expense already exists
-      const checkRes = await fetch(
-        `/api/v1/expense/check-duplicate?date=${date}&category=${category}`
-      );
-      const checkData = await checkRes.json();
-
-      if (checkData.exists) {
-        alert("An expense for this date and category already exists.");
-        return;
-      }
-      if (isDrink(category)) {
-        if (!soldAmount || !commission) {
-          alert("Please enter both sold amount and commission for this drink.");
-          return;
-        }
-      }
-
-      // 2. Build payload as before
-      const payload = {
-        date,
-        category,
-        type: isCasher(category) ? "casher" : "drink",
-        casherName: isCasher(category) ? casherName : undefined,
-        items: isCasher(category)
-          ? items.map(({ name, price }) => ({
-              name,
-              price: parseFloat(price),
-            }))
-          : [],
-        totalCashersAmount: isCasher(category) ? total : undefined,
-        totalSealAmount: isCasher(category)
-          ? parseFloat(totalSale) || 0
-          : undefined,
-        totalMoneyLift: isCasher(category)
-          ? parseFloat(moneyLift) || 0
-          : undefined,
-        shot: isCasher(category)
-          ? (parseFloat(totalSale) || 0) - (parseFloat(moneyLift) || 0)
-          : undefined,
-
-        drinkType: isDrink(category) ? category : undefined,
-        soldAmount: isDrink(category) ? parseFloat(soldAmount) : undefined,
-        commissionPercent: isDrink(category)
-          ? parseFloat(commission)
-          : undefined,
-        commissionValue: isDrink(category)
-          ? parseFloat(((soldAmount * commission) / 100).toFixed(2))
-          : undefined,
-        finalNetAmount: isDrink(category)
-          ? parseFloat(
-              (
-                soldAmount -
-                drinkTotal -
-                (soldAmount * commission) / 100
-              ).toFixed(2)
-            )
-          : undefined,
-      };
-
-      // 3. Save if not duplicate
-      const response = await fetch("/api/v1/expense/add-expense", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message);
-
-      alert("Expense saved successfully!");
-      router.push("/");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save expense.");
-    }
-  };
-
-  const handleAdd = () => {
-    setItems([...items, { id: Date.now(), name: "", price: "" }]);
-  };
-
-  const handleRemove = (id) => {
-    setItems(items.filter((item) => item.id !== id));
-  };
-
-  const handleChange = (id, field, value) => {
-    setItems(
-      items.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  };
-
-  const addDropdownInput = () => {
-    setDropdownInputs([
-      ...dropdownInputs,
-      { id: Date.now(), value: "tea", price: "" },
-    ]);
-  };
-
-  const updateDropdownInput = (id, field, value) => {
-    setDropdownInputs(
-      dropdownInputs.map((d) => (d.id === id ? { ...d, [field]: value } : d))
-    );
-  };
-
-  const removeDropdownInput = (id) => {
-    setDropdownInputs(dropdownInputs.filter((d) => d.id !== id));
-  };
-
-  const addStaffAdvance = () => {
-    setStaffAdvances([
-      ...staffAdvances,
-      { id: Date.now(), staffId: "", amount: "" },
-    ]);
-  };
-
-  const updateStaffAdvance = (id, field, value) => {
-    setStaffAdvances(
-      staffAdvances.map((entry) =>
-        entry.id === id ? { ...entry, [field]: value } : entry
-      )
-    );
-  };
-
-  const removeStaffAdvance = (id) => {
-    setStaffAdvances(staffAdvances.filter((entry) => entry.id !== id));
-  };
-
-  const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-  // total of casher items
+  //  Calculate totals
   const itemsTotal = items.reduce(
     (sum, item) => sum + (parseFloat(item.price) || 0),
     0
   );
-
-  // total of dropdown inputs (tea, juice, other)
   const dropdownTotal = dropdownInputs.reduce(
     (sum, d) => sum + (parseFloat(d.price) || 0),
     0
   );
-
-  // total of staff advances
   const staffAdvanceTotal = staffAdvances.reduce(
     (sum, s) => sum + (parseFloat(s.amount) || 0),
     0
   );
-
-  // final grand total
   const total = itemsTotal + dropdownTotal + staffAdvanceTotal;
+  // const excludeTeaJuice=
+  //    totalExpense=total +exclude
+  // ✅ Calculate drink total if needed
+  useEffect(() => {
+    if (!isDrink(category)) return;
+
+    const updateFinalNet = () => {
+      const sold = parseFloat(soldAmount) || 0;
+      const comm = parseFloat(commission) || 0;
+      const commValue = category === "tea" ? (sold * comm) / 100 : comm;
+      const finalNet = sold - drinkTotal - commValue;
+
+      // Save final net in localStorage under clear name:
+      const localKey = `expense-form-${date}-${category}`;
+      const data = JSON.parse(localStorage.getItem(localKey) || "{}");
+      data.remaining = finalNet;
+      localStorage.setItem(localKey, JSON.stringify(data));
+    };
+
+    updateFinalNet();
+  }, [soldAmount, commission, drinkTotal, category, date]);
 
   useEffect(() => {
     if (!isDrink(category)) return;
 
     const getDrinkTotal = () => {
-      const sources = ["casher1", "casher2"];
+      const sources = ["casher1", "casher2", "casher3"];
       let total = 0;
 
       sources.forEach((src) => {
-        const key = `expenses-${date}-${src}`;
-        const data = JSON.parse(localStorage.getItem(key) || "[]");
-        data.forEach((item) => {
-          if (item.name?.toLowerCase() === category.toLowerCase()) {
-            total += parseFloat(item.price) || 0;
+        const key = `expense-form-${date}-${src}`;
+        const data = JSON.parse(localStorage.getItem(key) || "{}");
+        const addons = data.dropdownInputs || [];
+
+        addons.forEach((addon) => {
+          if (addon.value?.toLowerCase() === category.toLowerCase()) {
+            total += parseFloat(addon.price) || 0;
           }
         });
       });
@@ -244,26 +366,229 @@ export default function CategoryPage() {
     getDrinkTotal();
   }, [category, date]);
 
+  // ✅ Handlers that save instantly
+  const handleCasherNameChange = (value) => {
+    setCasherName(value);
+    saveToLocalStorage({ casherName: value });
+  };
+
+  const handleAdd = () => {
+    const updated = [...items, { id: Date.now(), name: "", price: "" }];
+    setItems(updated);
+    saveToLocalStorage({ items: updated });
+  };
+
+  const handleRemove = (id) => {
+    const updated = items.filter((item) => item.id !== id);
+    setItems(updated);
+    saveToLocalStorage({ items: updated });
+  };
+
+  const handleChange = (id, field, value) => {
+    const updated = items.map((item) =>
+      item.id === id ? { ...item, [field]: value } : item
+    );
+    setItems(updated);
+    saveToLocalStorage({ items: updated });
+  };
+
+  const addDropdownInput = () => {
+    const updated = [
+      ...dropdownInputs,
+      { id: Date.now(), value: "tea", price: "" },
+    ];
+    setDropdownInputs(updated);
+    saveToLocalStorage({ dropdownInputs: updated });
+  };
+
+  const updateDropdownInput = (id, field, value) => {
+    const updated = dropdownInputs.map((d) =>
+      d.id === id ? { ...d, [field]: value } : d
+    );
+    setDropdownInputs(updated);
+    saveToLocalStorage({ dropdownInputs: updated });
+  };
+
+  const removeDropdownInput = (id) => {
+    const updated = dropdownInputs.filter((d) => d.id !== id);
+    setDropdownInputs(updated);
+    saveToLocalStorage({ dropdownInputs: updated });
+  };
+
+  const addStaffAdvance = () => {
+    const updated = [
+      ...staffAdvances,
+      { id: Date.now(), staffId: "", amount: "" },
+    ];
+    setStaffAdvances(updated);
+    saveToLocalStorage({ staffAdvances: updated });
+  };
+
+  const updateStaffAdvance = (id, field, value) => {
+    const updated = staffAdvances.map((entry) =>
+      entry.id === id ? { ...entry, [field]: value } : entry
+    );
+    setStaffAdvances(updated);
+    saveToLocalStorage({ staffAdvances: updated });
+  };
+
+  const removeStaffAdvance = (id) => {
+    const updated = staffAdvances.filter((entry) => entry.id !== id);
+    setStaffAdvances(updated);
+    saveToLocalStorage({ staffAdvances: updated });
+  };
+
+  const handleTotalSaleChange = (value) => {
+    setTotalSale(value);
+    saveToLocalStorage({ totalSale: value });
+  };
+
+  const handleMoneyLiftChange = (value) => {
+    setMoneyLift(value);
+    saveToLocalStorage({ moneyLift: value });
+  };
+
+  const handleSoldAmountChange = (value) => {
+    setSoldAmount(value);
+    saveToLocalStorage({ soldAmount: value });
+  };
+
+  const handleCommissionChange = (value) => {
+    setCommission(value);
+    saveToLocalStorage({ commission: value });
+  };
+
+  const handleFinalSubmit = async () => {
+    const toastId = toast.loading("Submitting all expenses...");
+    try {
+      const keys = ["casher1", "casher2", "casher3", "tea", "juice"];
+
+      for (const key of keys) {
+        const localKey = `expense-form-${date}-${key}`;
+        const raw = localStorage.getItem(localKey);
+        if (!raw) continue;
+
+        const data = JSON.parse(raw);
+
+        let payload;
+
+        if (["casher1", "casher2", "casher3"].includes(key)) {
+          const items = data.items || [];
+          const addons = data.dropdownInputs || [];
+          const advances = data.staffAdvances || [];
+
+          const totalItems = items.reduce(
+            (sum, item) => sum + (parseFloat(item.price) || 0),
+            0
+          );
+          const totalAddons = addons.reduce(
+            (sum, a) => sum + (parseFloat(a.price) || 0),
+            0
+          );
+          const totalAdvance = advances.reduce(
+            (sum, s) => sum + (parseFloat(s.amount) || 0),
+            0
+          );
+          const total = totalItems + totalAddons + totalAdvance;
+
+          payload = {
+            date,
+            category: key,
+            type: "casher",
+            casherName: data.casherName,
+            items: items.map((i) => ({
+              name: i.name,
+              price: parseFloat(i.price),
+            })),
+            addons,
+            staffAdvances: advances.map((a) => ({
+              staffId: a.staffId,
+              amount: parseFloat(a.amount),
+            })),
+            totalCashersAmount: total,
+            totalSealAmount: parseFloat(data.totalSale || 0),
+            totalMoneyLift: parseFloat(data.moneyLift || 0),
+            shot:
+              parseFloat(data.totalSale || 0) -
+              total -
+              parseFloat(data.moneyLift || 0),
+          };
+        }
+
+        if (["tea", "juice"].includes(key)) {
+          const soldAmount = parseFloat(data.soldAmount || 0);
+          const commission = parseFloat(data.commission || 0);
+          const rawFromCashers = totalDetails.cashers.flatMap((c) =>
+            c.addons.filter((a) => a.name === key)
+          );
+          const drinkTotal = rawFromCashers.reduce(
+            (sum, a) => sum + (parseFloat(a.price) || 0),
+            0
+          );
+
+          const commissionValue =
+            key === "tea" ? (soldAmount * commission) / 100 : commission;
+
+          payload = {
+            date,
+            category: key,
+            type: "drink",
+            drinkType: key,
+            soldAmount,
+            commissionPercent: commission,
+            commissionValue: parseFloat(commissionValue.toFixed(2)),
+            finalNetAmount: parseFloat(
+              (soldAmount - drinkTotal - commissionValue).toFixed(2)
+            ),
+          };
+        }
+
+        const res = await fetch("/api/v1/expense/add-expense", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message);
+        }
+
+        // Clear saved localStorage
+        localStorage.removeItem(localKey);
+      }
+
+      toast.success("All expenses submitted!", { id: toastId });
+      router.push("/expenses"); // or refresh summary
+    } catch (error) {
+      console.error(error);
+      toast.error("Error submitting all expenses", { id: toastId });
+    }
+  };
+
+  const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
   return (
     <div
       className={` bg-cover bg-center bg-no-repeat ${poppins.className}`}
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
+      <Toaster />
       <div className=" bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="w-full relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
           <button
             onClick={() => router.back()}
-            className="text-black absolute mt-2 mb-3 hover:bg-black/50 px-2 py-1 text-2xl -top-18 -left-3 rounded "
+            className="text-black absolute  mt-2 mb-3 hover:bg-black/50 px-2 py-1 text-2xl  -top-2 -left-1 rounded "
           >
             <FaArrowLeft className="mr-2" />
           </button>
 
-          <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
+          <div className="flex justify-between items-center mb-4 mt-4 gap-2 flex-wrap">
             {isCasher(category) && (
               <input
                 type="text"
                 value={casherName}
-                onChange={(e) => setCasherName(e.target.value)}
+                onChange={(e) => handleCasherNameChange(e.target.value)}
                 placeholder="Cashier name"
                 className="p-2 rounded border text-black flex-1 min-w-[150px]"
               />
@@ -372,8 +697,8 @@ export default function CategoryPage() {
                     className="p-2 rounded border bg-white text-black w-1/2"
                   >
                     <option value="">Select staff</option>
-                    {staffList.map((s) => (
-                      <option key={s.id} value={s.id}>
+                    {staffList.map((s, index) => (
+                      <option key={index} value={s._id}>
                         {s.name}
                       </option>
                     ))}
@@ -400,15 +725,17 @@ export default function CategoryPage() {
               <input
                 type="number"
                 value={totalSale}
-                onChange={(e) => setTotalSale(e.target.value)}
+                required
+                onChange={(e) => handleTotalSaleChange(e.target.value)}
                 placeholder="Enter total sale"
                 className="p-2 rounded w-full border text-black mb-4"
               />
               <label className="block mb-1 text-white">Remaining Money </label>
               <input
                 type="number"
-                value={totalSale}
-                onChange={(e) => setTotalSale(e.target.value)}
+                readOnly
+                value={totalSale - total}
+                // onChange={(e) => setTotalSale(e.target.value)}
                 placeholder="Enter total sale"
                 className="p-2 rounded w-full border text-black mb-4"
               />
@@ -418,8 +745,9 @@ export default function CategoryPage() {
               </label>
               <input
                 type="number"
-                value={totalSale -total }
-                onChange={(e) => setMoneyLift(e.target.value)}
+                required
+                value={moneyLift}
+                onChange={(e) => handleMoneyLiftChange(e.target.value)}
                 placeholder="Enter money left"
                 className="p-2 rounded w-full border text-black mb-4"
               />
@@ -428,165 +756,237 @@ export default function CategoryPage() {
               <input
                 type="number"
                 readOnly
-                value={totalSale && moneyLift ? totalSale - moneyLift : 0}
+                value={
+                  totalSale && moneyLift
+                    ? parseFloat(totalSale) -
+                      parseFloat(total) -
+                      parseFloat(moneyLift)
+                    : 0
+                }
                 className="p-2 rounded w-full border text-black mb-4"
               />
 
               <div className="text-right text-xl font-bold text-white drop-shadow border-t border-white/30 pt-4">
                 Total: ₹{total.toFixed(2)}
               </div>
-               <button
-            onClick={handleSubmit}
-            className="bg-purple-700 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mt-"
-          >
-            💾 Save Expense
-          </button>
             </>
           )}
 
           {/* Tea/Juice UI */}
-{isDrink(category) && (
-  <div className="flex flex-col justify-between min-h-[70vh] w-full max-w-md mx-auto px-4 py-6">
-    <div className="space-y-4">
-      <div className="bg-black/40 p-4 rounded text-white">
-        <p className="font-medium">
-          Total {capitalize(category)} from Cashers:
-        </p>
-        <p className="text-xl">₹{drinkTotal.toFixed(2)}</p>
-      </div>
-
-      <input
-        type="number"
-        value={soldAmount}
-        onChange={(e) => setSoldAmount(e.target.value)}
-        placeholder="Enter total sold (e.g. 100)"
-        className="p-3 rounded w-full border text-black"
-      />
-
-      <input
-        type="number"
-        value={commission}
-        onChange={(e) => setCommission(e.target.value)}
-        placeholder="Enter commission %"
-        className="p-3 rounded w-full border text-black"
-      />
-
-      {soldAmount && commission && (
-        <div className="bg-black/40 p-4 rounded text-white space-y-2">
-          <p>
-            Commission ({commission}% of ₹{soldAmount}): ₹
-            {((soldAmount * commission) / 100).toFixed(2)}
-          </p>
-          <p>Raw Total from Cashers: ₹{drinkTotal.toFixed(2)}</p>
-          <hr className="border-white/20 my-2" />
-          <p className="font-bold text-lg">
-            Final Net = ₹
-            {(
-              soldAmount -
-              drinkTotal -
-              (soldAmount * commission) / 100
-            ).toFixed(2)}
-          </p>
-        </div>
-      )}
-    </div>
-
-    <button
-      onClick={handleSubmit}
-      className="mt-6 w-full py-3 rounded-lg bg-purple-700 text-white font-semibold hover:opacity-90 transition"
-    >
-      💾 Save Expense
-    </button>
-  </div>
-)}
-
-{isTotalDetails(category) && (
-  <div className="flex flex-col justify-between min-h-[70vh] w-full max-w-2xl mx-auto px-4 py-6">
-    {totalDetails ? (
-      <div className="space-y-6 text-white">
-
-        <h2 className="text-xl font-bold mb-2">
-          Daily Summary — {totalDetails.date}
-        </h2>
-
-        <div className="bg-black/40 p-4 rounded">
-          <p><strong>Total Cashers Amount:</strong> ₹{totalDetails.totalCashersAmount.toFixed(2)}</p>
-          <p><strong>Total Drinks Amount:</strong> ₹{totalDetails.totalDrinksAmount.toFixed(2)}</p>
-          <p><strong>Grand Total:</strong> ₹{totalDetails.grandTotal.toFixed(2)}</p>
-        </div>
-
-        {/* CASHERS DETAIL */}
-        <div className="bg-black/40 p-4 rounded">
-          <h3 className="text-lg font-bold mb-2">Cashers</h3>
-          {totalDetails.cashers.length > 0 ? (
-            totalDetails.cashers.map((c, idx) => (
-              <div key={idx} className="mb-4 border-b border-white/20 pb-2">
-                <p className="font-semibold mb-1">{c.casherName}</p>
-
-                {/* Main items */}
-                {c.items.length > 0 && (
-                  <>
-                    <p className="underline text-sm">Main Items:</p>
-                    <ul className="ml-4 list-disc">
-                      {c.items.map((item, i) => (
-                        <li key={i}>{item.name}: ₹{item.price}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-                {/* Addons */}
-                {c.addons.length > 0 && (
-                  <>
-                    <p className="underline text-sm mt-2">Addons (Tea/Juice/Other):</p>
-                    <ul className="ml-4 list-disc">
-                      {c.addons.map((addon, i) => (
-                        <li key={i}>{addon.name}: ₹{addon.price}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-                {/* Cashier totals */}
-                <div className="mt-2 text-sm">
-                  <p>Total Cashers Amount: ₹{c.totalCashersAmount}</p>
-                  <p>Total Sale: ₹{c.totalSealAmount}</p>
-                  <p>Money Lift: ₹{c.totalMoneyLift}</p>
-                  <p>Shot: ₹{c.shot}</p>
+          {isDrink(category) && (
+            <div className="flex flex-col justify-between min-h-[70vh] w-full max-w-md mx-auto px-4 py-6">
+              <div className="space-y-4">
+                <div className="bg-black/40 p-4 rounded text-white">
+                  <p className="font-medium">
+                    Total {capitalize(category)} from Cashers:
+                  </p>
+                  <p className="text-xl">₹{drinkTotal.toFixed(2)}</p>
                 </div>
+
+                <input
+                  type="number"
+                  value={soldAmount}
+                  onChange={(e) => handleSoldAmountChange(e.target.value)}
+                  placeholder="Enter total sold"
+                  className="p-3 rounded w-full border text-black"
+                />
+
+                {category === "tea" ? (
+                  <input
+                    type="number"
+                    value={commission}
+                    onChange={(e) => handleCommissionChange(e.target.value)}
+                    placeholder="Enter commission %"
+                    className="p-3 rounded w-full border text-black"
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    value={commission}
+                    onChange={(e) => handleCommissionChange(e.target.value)}
+                    placeholder="Enter fixed commission amount"
+                    className="p-3 rounded w-full border text-black"
+                  />
+                )}
+
+                {soldAmount && (
+                  <div className="bg-black/40 p-4 rounded text-white space-y-2">
+                    {category === "tea" ? (
+                      <p>
+                        Commission ({commission}% of ₹{soldAmount}): ₹
+                        {((soldAmount * commission) / 100).toFixed(2)}
+                      </p>
+                    ) : (
+                      <p>Fixed Commission: ₹{commission}</p>
+                    )}
+
+                    <p>Raw Total from Cashers: ₹{drinkTotal.toFixed(2)}</p>
+                    <hr className="border-white/20 my-2" />
+                    <p className="font-bold text-lg">
+                      Final Net = ₹
+                      {(
+                        soldAmount -
+                        drinkTotal -
+                        (category === "tea"
+                          ? (soldAmount * commission) / 100
+                          : parseFloat(commission || 0))
+                      ).toFixed(2)}
+                    </p>
+                  </div>
+                )}
               </div>
-            ))
-          ) : (
-            <p>No cashers recorded.</p>
+            </div>
           )}
-        </div>
 
-        {/* DRINKS DETAIL */}
-        <div className="bg-black/40 p-4 rounded">
-          <h3 className="text-lg font-bold mb-2">Drinks</h3>
-          {totalDetails.drinks.length > 0 ? (
-            totalDetails.drinks.map((d, idx) => (
-              <div key={idx} className="mb-2 border-b border-white/20 pb-1">
-                <p className="font-semibold">{d.drinkType}</p>
-                <p>Sold Amount: ₹{d.soldAmount}</p>
-                <p>Commission: {d.commissionPercent}% → ₹{d.commissionValue}</p>
-                <p>Final Net: ₹{d.finalNetAmount}</p>
-              </div>
-            ))
-          ) : (
-            <p>No drinks recorded.</p>
+          {isTotalDetails(category) && (
+            <div className="flex flex-col justify-between min-h-[70vh] w-full max-w-2xl mx-auto px-4 py-6">
+              {totalDetails ? (
+                <div className="space-y-6 text-white">
+                  <h2 className="sm:text-xl font-bold mb-2">
+                    Daily Summary — {totalDetails.date}
+                  </h2>
+
+                  <div className="bg-black/40 p-4 rounded space-y-2">
+                    <p>
+                      <strong>Total Cashers Sale:</strong> ₹
+                      {totalDetails?.totalCashersSale?.toFixed(2)}
+                    </p>
+                    <p>
+                      <strong>Total Drinks Amount:</strong> ₹
+                      {totalDetails?.totalDrinksAmount?.toFixed(2)}
+                    </p>
+                    <p>
+                      <strong>Total Business (Sale + Drinks):</strong> ₹
+                      {totalDetails?.totalBusiness?.toFixed(2)}
+                    </p>
+                    <p>
+                      <strong>Total Cashers Expenses (Excl. Tea/Juice):</strong>{" "}
+                      ₹
+                      {totalDetails?.totalCashersExpensesExclTeaJuice?.toFixed(
+                        2
+                      )}
+                    </p>
+
+                    <p>
+                      <strong>Remaining / Payout:</strong> ₹
+                      {totalDetails?.payout?.toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* CASHERS DETAIL */}
+                  <div className="bg-black/40 p-4 rounded">
+                    <h3 className="text-lg font-bold mb-2">Cashers</h3>
+                    {totalDetails.cashers.length > 0 ? (
+                      totalDetails.cashers.map((c, idx) => (
+                        <div
+                          key={idx}
+                          className="mb-4 border-b border-white/20 pb-2"
+                        >
+                          <p className="font-semibold mb-1">{c.casherName}</p>
+
+                          {/* Main items */}
+                          {c.items.length > 0 && (
+                            <>
+                              <p className="underline text-sm">Main Items:</p>
+                              <ul className="ml-4 list-disc">
+                                {c.items.map((item, i) => (
+                                  <li key={i}>
+                                    {item.name}: ₹{item.price}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+
+                          {/* Addons */}
+                          {c.addons.length > 0 && (
+                            <>
+                              <p className="underline text-sm mt-2">
+                                Addons (Tea/Juice/Other):
+                              </p>
+                              <ul className="ml-4 list-disc">
+                                {c.addons.map((addon, i) => (
+                                  <li key={i}>
+                                    {addon.name}: ₹{addon.price}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+
+                          {/* Cashier totals */}
+                          <div className="mt-2 text-sm">
+                            <p>Total Cashers Amount: ₹{c.totalCashersAmount}</p>
+                            <p>Total Sale: ₹{c.totalSealAmount}</p>
+                            <p>Money Lift: ₹{c.totalMoneyLift}</p>
+                            <p>Shot: ₹{c.shot}</p>
+                          </div>
+                          {c.staffAdvances && c.staffAdvances.length > 0 && (
+                            <>
+                              <p className="underline text-sm mt-2">
+                                Staff Advances:
+                              </p>
+                              <ul className="ml-4 list-disc">
+                                {c.staffAdvances.map((adv, i) => (
+                                  <li key={i}>
+                                    {adv.staffId || "N/A"}: ₹{adv.amount}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p>No cashers recorded.</p>
+                    )}
+                  </div>
+
+                  {/* DRINKS DETAIL */}
+                  <div className="bg-black/40 p-4 rounded">
+                    <h3 className="text-lg font-bold mb-2">Drinks</h3>
+                    {totalDetails.drinks.length > 0 ? (
+                      totalDetails.drinks.map((d, idx) => (
+                        <div
+                          key={idx}
+                          className="mb-2 border-b border-white/20 pb-1"
+                        >
+                          <p className="font-semibold">{d.drinkType}</p>
+                          <p>Sold Amount: ₹{d.soldAmount}</p>
+                          <p>
+                            Commission:{" "}
+                            {d.drinkType === "tea"
+                              ? `${d.commissionPercent}%`
+                              : "Fixed"}{" "}
+                            → ₹{d.commissionValue}
+                          </p>
+
+                          <p>Final Net: ₹{d.finalNetAmount}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No drinks recorded.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="min-h-screen flex items-center justify-center bg-white">
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="mt-4 text-gray-600 font-medium">
+                      Loading Details list...
+                    </p>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleFinalSubmit}
+                className="bg-green-700 text-white px-4 py-3 mt-6 rounded-md w-full font-semibold"
+              >
+                Final Submit All Expenses
+              </button>
+            </div>
           )}
-        </div>
-
-      </div>
-    ) : (
-      <p className="text-center text-white">Loading daily details...</p>
-    )}
-  </div>
-)}
-
-
-         
         </div>
       </div>
     </div>
