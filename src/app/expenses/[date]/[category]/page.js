@@ -22,7 +22,7 @@ export default function CategoryPage() {
   const { date, category } = useParams();
   return (
     <CategoryPageContent
-      key={router.asPath} // ✅ force remount
+      key={router.asPath} // force remount
       date={date}
       category={category}
     />
@@ -283,7 +283,7 @@ function CategoryPageContent({ date, category }) {
     buildLiveSummary();
   }, [category, date]);
 
-  // ✅ Load saved form from localStorage every time path changes
+  //  Load saved form from localStorage every time path changes
   useEffect(() => {
     if (!date || !category) return;
     const saved = localStorage.getItem(localKey);
@@ -655,6 +655,7 @@ function CategoryPageContent({ date, category }) {
                     }
                     className="p-2 rounded border bg-white text-gray-800 w-1/2 sm:w-1/3"
                   >
+                  
                     <option value="tea">Tea</option>
                     <option value="juice">Juice</option>
                     <option value="other">Other</option>
