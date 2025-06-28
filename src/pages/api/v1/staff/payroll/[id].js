@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
-import Expense from "@/models/Expense";
+import Expense from "@/models/DailySummary";
 import Staff from "@/models/Staff";
 import SalaryPayment from "@/models/SalaryPayment";
 

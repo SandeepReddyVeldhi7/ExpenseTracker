@@ -2,7 +2,7 @@
 
 import { connectDB } from "@/lib/db";
 import Staff from "@/models/Staff";
-import Expense from "@/models/Expense";
+import Expense from "@/models/DailySummary";
 
 export default async function handler(req, res) {
   await connectDB();

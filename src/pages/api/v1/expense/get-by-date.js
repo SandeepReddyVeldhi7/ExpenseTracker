@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
-import Expense from "@/models/Expense";
+import DailySummary from "@/models/DailySummary";
+
 
 
 export default async function handler(req, res) {
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: "Date is required" });
     }
 
-    const expenses = await Expense.find({ date });
+    const expenses = await DailySummary.find({ date });
 
     if (!expenses.length) {
       return res.status(404).json({ message: "No expenses found" });

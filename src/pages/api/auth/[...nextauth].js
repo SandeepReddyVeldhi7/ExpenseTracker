@@ -11,6 +11,7 @@ async function findUser(credentials) {
 
   // Try finding an owner first (by email only)
   let user = await User.findOne({ email: credentials.email });
+  console.log("user", credentials.email );
   let role = "owner";
 
   // If not found, try finding staff by email OR username

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Poppins } from "next/font/google";
 import DataTable from "react-data-table-component";
@@ -13,22 +12,27 @@ const poppins = Poppins({
 export default function ReportsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [type, setType] = useState("all");
   const [expenses, setExpenses] = useState([]);
+  console.log("expenses", expenses);
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
 
   useEffect(() => {
     fetchReports();
   }, []);
+  const formatINR = (num) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+    }).format(num || 0);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
       let url = `/api/v1/expense/get-expense?`;
       if (startDate) url += `startDate=${startDate}&`;
-      if (endDate) url += `endDate=${endDate}&`;
-      if (type) url += `type=${type}`;
+      if (endDate) url += `endDate=${endDate}`;
 
       const res = await fetch(url);
       const data = await res.json();
@@ -39,10 +43,6 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleViewDetails = (expense) => {
-    setSelectedExpense(expense);
   };
 
   const columns = [
@@ -58,34 +58,33 @@ export default function ReportsPage() {
         }),
     },
     {
-      name: "Type",
-      selector: (row) => row.type,
-      sortable: true,
-      cell: (row) => <span className="capitalize">{row.type}</span>,
+      name: "Cashers",
+      selector: (row) => row.allCashers?.join(", "),
+      cell: (row) => row.allCashers?.join(", ") || "—",
     },
     {
-      name: "Total Amount",
+      name: "Total Sale Amount",
       selector: (row) => row.totalAmount,
       sortable: true,
-      cell: (row) => `₹${row.totalAmount?.toFixed(2)}`,
+      cell: (row) => `${formatINR(row.totalCashersSale?.toFixed(2))}`,
     },
+    // {
+    //   name: "Total Business",
+    //   selector: (row) => row.totalBusiness || 0,
+    //   sortable: true,
+    //   cell: (row) => `${formatINR(row.totalBusiness?.toFixed(2))}`,
+    // },
     {
-      name: "Total Business",
-      selector: (row) => row.totalBusiness || 0,
+      name: "Remaining / Payout",
+      selector: (row) => row.remainingAmount || 0,
       sortable: true,
-      cell: (row) => `₹${row.totalBusiness?.toFixed(2)}`,
-    },
-    {
-      name: "Payout",
-      selector: (row) => row.payout || 0,
-      sortable: true,
-      cell: (row) => `₹${row.payout?.toFixed(2)}`,
+      cell: (row) => `${formatINR(row.payout?.toFixed(2))}`,
     },
     {
       name: "Actions",
       cell: (row) => (
         <button
-          onClick={() => handleViewDetails(row)}
+          onClick={() => setSelectedExpense(row)}
           className="bg-blue-600 text-white px-3 py-1 rounded text-xs sm:text-sm"
         >
           View Details
@@ -124,19 +123,6 @@ export default function ReportsPage() {
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full p-3 rounded border bg-white/20 backdrop-blur text-white"
             />
-          </div>
-          <div>
-            <label className="block text-white mb-1">Type</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full p-3 rounded border bg-white/20 backdrop-blur text-white"
-            >
-              <option value="all">All</option>
-              <option value="advance">Advance</option>
-              <option value="casher">Casher</option>
-              <option value="drink">Drink</option>
-            </select>
           </div>
         </div>
 
@@ -180,7 +166,9 @@ export default function ReportsPage() {
           </p>
         )}
 
-        {/* Modal */}
+        
+      </div>
+      {/* Modal */}
         {selectedExpense && (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-md flex justify-center items-center z-50"
@@ -191,80 +179,91 @@ export default function ReportsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-2xl font-bold mb-4">
-                Details for{" "}
+                Daily Summary —{" "}
                 {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
               </h2>
 
-              <p>
-                <strong>Total Amount:</strong> ₹
-                {selectedExpense.totalAmount?.toFixed(2)}
-              </p>
-              <p>
-                <strong>Total Business:</strong> ₹
-                {selectedExpense.totalBusiness?.toFixed(2)}
-              </p>
-              <p>
-                <strong>Payout:</strong> ₹
-                {selectedExpense.payout?.toFixed(2)}
-              </p>
+              <div className="mb-4 space-y-2">
+                <p>
+                  <strong>1) Total Cashers Sale:</strong>{" "}
+                  {formatINR(selectedExpense.totalCashersSale?.toFixed(2))}
+                </p>
+                <p>
+                  <strong>2) Total Drinks Amount:</strong>{" "}
+                  {formatINR(selectedExpense.totalDrinksAmount?.toFixed(2))}
+                </p>
+                <p>
+                  <strong>3) Total Shot:</strong>{" "}
+                  {formatINR(selectedExpense.totalShot?.toFixed(2))}
+                </p>
+                <p>
+                  <strong>4) Total Cashers Expenses (Excl. Tea/Juice):</strong>{" "}
+                  {formatINR(
+                    selectedExpense?.totalCashersExpensesExclTeaJuice?.toFixed(2)
+                  )}
+                </p>
+                <p className="bg-gray-200 p-2 rounded">
+                  <strong>Remaining / Payout:</strong>{" "}
+                  {formatINR(selectedExpense?.payout?.toFixed(2))}
+                </p>
+              </div>
 
               <hr className="my-4" />
 
-              <h3 className="text-lg font-semibold mb-2">Breakdown:</h3>
-              {selectedExpense.rawExpenses &&
-              selectedExpense.rawExpenses.length > 0 ? (
-                selectedExpense.rawExpenses.map((exp, idx) => (
+              <h3 className="text-lg font-bold mb-2">Cashers</h3>
+              {selectedExpense?.cashers && selectedExpense?.cashers?.length > 0 ? (
+                selectedExpense?.cashers.map((c, idx) => (
                   <div
-                    key={exp._id || idx}
-                    className="mb-4 p-4 border border-gray-300 rounded"
+                    key={idx}
+                    className="mb-4 p-3 border border-gray-300 rounded"
                   >
-                    <p>
-                      <strong>Casher:</strong> {exp.casherName || "N/A"}
-                    </p>
-                    <p>
-                      <strong>Type:</strong> {exp.type} (
-                      {exp.category})
-                    </p>
-                    <p>
-                      <strong>Amount:</strong> ₹
-                      {exp.type === "casher"
-                        ? (exp.totalCashersAmount || 0).toFixed(2)
-                        : exp.type === "drink"
-                        ? (exp.soldAmount || 0).toFixed(2)
-                        : "—"}
-                    </p>
+                    <p className="font-semibold mb-1">{c?.casherName}</p>
+                    {c.items?.length > 0 && (
+                      <>
+                        <p className="underline text-sm">Main Items:</p>
+                        <ul className="ml-4 list-disc">
+                          {c?.items?.map((item, i) => (
+                            <li key={i}>
+                              {item.name}: ₹{item.price}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
 
-                    {exp.items?.length > 0 && (
+                    {c?.addons?.length > 0 && (
                       <>
-                        <p className="mt-2 font-medium">Items:</p>
-                        <ul className="list-disc pl-6">
-                          {exp.items.map((item, i) => (
-                            <li key={item._id || i}>
-                              {item.name} — ₹{item.price}
+                        <p className="underline text-sm mt-2">
+                          Addons (Tea/Juice/Other):
+                        </p>
+                        <ul className="ml-4 list-disc">
+                          {c.addons.map((addon, i) => (
+                            <li key={i}>
+                              {addon.name}: ₹{addon.price}
                             </li>
                           ))}
                         </ul>
                       </>
                     )}
-                    {exp.addons?.length > 0 && (
+
+                    <div className="mt-2 text-sm">
+                      <p>
+                        Total Cashers(expenses) Amount: {formatINR(c.totalCashersAmount)}
+                      </p>
+                      <p>Total Sale: {formatINR(c.totalSealAmount)}</p>
+                      <p>Money Lift: {formatINR(c.totalMoneyLift)}</p>
+                      <p>Shot: {formatINR(c.shot)}</p>
+                    </div>
+
+                    {c.staffAdvances?.length > 0 && (
                       <>
-                        <p className="mt-2 font-medium">Addons:</p>
-                        <ul className="list-disc pl-6">
-                          {exp.addons.map((addon, i) => (
-                            <li key={addon._id || i}>
-                              {addon.name} — ₹{addon.price}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                    {exp.staffAdvances?.length > 0 && (
-                      <>
-                        <p className="mt-2 font-medium">Staff Advances:</p>
-                        <ul className="list-disc pl-6">
-                          {exp.staffAdvances.map((sa, i) => (
-                            <li key={sa._id || i}>
-                              Staff: {sa.staffId} — ₹{sa.amount}
+                        <p className="underline text-sm mt-2">
+                          Staff Advances:
+                        </p>
+                        <ul className="ml-4 list-disc">
+                          {c.staffAdvances.map((adv, i) => (
+                            <li key={i}>
+                              Staff ID: {adv.staffId} — ₹{adv.amount}
                             </li>
                           ))}
                         </ul>
@@ -273,7 +272,30 @@ export default function ReportsPage() {
                   </div>
                 ))
               ) : (
-                <p>No detailed expenses found.</p>
+                <p>No cashers recorded.</p>
+              )}
+
+              <h3 className="text-lg font-bold mb-2">Drinks</h3>
+              {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
+                selectedExpense.drinks.map((d, idx) => (
+                  <div
+                    key={idx}
+                    className="mb-4 p-3 border border-gray-300 rounded"
+                  >
+                    <p className="font-semibold">{d.drinkType}</p>
+                    <p>Sold Amount: ₹{d.soldAmount}</p>
+                    <p>
+                      Commission:{" "}
+                      {d.drinkType === "tea"
+                        ? `${d.commissionPercent}%`
+                        : "Fixed"}{" "}
+                      → ₹{d.commissionValue}
+                    </p>
+                    <p>Final Net: ₹{d.finalNetAmount}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No drinks recorded.</p>
               )}
 
               <div className="flex justify-end">
@@ -287,7 +309,6 @@ export default function ReportsPage() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
