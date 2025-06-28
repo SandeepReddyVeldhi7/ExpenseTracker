@@ -127,7 +127,7 @@ function CategoryPageContent({ date, category }) {
           const raw = localStorage.getItem(localKey);
           if (raw) {
             const data = JSON.parse(raw);
-
+            console.log("data", data);
             const items = data.items || [];
             const addons = (data.dropdownInputs || []).map((a) => ({
               name: a.value,
@@ -227,6 +227,10 @@ function CategoryPageContent({ date, category }) {
           (s, c) => s + (c.totalSealAmount || 0),
           0
         );
+        const totalShot = cashers.reduce(
+          (sum, c) => sum + (parseFloat(c.shot) || 0),
+          0
+        );
 
         const totalTeaJuiceInCashers = cashers.reduce((s, c) => {
           const teaJuice = c.addons
@@ -256,12 +260,13 @@ function CategoryPageContent({ date, category }) {
         const payout =
           totalCashersSale -
           totalDrinksAmount -
-          totalCashersExpensesExclTeaJuice;
+          totalCashersExpensesExclTeaJuice- totalShot;
 
         // ✅ 5) Save all to state
         setTotalDetails({
           date,
           cashers,
+          totalShot,
           drinks,
           totalCashersAmount,
           totalDrinksAmount,
@@ -271,6 +276,7 @@ function CategoryPageContent({ date, category }) {
           totalCashersExpensesExclTeaJuice,
           totalBusiness,
           payout,
+     
         });
       } catch (err) {
         console.error(err);
@@ -458,115 +464,53 @@ function CategoryPageContent({ date, category }) {
     saveToLocalStorage({ commission: value });
   };
 
+ 
+
   const handleFinalSubmit = async () => {
-    const toastId = toast.loading("Submitting all expenses...");
+    const toastId = toast.loading("Submitting all data...");
+ const selectedDate = new Date(formData.date); // Or wherever your selected date is
+  const today = new Date();
+
+  // Remove time part for accurate date comparison
+  selectedDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  if (selectedDate > today) {
+    toast.error("Selected date cannot be in the future.");
+    return;
+  }
     try {
-      const keys = ["casher1", "casher2", "casher3", "tea", "juice"];
+      await fetch("/api/v1/expense/add-expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(totalDetails),
+      });
 
-      for (const key of keys) {
-        const localKey = `expense-form-${date}-${key}`;
-        const raw = localStorage.getItem(localKey);
-        if (!raw) continue;
-
-        const data = JSON.parse(raw);
-
-        let payload;
-
-        if (["casher1", "casher2", "casher3"].includes(key)) {
-          const items = data.items || [];
-          const addons = data.dropdownInputs || [];
-          const advances = data.staffAdvances || [];
-
-          const totalItems = items.reduce(
-            (sum, item) => sum + (parseFloat(item.price) || 0),
-            0
-          );
-          const totalAddons = addons.reduce(
-            (sum, a) => sum + (parseFloat(a.price) || 0),
-            0
-          );
-          const totalAdvance = advances.reduce(
-            (sum, s) => sum + (parseFloat(s.amount) || 0),
-            0
-          );
-          const total = totalItems + totalAddons + totalAdvance;
-
-          payload = {
-            date,
-            category: key,
-            type: "casher",
-            casherName: data.casherName,
-            items: items.map((i) => ({
-              name: i.name,
-              price: parseFloat(i.price),
-            })),
-            addons,
-            staffAdvances: advances.map((a) => ({
-              staffId: a.staffId,
-              amount: parseFloat(a.amount),
-            })),
-            totalCashersAmount: total,
-            totalSealAmount: parseFloat(data.totalSale || 0),
-            totalMoneyLift: parseFloat(data.moneyLift || 0),
-            shot:
-              parseFloat(data.totalSale || 0) -
-              total -
-              parseFloat(data.moneyLift || 0),
-          };
-        }
-
-        if (["tea", "juice"].includes(key)) {
-          const soldAmount = parseFloat(data.soldAmount || 0);
-          const commission = parseFloat(data.commission || 0);
-          const rawFromCashers = totalDetails.cashers.flatMap((c) =>
-            c.addons.filter((a) => a.name === key)
-          );
-          const drinkTotal = rawFromCashers.reduce(
-            (sum, a) => sum + (parseFloat(a.price) || 0),
-            0
-          );
-
-          const commissionValue =
-            key === "tea" ? (soldAmount * commission) / 100 : commission;
-
-          payload = {
-            date,
-            category: key,
-            type: "drink",
-            drinkType: key,
-            soldAmount,
-            commissionPercent: commission,
-            commissionValue: parseFloat(commissionValue.toFixed(2)),
-            finalNetAmount: parseFloat(
-              (soldAmount - drinkTotal - commissionValue).toFixed(2)
-            ),
-          };
-        }
-
-        const res = await fetch("/api/v1/expense/add-expense", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.message);
-        }
-
-        // Clear saved localStorage
-        localStorage.removeItem(localKey);
-      }
+      // clear localStorage
+      ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
+        localStorage.removeItem(`expense-form-${date}-${key}`);
+      });
 
       toast.success("All expenses submitted!", { id: toastId });
-      router.push("/expenses"); // or refresh summary
+      router.push("/expenses");
     } catch (error) {
       console.error(error);
-      toast.error("Error submitting all expenses", { id: toastId });
+      toast.error("Error submitting expenses", { id: toastId });
     }
   };
 
   const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+  const remainingAmount =
+    (totalDetails?.totalCashersSale || 0) -
+    (totalDetails?.totalDrinksAmount || 0) -
+    (totalDetails?.totalCashersExpensesExclTeaJuice || 0) -
+    (totalDetails?.totalShot || 0);
+  const formatINR = (num) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+    }).format(num || 0);
 
   return (
     <div
@@ -574,7 +518,7 @@ function CategoryPageContent({ date, category }) {
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
       <Toaster />
-      <div className=" bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className=" bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
         <div className="w-full relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
           <button
             onClick={() => router.back()}
@@ -655,7 +599,6 @@ function CategoryPageContent({ date, category }) {
                     }
                     className="p-2 rounded border bg-white text-gray-800 w-1/2 sm:w-1/3"
                   >
-                  
                     <option value="tea">Tea</option>
                     <option value="juice">Juice</option>
                     <option value="other">Other</option>
@@ -711,7 +654,7 @@ function CategoryPageContent({ date, category }) {
                       updateStaffAdvance(entry.id, "amount", e.target.value)
                     }
                     className="p-2 rounded border w-1/3 text-black"
-                    placeholder="Advance ₹"
+                    placeholder="Advance amount"
                   />
                   <button
                     onClick={() => removeStaffAdvance(entry.id)}
@@ -768,7 +711,7 @@ function CategoryPageContent({ date, category }) {
               />
 
               <div className="text-right text-xl font-bold text-white drop-shadow border-t border-white/30 pt-4">
-                Total: ₹{total.toFixed(2)}
+                Total: {total.toFixed(2)}
               </div>
             </>
           )}
@@ -781,7 +724,7 @@ function CategoryPageContent({ date, category }) {
                   <p className="font-medium">
                     Total {capitalize(category)} from Cashers:
                   </p>
-                  <p className="text-xl">₹{drinkTotal.toFixed(2)}</p>
+                  <p className="text-xl">{drinkTotal.toFixed(2)}</p>
                 </div>
 
                 <input
@@ -814,17 +757,17 @@ function CategoryPageContent({ date, category }) {
                   <div className="bg-black/40 p-4 rounded text-white space-y-2">
                     {category === "tea" ? (
                       <p>
-                        Commission ({commission}% of ₹{soldAmount}): ₹
+                        Commission ({commission}% of {soldAmount}):
                         {((soldAmount * commission) / 100).toFixed(2)}
                       </p>
                     ) : (
-                      <p>Fixed Commission: ₹{commission}</p>
+                      <p>Fixed Commission: {commission}</p>
                     )}
 
-                    <p>Raw Total from Cashers: ₹{drinkTotal.toFixed(2)}</p>
+                    <p>Raw Total from Cashers: {drinkTotal.toFixed(2)}</p>
                     <hr className="border-white/20 my-2" />
                     <p className="font-bold text-lg">
-                      Final Net = ₹
+                      Final Net =
                       {(
                         soldAmount -
                         drinkTotal -
@@ -849,28 +792,34 @@ function CategoryPageContent({ date, category }) {
 
                   <div className="bg-black/40 p-4 rounded space-y-2">
                     <p>
-                      <strong>Total Cashers Sale:</strong> ₹
-                      {totalDetails?.totalCashersSale?.toFixed(2)}
-                    </p>
-                    <p>
-                      <strong>Total Drinks Amount:</strong> ₹
-                      {totalDetails?.totalDrinksAmount?.toFixed(2)}
-                    </p>
-                    <p>
-                      <strong>Total Business (Sale + Drinks):</strong> ₹
-                      {totalDetails?.totalBusiness?.toFixed(2)}
-                    </p>
-                    <p>
-                      <strong>Total Cashers Expenses (Excl. Tea/Juice):</strong>{" "}
-                      ₹
-                      {totalDetails?.totalCashersExpensesExclTeaJuice?.toFixed(
-                        2
-                      )}
+                      <strong> 1) Total Cashers Sale:</strong>
+                      {formatINR(totalDetails?.totalCashersSale?.toFixed(2))}
                     </p>
 
                     <p>
-                      <strong>Remaining / Payout:</strong> ₹
-                      {totalDetails?.payout?.toFixed(2)}
+                      <strong>2) Total Drinks Amount:</strong>
+                      {formatINR(totalDetails?.totalDrinksAmount?.toFixed(2))}
+                    </p>
+
+                    <p>
+                      <strong>3) Total Shot :</strong>
+                      {formatINR(totalDetails?.totalShot?.toFixed(2))}
+                    </p>
+
+                    <p>
+                      <strong>
+                        4) Total Cashers Expenses (Excl. Tea/Juice):
+                      </strong>{" "}
+                      {formatINR(
+                        totalDetails?.totalCashersExpensesExclTeaJuice?.toFixed(
+                          2
+                        )
+                      )}
+                    </p>
+                    <p className="bg-[white] text-black">
+                      <strong>Remaining / Payout:</strong>
+                      {formatINR((totalDetails?.payout || 0).toFixed(2))}
+
                     </p>
                   </div>
 
@@ -892,7 +841,7 @@ function CategoryPageContent({ date, category }) {
                               <ul className="ml-4 list-disc">
                                 {c.items.map((item, i) => (
                                   <li key={i}>
-                                    {item.name}: ₹{item.price}
+                                    {item.name}: {item.price}
                                   </li>
                                 ))}
                               </ul>
@@ -908,7 +857,7 @@ function CategoryPageContent({ date, category }) {
                               <ul className="ml-4 list-disc">
                                 {c.addons.map((addon, i) => (
                                   <li key={i}>
-                                    {addon.name}: ₹{addon.price}
+                                    {addon.name}: {addon.price}
                                   </li>
                                 ))}
                               </ul>
@@ -917,10 +866,13 @@ function CategoryPageContent({ date, category }) {
 
                           {/* Cashier totals */}
                           <div className="mt-2 text-sm">
-                            <p>Total Cashers Amount: ₹{c.totalCashersAmount}</p>
-                            <p>Total Sale: ₹{c.totalSealAmount}</p>
-                            <p>Money Lift: ₹{c.totalMoneyLift}</p>
-                            <p>Shot: ₹{c.shot}</p>
+                            <p>
+                              Total Cashers (expenses) Amount:
+                              {formatINR(c.totalCashersAmount)}
+                            </p>
+                            <p>Total Sale: {formatINR(c.totalSealAmount)}</p>
+                            <p>Money Lift: {formatINR(c.totalMoneyLift)}</p>
+                            <p>Shot: {formatINR(c.shot)}</p>
                           </div>
                           {c.staffAdvances && c.staffAdvances.length > 0 && (
                             <>
@@ -930,7 +882,8 @@ function CategoryPageContent({ date, category }) {
                               <ul className="ml-4 list-disc">
                                 {c.staffAdvances.map((adv, i) => (
                                   <li key={i}>
-                                    {adv.staffId || "N/A"}: ₹{adv.amount}
+                                    {adv?.name || "N/A"}:{" "}
+                                    {formatINR(adv?.amount)}
                                   </li>
                                 ))}
                               </ul>
@@ -953,16 +906,16 @@ function CategoryPageContent({ date, category }) {
                           className="mb-2 border-b border-white/20 pb-1"
                         >
                           <p className="font-semibold">{d.drinkType}</p>
-                          <p>Sold Amount: ₹{d.soldAmount}</p>
+                          <p>Sold Amount: {d.soldAmount}</p>
                           <p>
                             Commission:{" "}
                             {d.drinkType === "tea"
                               ? `${d.commissionPercent}%`
                               : "Fixed"}{" "}
-                            → ₹{d.commissionValue}
+                            → {d.commissionValue}
                           </p>
 
-                          <p>Final Net: ₹{d.finalNetAmount}</p>
+                          <p>Final Net: {d.finalNetAmount}</p>
                         </div>
                       ))
                     ) : (

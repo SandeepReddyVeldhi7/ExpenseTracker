@@ -1,7 +1,6 @@
-// pages/api/v1/expense/get-expense.js
-
 import { connectDB } from "@/lib/db";
-import Expense from "@/models/Expense";
+import DailySummary from "@/models/DailySummary";
+
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -11,7 +10,7 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    const { startDate, endDate, type } = req.query;
+    const { startDate, endDate } = req.query;
 
     const query = {};
 
@@ -19,53 +18,32 @@ export default async function handler(req, res) {
       query.date = { $gte: startDate, $lte: endDate };
     }
 
-    if (type && type !== "all") {
-      query.type = type;
-    }
+    // Get all matching daily summaries
+    const summaries = await DailySummary.find(query).populate('cashers.staffAdvances.staffId', 'name').sort({ date: 1 }).lean();
 
-    const expenses = await Expense.find(query).sort({ date: 1 });
-
-    const grouped = {};
-
-    expenses.forEach(exp => {
-      const dateKey = exp.date;
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = {
-          date: dateKey,
-          type: exp.type,
-          totalAmount: 0,
-          allItems: [],
-          allCashers: new Set(),
-          rawExpenses: []
-        };
-      }
-
-      if (exp.type === "casher") {
-        grouped[dateKey].totalAmount += exp.totalCashersAmount || 0;
-      } else if (exp.type === "drink") {
-        grouped[dateKey].totalAmount += exp.soldAmount || 0;
-      }
-
-      if (exp.casherName) {
-        grouped[dateKey].allCashers.add(exp.casherName);
-      }
-
-      if (exp.items && exp.items.length) {
-        grouped[dateKey].allItems.push(...exp.items);
-      }
-
-      // ✅ Also store full expense for breakdown
-      grouped[dateKey].rawExpenses.push(exp);
-    });
-
-    const result = Object.values(grouped).map(g => ({
-      ...g,
-      allCashers: Array.from(g.allCashers),
+    // Optionally, clean up _id/createdAt/updatedAt if you want
+    const cleanedSummaries = summaries.map((s) => ({
+      _id: s._id,
+      date: s.date,
+      cashers: s.cashers || [],
+      drinks: s.drinks || [],
+      totalCashersSale: s.totalCashersSale || 0,
+      totalDrinksAmount: s.totalDrinksAmount || 0,
+      totalShot: s.totalShot || 0,
+      totalCashersExpensesExclTeaJuice: s.totalCashersExpensesExclTeaJuice || 0,
+      totalBusiness: s.totalBusiness || 0,
+      payout: s.payout || 0,
+      // For your table view
+      totalAmount: (s.totalCashersSale || 0) + (s.totalDrinksAmount || 0),
+      allCashers: s.cashers ? s.cashers.map(c => c.casherName) : [],
+      rawExpenses: s
     }));
 
-    return res.status(200).json({ expenses: result });
+    return res.status(200).json({ expenses: cleanedSummaries });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 }

@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db"
-import Expense from "@/models/Expense"
+import DailySummary from "@/models/DailySummary";
+
 
 
 
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: "Invalid category" });
     }
 
-    const existing = await Expense.findOne({ date: normalizedDate, category });
+    const existing = await DailySummary.findOne({ date: normalizedDate, category });
 
     return res.status(200).json({ exists: !!existing });
   } catch (err) {

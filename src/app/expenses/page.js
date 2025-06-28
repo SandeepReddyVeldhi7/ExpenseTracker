@@ -32,6 +32,7 @@ const formatted = selectedDate.toLocaleDateString('en-CA');
             onChange={(date) => setSelectedDate(date)}
             placeholderText="Pick a date"
             dateFormat="yyyy-MM-dd"
+            maxDate={new Date()}
             className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
