@@ -88,7 +88,9 @@ export default function PayDetailsPage() {
         setPaidStatus((prev) => ({ ...prev, [staffId]: true }));
         loadData(selectedMonth, selectedYear);
       } else {
-        toast.error(result.message || "Error processing payment", { id: toastId });
+        toast.error(result.message || "Error processing payment", {
+          id: toastId,
+        });
       }
     } catch (err) {
       console.error(err);
@@ -117,10 +119,12 @@ export default function PayDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen  flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600 font-medium">Loading Pay Details list...</p>
+          <p className="mt-4 text-gray-600 font-medium">
+            Loading Pay Details list...
+          </p>
         </div>
       </div>
     );
@@ -167,7 +171,7 @@ export default function PayDetailsPage() {
       </div>
 
       {/* Period Info */}
-      <h2 className="text-sm sm:text-base mb-4 font-semibold">
+      <h2 className="text-sm sm:text-base mb-1 font-semibold">
         Showing Salary for:{" "}
         {customStartDate && customEndDate
           ? `${customStartDate} to ${customEndDate}`
@@ -178,11 +182,11 @@ export default function PayDetailsPage() {
       </h2>
 
       {/* Table */}
-      <div className="w-full overflow-x-auto">
-        <table className="min-w-[900px] border border-collapse border-black text-xs sm:text-sm">
-          <thead className="bg-gray-300 text-black">
+      <div className="w-full relative  mx-auto flex justify-center mt-8 overflow-x-auto">
+        <table className="min-w-[900px]  border border-collapse border-black text-xs sm:text-sm">
+          <thead className="bg-gray-300 mt-6 text-black">
             <tr>
-              <th className="p-2 border">#</th>
+              <th className="p-2 border">S.no</th>
               <th className="p-2 border">Name</th>
               <th className="p-2 border">Salary Month</th>
               <th className="p-2 border">Attendance</th>
@@ -213,12 +217,17 @@ export default function PayDetailsPage() {
                       <td className="p-2 border">{p.staffName}</td>
                       <td className="p-2 border">
                         {p.month
-                          ? `${new Date(p.year, p.month - 1).toLocaleString("default", {
-                              month: "long",
-                            })} ${p.year}`
+                          ? `${new Date(p.year, p.month - 1).toLocaleString(
+                              "default",
+                              {
+                                month: "long",
+                              }
+                            )} ${p.year}`
                           : "-"}
                       </td>
-                      <td className="p-2 border text-center">{p.presentDays}</td>
+                      <td className="p-2 border text-center">
+                        {p.presentDays}
+                      </td>
                       <td className="p-2 border text-right">
                         ₹ {Math.floor(p.earnedSalary || 0)}
                       </td>
@@ -226,16 +235,30 @@ export default function PayDetailsPage() {
                         {p?.advances?.length > 0 ? (
                           p?.advances.map((adv, i) => (
                             <div key={i} className="whitespace-nowrap">
-                              {new Date(adv.date).toLocaleDateString()} - ₹ {adv.amount}
+                              {new Date(adv.date).toLocaleDateString()} - ₹{" "}
+                              {adv.amount}
                             </div>
                           ))
                         ) : (
                           <span>No advances</span>
                         )}
                       </td>
-                      <td className="p-2 border text-right">
-                        ₹ {Math.floor(p.previousCarryForward || 0)}
+                      <td
+                        className={`p-2 border text-right ${
+                          p.previousCarryForward > 0
+                            ? "text-red-600"
+                            : p.previousCarryForward < 0
+                            ? "text-green-600"
+                            : "text-black"
+                        }`}
+                      >
+                        {p.previousCarryForward > 0
+                          ? `Advance Due: ₹ ${p.previousCarryForward}`
+                          : p.previousCarryForward < 0
+                          ? `Credit: ₹ ${Math.abs(p.previousCarryForward)}`
+                          : "₹ 0"}
                       </td>
+
                       <td className="p-2 border text-right">
                         ₹ {Math.floor(p.payable || 0)}
                       </td>

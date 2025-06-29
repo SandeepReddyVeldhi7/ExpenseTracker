@@ -31,7 +31,9 @@ export default function ResponsiveNav() {
         { href: "/staff-registation", label: "Staff Creation" },
         { href: "/staffAdvancesPage", label: "Staff Advances" },
         { href: "/staff-list", label: "Staff List" },
-        { href: "/dashboard-users", label: "login Users List" }
+        { href: "/dashboard-users", label: "login Users List" },
+        { href: "/sign-up", label: "Admin user creation" },
+        { href: "/admin-users", label: "Admin users" }
       ],
     },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },

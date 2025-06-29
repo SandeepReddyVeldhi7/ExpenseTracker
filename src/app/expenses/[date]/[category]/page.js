@@ -36,6 +36,7 @@ function CategoryPageContent({ date, category }) {
   const [casherName, setCasherName] = useState("");
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
   const [totalDetails, setTotalDetails] = useState(null);
+
   const [dropdownInputs, setDropdownInputs] = useState([]);
   console.log("drop::::::::::::::", dropdownInputs);
   const [staffAdvances, setStaffAdvances] = useState([]);
@@ -260,7 +261,8 @@ function CategoryPageContent({ date, category }) {
         const payout =
           totalCashersSale -
           totalDrinksAmount -
-          totalCashersExpensesExclTeaJuice- totalShot;
+          totalCashersExpensesExclTeaJuice -
+          totalShot;
 
         // ✅ 5) Save all to state
         setTotalDetails({
@@ -272,11 +274,11 @@ function CategoryPageContent({ date, category }) {
           totalDrinksAmount,
           grandTotal: totalCashersAmount + totalDrinksAmount,
           totalCashersSale,
+
           totalTeaJuiceInCashers,
           totalCashersExpensesExclTeaJuice,
           totalBusiness,
           payout,
-     
         });
       } catch (err) {
         console.error(err);
@@ -295,6 +297,7 @@ function CategoryPageContent({ date, category }) {
     const saved = localStorage.getItem(localKey);
     if (saved) {
       const parsed = JSON.parse(saved);
+      console.log("parsed", parsed);
       setCasherName(parsed.casherName || "");
       setItems(parsed.items || [{ id: 1, name: "", price: "" }]);
       setDropdownInputs(parsed.dropdownInputs || []);
@@ -464,21 +467,19 @@ function CategoryPageContent({ date, category }) {
     saveToLocalStorage({ commission: value });
   };
 
- 
-
   const handleFinalSubmit = async () => {
     const toastId = toast.loading("Submitting all data...");
- const selectedDate = new Date(formData.date); // Or wherever your selected date is
-  const today = new Date();
+    const selectedDate = new Date(formData.date); // Or wherever your selected date is
+    const today = new Date();
 
-  // Remove time part for accurate date comparison
-  selectedDate.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
+    // Remove time part for accurate date comparison
+    selectedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
-  if (selectedDate > today) {
-    toast.error("Selected date cannot be in the future.");
-    return;
-  }
+    if (selectedDate > today) {
+      toast.error("Selected date cannot be in the future.");
+      return;
+    }
     try {
       await fetch("/api/v1/expense/add-expense", {
         method: "POST",
@@ -518,7 +519,7 @@ function CategoryPageContent({ date, category }) {
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
       <Toaster />
-      <div className=" bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
+      <div className=" min-h-screen  over-flow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
         <div className="w-full relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
           <button
             onClick={() => router.back()}
@@ -805,21 +806,15 @@ function CategoryPageContent({ date, category }) {
                       <strong>3) Total Shot :</strong>
                       {formatINR(totalDetails?.totalShot?.toFixed(2))}
                     </p>
-
                     <p>
                       <strong>
-                        4) Total Cashers Expenses (Excl. Tea/Juice):
+                        4) Total Cashers Expenses (Including Tea/Juice):
                       </strong>{" "}
-                      {formatINR(
-                        totalDetails?.totalCashersExpensesExclTeaJuice?.toFixed(
-                          2
-                        )
-                      )}
+                      {formatINR(totalDetails?.totalCashersAmount?.toFixed(2))}
                     </p>
                     <p className="bg-[white] text-black">
                       <strong>Remaining / Payout:</strong>
                       {formatINR((totalDetails?.payout || 0).toFixed(2))}
-
                     </p>
                   </div>
 

@@ -52,5 +52,6 @@ export const config = {
     "/staff-registation",
     "/StaffAdvancesPage",
     "/reports",
+    "/sign-up"
   ],
 };

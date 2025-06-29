@@ -44,10 +44,14 @@ export default async function handler(req, res) {
       }
     }, 0);
 
-    const perDaySalary = staff.salary / 30;
-    const earnedSalary = perDaySalary * presentDays;
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+const perDaySalary = staff.salary / daysInMonth;
+const earnedSalary = perDaySalary * presentDays;
 
-    const totalAdvanceDue = (staff.remainingAdvance || 0) + currentAdvance;
+
+    const previousCarryForward = staff.remainingAdvance || 0;
+const totalAdvanceDue = previousCarryForward + currentAdvance;
+
 
     let finalPaid = Number(paidAmount);
     if (isNaN(finalPaid) || finalPaid < 0) {
@@ -55,12 +59,9 @@ export default async function handler(req, res) {
     }
 
     // 🗝️ Compute the new carry forward
-    let newCarryForward = totalAdvanceDue - earnedSalary - finalPaid;
-    if (newCarryForward < 0) newCarryForward = 0;
-    if (finalPaid > earnedSalary) {
-      finalPaid = earnedSalary;
-      newCarryForward = 0;
-    }
+   let newCarryForward = totalAdvanceDue - earnedSalary + finalPaid;
+
+
 
     // ✅ UPSERT: update if exists, else create
     const payment = await SalaryPayment.findOneAndUpdate(

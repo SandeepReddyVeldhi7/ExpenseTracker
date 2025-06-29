@@ -13,10 +13,10 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);
-  console.log("expenses", expenses);
+ 
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
-
+ console.log("selectedExpense", selectedExpense);
   useEffect(() => {
     fetchReports();
   }, []);
@@ -92,6 +92,10 @@ export default function ReportsPage() {
       ),
     },
   ];
+const totalCashersAmount = selectedExpense?.cashers?.reduce(
+  (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
+  0
+);
 
   return (
     <div
@@ -165,150 +169,148 @@ export default function ReportsPage() {
             {loading ? "" : "No records found. Please search!"}
           </p>
         )}
-
-        
       </div>
       {/* Modal */}
-        {selectedExpense && (
+      {selectedExpense && (
+        <div
+          className="min-h-screen  fixed inset-0 bg-black/50 backdrop-blur-md flex justify-center items-center z-50"
+          onClick={() => setSelectedExpense(null)}
+        >
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-md flex justify-center items-center z-50"
-            onClick={() => setSelectedExpense(null)}
+            className="bg-white rounded-lg max-w-3xl w-full p-6 overflow-y-auto max-h-[90vh] text-gray-800"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-lg max-w-3xl w-full p-6 overflow-y-auto max-h-[90vh] text-gray-800"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-2xl font-bold mb-4">
-                Daily Summary —{" "}
-                {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
-              </h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Daily Summary —{" "}
+              {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
+            </h2>
 
-              <div className="mb-4 space-y-2">
-                <p>
-                  <strong>1) Total Cashers Sale:</strong>{" "}
-                  {formatINR(selectedExpense.totalCashersSale?.toFixed(2))}
-                </p>
-                <p>
-                  <strong>2) Total Drinks Amount:</strong>{" "}
-                  {formatINR(selectedExpense.totalDrinksAmount?.toFixed(2))}
-                </p>
-                <p>
-                  <strong>3) Total Shot:</strong>{" "}
-                  {formatINR(selectedExpense.totalShot?.toFixed(2))}
-                </p>
-                <p>
-                  <strong>4) Total Cashers Expenses (Excl. Tea/Juice):</strong>{" "}
-                  {formatINR(
-                    selectedExpense?.totalCashersExpensesExclTeaJuice?.toFixed(2)
-                  )}
-                </p>
-                <p className="bg-gray-200 p-2 rounded">
-                  <strong>Remaining / Payout:</strong>{" "}
-                  {formatINR(selectedExpense?.payout?.toFixed(2))}
-                </p>
-              </div>
+            <div className="mb-4 space-y-2">
+              <p>
+                <strong>1) Total Cashers Sale:</strong>{" "}
+                {formatINR(selectedExpense.totalCashersSale?.toFixed(2))}
+              </p>
+              <p>
+                <strong>2) Total Drinks Amount:</strong>{" "}
+                {formatINR(selectedExpense.totalDrinksAmount?.toFixed(2))}
+              </p>
+              <p>
+                <strong>3) Total Shot:</strong>{" "}
+                {formatINR(selectedExpense.totalShot?.toFixed(2))}
+              </p>
+            <p>
+  <strong>4) Total Cashers Expenses (Including Tea/Juice):</strong>{" "}
+  {formatINR(totalCashersAmount?.toFixed(2))}
+</p>
 
-              <hr className="my-4" />
+              <p className="bg-gray-200 p-2 rounded">
+                <strong>Remaining / Payout:</strong>{" "}
+                {formatINR(selectedExpense?.payout?.toFixed(2))}
+              </p>
+            </div>
 
-              <h3 className="text-lg font-bold mb-2">Cashers</h3>
-              {selectedExpense?.cashers && selectedExpense?.cashers?.length > 0 ? (
-                selectedExpense?.cashers.map((c, idx) => (
-                  <div
-                    key={idx}
-                    className="mb-4 p-3 border border-gray-300 rounded"
-                  >
-                    <p className="font-semibold mb-1">{c?.casherName}</p>
-                    {c.items?.length > 0 && (
-                      <>
-                        <p className="underline text-sm">Main Items:</p>
-                        <ul className="ml-4 list-disc">
-                          {c?.items?.map((item, i) => (
-                            <li key={i}>
-                              {item.name}: ₹{item.price}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
+            <hr className="my-4" />
 
-                    {c?.addons?.length > 0 && (
-                      <>
-                        <p className="underline text-sm mt-2">
-                          Addons (Tea/Juice/Other):
-                        </p>
-                        <ul className="ml-4 list-disc">
-                          {c.addons.map((addon, i) => (
-                            <li key={i}>
-                              {addon.name}: ₹{addon.price}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-
-                    <div className="mt-2 text-sm">
-                      <p>
-                        Total Cashers(expenses) Amount: {formatINR(c.totalCashersAmount)}
-                      </p>
-                      <p>Total Sale: {formatINR(c.totalSealAmount)}</p>
-                      <p>Money Lift: {formatINR(c.totalMoneyLift)}</p>
-                      <p>Shot: {formatINR(c.shot)}</p>
-                    </div>
-
-                    {c.staffAdvances?.length > 0 && (
-                      <>
-                        <p className="underline text-sm mt-2">
-                          Staff Advances:
-                        </p>
-                        <ul className="ml-4 list-disc">
-                          {c.staffAdvances.map((adv, i) => (
-                            <li key={i}>
-                              Staff ID: {adv.staffId} — ₹{adv.amount}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p>No cashers recorded.</p>
-              )}
-
-              <h3 className="text-lg font-bold mb-2">Drinks</h3>
-              {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
-                selectedExpense.drinks.map((d, idx) => (
-                  <div
-                    key={idx}
-                    className="mb-4 p-3 border border-gray-300 rounded"
-                  >
-                    <p className="font-semibold">{d.drinkType}</p>
-                    <p>Sold Amount: ₹{d.soldAmount}</p>
-                    <p>
-                      Commission:{" "}
-                      {d.drinkType === "tea"
-                        ? `${d.commissionPercent}%`
-                        : "Fixed"}{" "}
-                      → ₹{d.commissionValue}
-                    </p>
-                    <p>Final Net: ₹{d.finalNetAmount}</p>
-                  </div>
-                ))
-              ) : (
-                <p>No drinks recorded.</p>
-              )}
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setSelectedExpense(null)}
-                  className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
+            <h3 className="text-lg font-bold mb-2">Cashers</h3>
+            {selectedExpense?.cashers &&
+            selectedExpense?.cashers?.length > 0 ? (
+              selectedExpense?.cashers.map((c, idx) => (
+                <div
+                  key={idx}
+                  className="mb-4 p-3 border border-gray-300 rounded"
                 >
-                  Close
-                </button>
-              </div>
+                  <p className="font-semibold mb-1">{c?.casherName}</p>
+                  {c.items?.length > 0 && (
+                    <>
+                      <p className="underline text-sm">Main Items:</p>
+                      <ul className="ml-4 list-disc">
+                        {c?.items?.map((item, i) => (
+                          <li key={i}>
+                            {item.name}: ₹{item.price}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+
+                  {c?.addons?.length > 0 && (
+                    <>
+                      <p className="underline text-sm mt-2">
+                        Addons (Tea/Juice/Other):
+                      </p>
+                      <ul className="ml-4 list-disc">
+                        {c.addons.map((addon, i) => (
+                          <li key={i}>
+                            {addon.name}: ₹{addon.price}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+
+                  <div className="mt-2 text-sm">
+                    <p>
+                      Total Cashers(expenses) Amount:{" "}
+                      {formatINR(c.totalCashersAmount)}
+                    </p>
+                    <p>Total Sale: {formatINR(c.totalSealAmount)}</p>
+                    <p>Money Lift: {formatINR(c.totalMoneyLift)}</p>
+                    <p>Shot: {formatINR(c.shot)}</p>
+                  </div>
+
+                  {c.staffAdvances?.length > 0 && (
+                    <>
+                      <p className="underline text-sm mt-2">Staff Advances:</p>
+                      <ul className="ml-4 list-disc">
+                        {c.staffAdvances.map((adv, i) => (
+                          <li key={i}>
+                            Staff ID: {adv.staffId} — ₹{adv.amount}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p>No cashers recorded.</p>
+            )}
+
+            <h3 className="text-lg font-bold mb-2">Drinks</h3>
+            {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
+              selectedExpense.drinks.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="mb-4 p-3 border border-gray-300 rounded"
+                >
+                  <p className="font-semibold">{d.drinkType}</p>
+                  <p>Sold Amount: ₹{d.soldAmount}</p>
+                  <p>
+                    Commission:{" "}
+                    {d.drinkType === "tea"
+                      ? `${d.commissionPercent}%`
+                      : "Fixed"}{" "}
+                    → ₹{d.commissionValue}
+                  </p>
+                  <p>Final Net: ₹{d.finalNetAmount}</p>
+                </div>
+              ))
+            ) : (
+              <p>No drinks recorded.</p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setSelectedExpense(null)}
+                className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Close
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
+ 

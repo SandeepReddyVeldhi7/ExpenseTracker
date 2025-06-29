@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { FaTrash, FaUserShield, FaEdit } from "react-icons/fa";
@@ -11,8 +12,9 @@ export default function DashboardUsersList() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("/api/v1/dashboard-users/users");
+      const res = await fetch("/api/v1/users/user");
       const data = await res.json();
+      console.log("data", data);
       setUsers(data);
     } catch (error) {
       toast.error("Failed to fetch users");
@@ -29,11 +31,10 @@ export default function DashboardUsersList() {
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
     try {
-      const res = await fetch(`/api/v1/dashboard-users/users?id=${id}`, {
+      const res = await fetch(`/api/v1/users/user?id=${id}`, {
         method: "DELETE",
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to delete");
+      if (!res.ok) throw new Error("Failed to delete");
       toast.success("User deleted successfully");
       fetchUsers();
     } catch (err) {
@@ -51,12 +52,12 @@ export default function DashboardUsersList() {
   };
 
   const handleUpdate = async () => {
-    if (!formData.email || !formData.username) {
-      return toast.error("Email and Username are required");
+    if (!formData.email || !formData.username || !formData.role) {
+      return toast.error("All fields are required");
     }
 
     try {
-      const res = await fetch(`/api/v1/dashboard-users/users?id=${editUser._id}`, {
+      const res = await fetch(`/api/v1/users/user?id=${editUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -72,10 +73,10 @@ export default function DashboardUsersList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-700 to-purple-700 p-6 flex justify-center">
+    <div className="min-h-screen sm:mt-8  bg-gradient-to-br from-indigo-800 to-purple-800 p-6">
       <Toaster />
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-5xl">
-        <h1 className="sm:text-3xl font-bold mb-6 text-center text-gray-800">
+      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
           🛡️ Dashboard Users
         </h1>
 
@@ -85,39 +86,42 @@ export default function DashboardUsersList() {
           <p className="text-center text-gray-500">No users found.</p>
         ) : (
           <>
+            {/* Table View for Desktop */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[800px] text-sm text-gray-700">
+              <table className="w-full border border-gray-300 text-center">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="p-3 text-left">Username</th>
-                    <th className="p-3 text-left">Email</th>
-                    <th className="p-3 text-left">Role</th>
-                    <th className="p-3 text-left">Created</th>
-                    <th className="p-3 text-left">Actions</th>
+                    <th className="p-3 border">Username</th>
+                    <th className="p-3 border">Email</th>
+                    <th className="p-3 border">Role</th>
+                    <th className="p-3 border">Created</th>
+                    <th className="p-3 border">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody>
                   {users.map((user) => (
                     <tr key={user._id} className="hover:bg-gray-50">
-                      <td className="p-3 flex items-center gap-2 font-medium text-gray-800">
-                        <FaUserShield className="text-indigo-600" />
-                        {user.username}
+                      <td className="p-3 border">
+                        <div className="flex items-center justify-center gap-2">
+                          <FaUserShield className="text-indigo-600" />
+                          {user.username}
+                        </div>
                       </td>
-                      <td className="p-3">{user.email}</td>
-                      <td className="p-3 capitalize">{user.role}</td>
-                      <td className="p-3 text-sm text-gray-500">
+                      <td className="p-3 border">{user.email}</td>
+                      <td className="p-3 border capitalize">{user.role}</td>
+                      <td className="p-3 border text-sm text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="p-3 flex gap-3">
+                      <td className="p-3 border">
                         <button
                           onClick={() => openEditModal(user)}
-                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                          className="text-blue-600 hover:text-blue-800 mr-3 flex items-center gap-1 text-sm"
                         >
                           <FaEdit /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(user._id)}
-                          className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1"
+                          className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm"
                         >
                           <FaTrash /> Delete
                         </button>
@@ -128,10 +132,10 @@ export default function DashboardUsersList() {
               </table>
             </div>
 
-            {/* Mobile view */}
-            <div className="block md:hidden space-y-4">
+            {/* Card View for Mobile */}
+            <div className="block md:hidden space-y-4 mt-4">
               {users.map((user) => (
-                <div key={user._id} className="bg-gray-100 p-4 rounded-lg shadow text-sm">
+                <div key={user._id} className="bg-gray-100 p-4 rounded-lg shadow">
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2 font-semibold text-gray-800">
                       <FaUserShield className="text-indigo-600" />
@@ -140,13 +144,13 @@ export default function DashboardUsersList() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => openEditModal(user)}
-                        className="text-blue-600 text-xs"
+                        className="text-blue-600"
                       >
                         <FaEdit />
                       </button>
                       <button
                         onClick={() => handleDelete(user._id)}
-                        className="text-red-600 text-xs"
+                        className="text-red-600"
                       >
                         <FaTrash />
                       </button>
@@ -167,7 +171,7 @@ export default function DashboardUsersList() {
 
         {/* Edit Modal */}
         {editUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
             <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
               <h2 className="text-xl font-bold mb-4">Edit User</h2>
               <label className="block mb-2">
@@ -187,7 +191,7 @@ export default function DashboardUsersList() {
                   className="w-full border p-2 rounded mt-1"
                 />
               </label>
-              {/* <label className="block mb-4">
+              <label className="block mb-4">
                 Role
                 <select
                   value={formData.role}
@@ -198,7 +202,7 @@ export default function DashboardUsersList() {
                   <option value="admin">Admin</option>
                   <option value="owner">Owner</option>
                 </select>
-              </label> */}
+              </label>
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setEditUser(null)}

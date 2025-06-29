@@ -14,7 +14,7 @@ const Page = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "user", // Default role
+    role: "", // Default role
   });
   console.log("Form Data:", formData);
 
@@ -53,7 +53,7 @@ const Page = () => {
           email: "",
           password: "",
           confirmPassword: "",
-          role: "user", // Reset to default role
+          role:"", // Reset to default role
         });
       } else {
         const errorData = await response.json();
