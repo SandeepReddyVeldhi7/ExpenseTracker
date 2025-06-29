@@ -14,11 +14,11 @@
       // Destructure the request body
       const { username, email, password, confirmPassword, role } = req.body;
 
-      
+      console.log("req.body", req.body);
 
 
       // Input validation
-      if (!username || !email || !password || !confirmPassword || !role) {
+      if (!username || !email || !password || !confirmPassword ) {
         return res.status(400).json({ message: "All fields are required" });
       }
 
@@ -40,7 +40,7 @@
         username,
         email,
         password: hashedPassword, // Store the hashed password
-        role,
+        role:"Admin",
       });
 
       // Return success response
