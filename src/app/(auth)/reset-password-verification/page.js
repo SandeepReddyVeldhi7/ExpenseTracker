@@ -40,7 +40,7 @@ const ResetPasswordVerification = () => {
       if (response.ok) {
         setMessage("Password reset successfully. You can now log in.");
       setTimeout(() => {
-          router.push("/login");
+        router.push("/sign-in");
         }, 2000);
       
       } else {

@@ -220,19 +220,23 @@ function CategoryPageContent({ date, category }) {
           (s, c) => s + (c.totalCashersAmount || 0),
           0
         );
+        console.log("totalCashersAmount", totalCashersAmount);
         const totalDrinksAmount = drinks.reduce(
           (s, d) => s + (d.finalNetAmount || 0),
           0
         );
+        console.log("totalDrinksAmount", totalDrinksAmount);
         const totalCashersSale = cashers.reduce(
           (s, c) => s + (c.totalSealAmount || 0),
           0
         );
+console.log("totalCashersSale", totalCashersSale);
+        console.log("totalCashersAmount", totalCashersAmount);
         const totalShot = cashers.reduce(
           (sum, c) => sum + (parseFloat(c.shot) || 0),
           0
         );
-
+console.log("totalShot", totalShot);
         const totalTeaJuiceInCashers = cashers.reduce((s, c) => {
           const teaJuice = c.addons
             .filter((a) => a.name === "tea" || a.name === "juice")
@@ -240,6 +244,7 @@ function CategoryPageContent({ date, category }) {
           return s + teaJuice;
         }, 0);
 
+        console.log("totalTeaJuiceInCashers", totalTeaJuiceInCashers);
         const totalCashersExpensesExclTeaJuice = cashers.reduce((s, c) => {
           const items = c.items.reduce(
             (sum, i) => sum + (parseFloat(i.price) || 0),
@@ -256,14 +261,15 @@ function CategoryPageContent({ date, category }) {
             : 0;
           return s + items + otherAddons + advances;
         }, 0);
+          console.log("totalCashersExpensesExclTeaJuice",totalCashersExpensesExclTeaJuice)
 
         const totalBusiness = totalCashersSale + totalDrinksAmount;
         const payout =
           totalCashersSale -
           totalDrinksAmount -
-          totalCashersExpensesExclTeaJuice -
+        totalCashersAmount  -
           totalShot;
-
+console.log("payout", payout)
         // ✅ 5) Save all to state
         setTotalDetails({
           date,
