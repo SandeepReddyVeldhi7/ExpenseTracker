@@ -55,7 +55,7 @@ export default function DashboardUsersList() {
     if (!formData.email || !formData.username || !formData.role) {
       return toast.error("All fields are required");
     }
-
+const toastLoading=toast.loading("Updating user...");
     try {
       const res = await fetch(`/api/v1/users/user?id=${editUser._id}`, {
         method: "PUT",
@@ -64,11 +64,11 @@ export default function DashboardUsersList() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("User updated successfully");
+      toast.success("User updated successfully",{id:toastLoading});
       setEditUser(null);
       fetchUsers();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message,{id:toastLoading});
     }
   };
 
@@ -77,7 +77,7 @@ export default function DashboardUsersList() {
       <Toaster />
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
-          🛡️ Dashboard Users
+          🛡️ Dashboard Admin Users
         </h1>
 
         {loading ? (
@@ -101,7 +101,7 @@ export default function DashboardUsersList() {
                 <tbody>
                   {users.map((user) => (
                     <tr key={user._id} className="hover:bg-gray-50">
-                      <td className="p-3 border">
+                      <td className="p-3 border text-black">
                         <div className="flex items-center justify-center gap-2">
                           <FaUserShield className="text-indigo-600" />
                           {user.username}
@@ -157,9 +157,9 @@ export default function DashboardUsersList() {
                     </div>
                   </div>
                   <div>
-                    <div><strong>Email:</strong> {user.email}</div>
-                    <div><strong>Role:</strong> <span className="capitalize">{user.role}</span></div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-black"><strong>Email:</strong> {user.email}</div>
+                    <div className="text-black"><strong>Role:</strong> <span className="capitalize">{user.role}</span></div>
+                    <div className="text-xs text-black mt-1">
                       Created: {new Date(user.createdAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -173,30 +173,30 @@ export default function DashboardUsersList() {
         {editUser && (
           <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
             <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
-              <h2 className="text-xl font-bold mb-4">Edit User</h2>
-              <label className="block mb-2">
+              <h2 className="text-xl font-bold mb-4 text-black">Edit User</h2>
+              <label className="block mb-2 text-black">
                 Username
                 <input
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full border p-2 rounded mt-1"
+                  className="w-full border p-2 text-black rounded mt-1"
                 />
               </label>
-              <label className="block mb-2">
+              <label className="block mb-2 text-black">
                 Email
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full border p-2 rounded mt-1"
+                  className="w-full border p-2 text-black rounded mt-1"
                 />
               </label>
-              <label className="block mb-4">
+              <label className="block mb-4 text-black">
                 Role
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full border p-2 rounded mt-1"
+                  className="w-full border p-2 text-black rounded mt-1"
                 >
                   <option value="staff">Staff</option>
                   <option value="admin">Admin</option>

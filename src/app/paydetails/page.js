@@ -131,7 +131,7 @@ export default function PayDetailsPage() {
   }
 
   return (
-    <div className="max-w-6xl flex justify-center items-center flex-col h-screen mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-500 font-sans">
+    <div className="max-w-6xl flex justify-center items-center flex-col  mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-500 font-sans">
       <h1 className="text-xl sm:text-2xl text-center font-bold mb-4">
         📒 Staff Payroll Ledger
       </h1>
@@ -182,8 +182,8 @@ export default function PayDetailsPage() {
       </h2>
 
       {/* Table */}
-      <div className="w-full relative  mx-auto flex justify-center mt-8 overflow-x-auto">
-        <table className="min-w-[900px]  border border-collapse border-black text-xs sm:text-sm">
+      <div className="w-full relative mt-8 mb-6 overflow-x-auto border rounded-lg shadow-sm">
+        <table className="w-full border border-collapse border-black text-xs sm:text-sm">
           <thead className="bg-gray-300 mt-6 text-black">
             <tr>
               <th className="p-2 border">S.no</th>

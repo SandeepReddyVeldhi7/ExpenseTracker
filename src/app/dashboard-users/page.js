@@ -86,7 +86,7 @@ export default function DashboardUsersList() {
         ) : (
           <>
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[800px] text-sm text-gray-700">
+              <table className="w-full min-w-[800px] text-sm text-black">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="p-3 text-left">Username</th>
@@ -103,9 +103,9 @@ export default function DashboardUsersList() {
                         <FaUserShield className="text-indigo-600" />
                         {user.username}
                       </td>
-                      <td className="p-3">{user.email}</td>
-                      <td className="p-3 capitalize">{user.role}</td>
-                      <td className="p-3 text-sm text-gray-500">
+                      <td className="p-3 text-black">{user.email}</td>
+                      <td className="p-3  text-black capitalize">{user.role}</td>
+                      <td className="p-3 text-sm text-black">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-3 flex gap-3">

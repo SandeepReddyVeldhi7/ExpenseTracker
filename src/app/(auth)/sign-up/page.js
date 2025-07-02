@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Poppins } from "next/font/google";
 import toast, { Toaster } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -17,7 +18,7 @@ const Page = () => {
     role: "", // Default role
   });
   console.log("Form Data:", formData);
-
+const router = useRouter();
   const roles = ["owner"]; // Restrict roles to admin and user
 
   // Handle input changes
@@ -55,6 +56,8 @@ const Page = () => {
           confirmPassword: "",
           role:"", // Reset to default role
         });
+
+        router.push("/sign-in");
       } else {
         const errorData = await response.json();
         // alert(errorData.message || "Registration failed.");

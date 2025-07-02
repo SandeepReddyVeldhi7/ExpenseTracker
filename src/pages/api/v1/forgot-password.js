@@ -17,7 +17,7 @@ async function sendVerificationEmail(adminEmail, token) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: adminEmail,
-    subject: "Verify your password for Conscion Estates",
+    subject: "Verify your password for RachinEnterprises",
     html: `
       <h1>Password Reset</h1>
       <p>Click below to reset your password:</p>
