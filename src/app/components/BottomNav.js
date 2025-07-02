@@ -171,7 +171,7 @@ export default function ResponsiveNav() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 rounded-t-lg"
+            className="fixed bottom-0 left-0 right-0 bg-white text-black border-t shadow-lg z-50 rounded-t-lg"
           >
             
             {navItems
