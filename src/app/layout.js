@@ -8,6 +8,12 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="en">
+      <head>
+         {/*  Add manifest link */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="icon" href="/icons/icon-192.png"/>
+      </head>
       <body>
         {children}
         {/* ✅ Show nav ONLY if logged in */}

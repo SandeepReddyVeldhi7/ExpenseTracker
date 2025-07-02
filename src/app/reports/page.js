@@ -13,10 +13,21 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);
- 
+
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
- console.log("selectedExpense", selectedExpense);
+  console.log("selectedExpense", selectedExpense);
+  const renderName = (val) => {
+  if (!val) return "—";
+  if (typeof val === "string") return val;
+  if (typeof val === "object" && val !== null) {
+    if (typeof val.name === "string") return val.name;
+    if ('_id' in val && 'name' in val) return val.name;
+    return JSON.stringify(val);
+  }
+  return String(val);
+};
+
   useEffect(() => {
     fetchReports();
   }, []);
@@ -57,11 +68,40 @@ export default function ReportsPage() {
           day: "numeric",
         }),
     },
-    {
-      name: "Cashers",
-      selector: (row) => row.allCashers?.join(", "),
-      cell: (row) => row.allCashers?.join(", ") || "—",
-    },
+// {
+//   name: "Cashers",
+//   selector: row => {
+//     if (Array.isArray(row.allCashers)) {
+//       return row.allCashers
+//         .map(casher =>
+//           typeof casher === "string"
+//             ? casher
+//             : casher && typeof casher.name === "string"
+//             ? casher.name
+//             : "—"
+//         )
+//         .join(", ");
+//     }
+//     return "—";
+//   },
+//   cell: row => {
+//     if (Array.isArray(row.allCashers)) {
+//       return row.allCashers
+//         .map(casher =>
+//           typeof casher === "string"
+//             ? casher
+//             : casher && typeof casher.name === "string"
+//             ? casher.name
+//             : "—"
+//         )
+//         .join(", ");
+//     }
+//     return "—";
+//   },
+// },
+
+
+
     {
       name: "Total Sale Amount",
       selector: (row) => row.totalAmount,
@@ -92,10 +132,11 @@ export default function ReportsPage() {
       ),
     },
   ];
-const totalCashersAmount = selectedExpense?.cashers?.reduce(
-  (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
-  0
-);
+  const totalCashersAmount = selectedExpense?.cashers?.reduce(
+    (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
+    0
+  )
+
 
   return (
     <div
@@ -198,10 +239,12 @@ const totalCashersAmount = selectedExpense?.cashers?.reduce(
                 <strong>3) Total Shot:</strong>{" "}
                 {formatINR(selectedExpense.totalShot?.toFixed(2))}
               </p>
-            <p>
-  <strong>4) Total Cashers Expenses (Including Tea/Juice):</strong>{" "}
-  {formatINR(totalCashersAmount?.toFixed(2))}
-</p>
+              <p>
+                <strong>
+                  4) Total Cashers Expenses (Including Tea/Juice):
+                </strong>{" "}
+                {formatINR(totalCashersAmount?.toFixed(2))}
+              </p>
 
               <p className="bg-gray-200 p-2 rounded">
                 <strong>Remaining / Payout:</strong>{" "}
@@ -223,13 +266,14 @@ const totalCashersAmount = selectedExpense?.cashers?.reduce(
                   {c.items?.length > 0 && (
                     <>
                       <p className="underline text-sm">Main Items:</p>
-                      <ul className="ml-4 list-disc">
-                        {c?.items?.map((item, i) => (
-                          <li key={i}>
-                            {item.name}: ₹{item.price}
-                          </li>
-                        ))}
-                      </ul>
+                     <ul className="ml-4 list-disc">
+  {c?.items?.map((item, i) => (
+    <li key={i}>
+      {renderName(item.name)}: ₹{item.price}
+    </li>
+  ))}
+</ul>
+
                     </>
                   )}
 
@@ -239,12 +283,13 @@ const totalCashersAmount = selectedExpense?.cashers?.reduce(
                         Addons (Tea/Juice/Other):
                       </p>
                       <ul className="ml-4 list-disc">
-                        {c.addons.map((addon, i) => (
-                          <li key={i}>
-                            {addon.name}: ₹{addon.price}
-                          </li>
-                        ))}
-                      </ul>
+  {c.addons.map((addon, i) => (
+    <li key={i}>
+      {renderName(addon.name)}: ₹{addon.price}
+    </li>
+  ))}
+</ul>
+
                     </>
                   )}
 
@@ -264,7 +309,8 @@ const totalCashersAmount = selectedExpense?.cashers?.reduce(
                       <ul className="ml-4 list-disc">
                         {c.staffAdvances.map((adv, i) => (
                           <li key={i}>
-                            Staff ID: {adv.staffId} — ₹{adv.amount}
+                          Staff ID: {renderName(adv.staffId)} — ₹{adv.amount}
+
                           </li>
                         ))}
                       </ul>
@@ -313,4 +359,3 @@ const totalCashersAmount = selectedExpense?.cashers?.reduce(
     </div>
   );
 }
- 
