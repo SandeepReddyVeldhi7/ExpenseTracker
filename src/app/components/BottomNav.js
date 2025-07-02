@@ -135,7 +135,7 @@ export default function ResponsiveNav() {
               className={`flex flex-col items-center ${
                 pathname.startsWith("/staff")
                   ? "text-blue-600"
-                  : "text-gray-500"
+                  : "text-black"
               }`}
             >
               <FiUsers className="text-lg" />
