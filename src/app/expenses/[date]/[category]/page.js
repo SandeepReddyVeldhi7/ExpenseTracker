@@ -475,17 +475,7 @@ console.log("payout", payout)
 
   const handleFinalSubmit = async () => {
     const toastId = toast.loading("Submitting all data...");
-    const selectedDate = new Date(formData.date); // Or wherever your selected date is
-    const today = new Date();
-
-    // Remove time part for accurate date comparison
-    selectedDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-
-    if (selectedDate > today) {
-      toast.error("Selected date cannot be in the future.");
-      return;
-    }
+   
     try {
       await fetch("/api/v1/expense/add-expense", {
         method: "POST",
