@@ -89,7 +89,7 @@ export default function DashboardUsersList() {
             {/* Table View for Desktop */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full border border-gray-300 text-center">
-                <thead className="bg-gray-100">
+                <thead className="bg-black">
                   <tr>
                     <th className="p-3 border">Username</th>
                     <th className="p-3 border">Email</th>
@@ -107,9 +107,9 @@ export default function DashboardUsersList() {
                           {user.username}
                         </div>
                       </td>
-                      <td className="p-3 border">{user.email}</td>
-                      <td className="p-3 border capitalize">{user.role}</td>
-                      <td className="p-3 border text-sm text-gray-500">
+                      <td className="p-3 border text-black">{user.email}</td>
+                      <td className="p-3 border capitalize text-black">{user.role}</td>
+                      <td className="p-3 border text-sm text-black">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-3 border">
