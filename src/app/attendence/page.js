@@ -1,19 +1,37 @@
-'use client'; // MUST be first line!
+"use client"; // MUST be first line!
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import DatePicker from 'react-datepicker';
-import { FaRegCalendarAlt } from 'react-icons/fa';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import DatePicker from "react-datepicker";
+import { FaRegCalendarAlt } from "react-icons/fa";
 
-import 'react-datepicker/dist/react-datepicker.css';
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function AttendanceHome() {
   const [selectedDate, setSelectedDate] = useState(null);
   const router = useRouter();
+  const [submittedDates, setSubmittedDates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchSubmittedDates = async () => {
+      try {
+        const res = await fetch("/api/v1/attendance/get-submitted-dates");
+        const data = await res.json();
+        const dates = data.dates.map((d) => new Date(d));
+        setSubmittedDates(dates);
+      } catch (err) {
+        console.error("Error fetching submitted dates:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmittedDates();
+  }, []);
   const handleNext = () => {
     if (selectedDate) {
-      const formatted = selectedDate.toLocaleDateString('en-CA'); // yyyy-MM-dd
+      const formatted = selectedDate.toLocaleDateString("en-CA"); // yyyy-MM-dd
       router.push(`/attendence/${formatted}`);
     }
   };
@@ -32,7 +50,8 @@ export default function AttendanceHome() {
             onChange={(date) => setSelectedDate(date)}
             placeholderText="Pick a date"
             dateFormat="yyyy-MM-dd"
-               maxDate={new Date()}
+            maxDate={new Date()}
+            excludeDates={submittedDates}
             className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -41,7 +60,11 @@ export default function AttendanceHome() {
           onClick={handleNext}
           disabled={!selectedDate}
           className={`w-full py-3 rounded-xl text-white font-semibold transition 
-            ${selectedDate ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+            ${
+              selectedDate
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
         >
           Continue
         </button>

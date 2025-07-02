@@ -1,22 +1,40 @@
-'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import DatePicker from 'react-datepicker'
-import { FaRegCalendarAlt } from 'react-icons/fa'
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import DatePicker from "react-datepicker";
+import { FaRegCalendarAlt } from "react-icons/fa";
 
-import 'react-datepicker/dist/react-datepicker.css'
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function ExpensesHome() {
-  const [selectedDate, setSelectedDate] = useState(null)
-  const router = useRouter()
-
+  const [selectedDate, setSelectedDate] = useState(null);
+  const router = useRouter();
+  const [submittedDates, setSubmittedDates] = useState([]);
+  const [loading, setLoading] = useState(true);
   const handleNext = () => {
     if (selectedDate) {
-const formatted = selectedDate.toLocaleDateString('en-CA');
+      const formatted = selectedDate.toLocaleDateString("en-CA");
 
-      router.push(`/expenses/${formatted}`)
+      router.push(`/expenses/${formatted}`);
     }
-  }
+  };
+  useEffect(() => {
+    const fetchSubmittedDates = async () => {
+      try {
+        const res = await fetch("/api/v1/expense/check-date");
+        const data = await res.json();
+        // Convert strings to Date objects
+        const dates = data.dates.map((d) => new Date(d));
+        setSubmittedDates(dates);
+      } catch (err) {
+        console.error("Error fetching submitted dates:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmittedDates();
+  }, []);
 
   return (
     <div className="min-h-[90vh] bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4 ">
@@ -33,6 +51,7 @@ const formatted = selectedDate.toLocaleDateString('en-CA');
             placeholderText="Pick a date"
             dateFormat="yyyy-MM-dd"
             maxDate={new Date()}
+            excludeDates={submittedDates}
             className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -41,11 +60,15 @@ const formatted = selectedDate.toLocaleDateString('en-CA');
           onClick={handleNext}
           disabled={!selectedDate}
           className={`w-full py-3 rounded-xl text-white font-semibold transition 
-            ${selectedDate ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+            ${
+              selectedDate
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
         >
           Continue
         </button>
       </div>
     </div>
-  )
+  );
 }
