@@ -226,10 +226,10 @@ export default function StaffList() {
       {isEditOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-center">Edit Staff</h2>
+            <h2 className="text-xl font-bold mb-4 text-center text-black">Edit Staff</h2>
             <div className="space-y-3">
               <input
-                className="w-full border p-2 rounded"
+                className="w-full border text-black p-2 rounded"
                 placeholder="Name"
                 value={editData.name}
                 onChange={(e) =>
@@ -237,7 +237,7 @@ export default function StaffList() {
                 }
               />
               <input
-                className="w-full border p-2 rounded"
+                className="w-full border text-black p-2 rounded"
                 placeholder="Designation"
                 value={editData.designation}
                 onChange={(e) =>
@@ -246,7 +246,7 @@ export default function StaffList() {
               />
               <input
                 type="number"
-                className="w-full border p-2 rounded"
+                className="w-full border text-black p-2 rounded"
                 placeholder="Salary"
                 value={editData.salary}
                 onChange={(e) =>
@@ -269,7 +269,7 @@ export default function StaffList() {
                 }
               /> */}
               <select
-                className="w-full border p-2 rounded"
+                className="w-full border text-black p-2 rounded"
                 value={editData.active ? "true" : "false"}
                 onChange={(e) =>
                   setEditData({ ...editData, active: e.target.value === "true" })

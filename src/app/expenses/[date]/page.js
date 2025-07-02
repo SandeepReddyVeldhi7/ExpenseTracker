@@ -67,7 +67,7 @@ export default function ExpensesForDate() {
               <button
                 key={cat.id}
                 onClick={() => router.push(`/expenses/${date}/${cat.id}`)}
-                className="flex items-center justify-center gap-3 bg-white/20 hover:bg-white/40 border border-white/40 backdrop-blur-lg transition-all duration-300 p-5 rounded-xl text-lg font-semibold text-white shadow-lg hover:scale-105"
+                className="flex items-center justify-center gap-3 text-black bg-white/20 hover:bg-white/40 border border-white/40 backdrop-blur-lg transition-all duration-300 p-5 rounded-xl text-lg font-semibold  shadow-lg hover:scale-105"
               >
                 {cat.icon}
                 {cat.label}
