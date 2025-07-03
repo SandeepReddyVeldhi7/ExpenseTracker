@@ -269,7 +269,7 @@ function CategoryPageContent({ date, category }) {
         const totalBusiness = totalCashersSale + totalDrinksAmount;
         const payout =
           totalCashersSale -
-          Math.abs(totalDrinksAmount) -
+       Math.max(0, totalDrinksAmount) -
           totalCashersAmount -
           totalShot;
         console.log("payout", payout);
