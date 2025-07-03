@@ -4,6 +4,8 @@ import { connectDB } from "@/lib/db";
 import Staff from "@/models/Staff";
 import Expense from "@/models/DailySummary";
 
+
+
 export default async function handler(req, res) {
   await connectDB();
 
@@ -14,27 +16,31 @@ export default async function handler(req, res) {
 
     const result = [];
 
+    const pad = (n) => (n < 10 ? `0${n}` : n);
+    const startStr = `${year}-${pad(month)}-01`;
+    const endStr = `${year}-${pad(month)}-31`;
+
+    // Fetch all expenses in the month
+    const expenses = await Expense.find({
+      date: { $gte: startStr, $lte: endStr }
+    });
+
     for (const staff of staffList) {
-      let filter = { advance: staff._id };
+      let totalAdvance = 0;
 
-   const pad = (n) => (n < 10 ? `0${n}` : n);
-const startStr = `${year}-${pad(month)}-01`;
-const endStr = `${year}-${pad(month)}-31`;
-
-filter.date = {
-  $gte: startStr,
-  $lte: endStr,
-};
-
-
-      const advances = await Expense.find(filter);
-
-      const totalAdvance = advances.reduce((sum, adv) => {
-        const advAmount = adv.items.length > 0
-          ? adv.items.reduce((s, i) => s + i.price, 0)
-          : adv.totalCashersAmount;
-        return sum + advAmount;
-      }, 0);
+      expenses.forEach(exp => {
+        if (Array.isArray(exp.cashers)) {
+          exp.cashers.forEach(casher => {
+            if (Array.isArray(casher.staffAdvances)) {
+              casher.staffAdvances.forEach(adv => {
+                if (adv.staffId.toString() === staff._id.toString()) {
+                  totalAdvance += adv.amount;
+                }
+              });
+            }
+          });
+        }
+      });
 
       result.push({
         _id: staff._id,

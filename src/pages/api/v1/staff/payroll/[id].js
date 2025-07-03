@@ -4,6 +4,9 @@ import Expense from "@/models/DailySummary";
 import Staff from "@/models/Staff";
 import SalaryPayment from "@/models/SalaryPayment";
 
+
+
+
 export default async function handler(req, res) {
   await connectDB();
 
@@ -31,31 +34,34 @@ export default async function handler(req, res) {
       date: { $gte: startDate, $lte: endDate },
     });
 
-    // ✅ Advances
-    const advances = await Expense.find({
-      advance: id,
+    // ✅ Advances from Expense.cashers[].staffAdvances
+    const expenses = await Expense.find({
       date: {
         $gte: startDate.toISOString().split("T")[0],
         $lte: endDate.toISOString().split("T")[0],
       },
     });
 
-    const currentAdvance = advances.reduce((sum, expense) => {
-      if (expense.items.length > 0) {
-        return sum + expense.items.reduce((s, i) => s + i.price, 0);
-      } else {
-        return sum + expense.totalCashersAmount;
-      }
-    }, 0);
+    let advancesList = [];
+    let currentAdvance = 0;
 
-    const advancesList = advances.map((exp) => ({
-      _id: exp._id,
-      date: exp.date,
-      amount:
-        exp.items.length > 0
-          ? exp.items.reduce((s, i) => s + i.price, 0)
-          : exp.totalCashersAmount,
-    }));
+    expenses.forEach((exp) => {
+      if (Array.isArray(exp.cashers)) {
+        exp.cashers.forEach((casher) => {
+          if (Array.isArray(casher.staffAdvances)) {
+            casher.staffAdvances.forEach((a) => {
+              if (a.staffId.toString() === id) {
+                advancesList.push({
+                  date: exp.date,
+                  amount: a.amount,
+                });
+                currentAdvance += a.amount;
+              }
+            });
+          }
+        });
+      }
+    });
 
     // ✅ Existing Payment (if any)
     const existingPayment = await SalaryPayment.findOne({
@@ -74,6 +80,11 @@ export default async function handler(req, res) {
     let payable = earnedSalary - totalAdvanceDue - finalPaid;
     if (payable < 0) payable = 0;
 
+    const newCarryForward =
+      payable === 0
+        ? Math.abs(earnedSalary - totalAdvanceDue - finalPaid)
+        : 0;
+
     res.json({
       staffName: staff.name,
       designation: staff.designation,
@@ -86,9 +97,8 @@ export default async function handler(req, res) {
       finalPaid,
       carryForward: staff.remainingAdvance || 0,
       payable,
-      newCarryForward: payable === 0 ? Math.abs(earnedSalary - totalAdvanceDue - finalPaid) : 0,
+      newCarryForward,
       advances: advancesList,
-      // ✅ Always include:
       month: month ? parseInt(month) : m + 1,
       year: y,
     });

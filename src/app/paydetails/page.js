@@ -235,7 +235,8 @@ export default function PayDetailsPage() {
                         {p?.advances?.length > 0 ? (
                           p?.advances.map((adv, i) => (
                             <div key={i} className="whitespace-nowrap">
-                              {new Date(adv.date).toLocaleDateString()} - ₹{" "}
+                              {new Date(adv.date).toLocaleDateString('en-GB')
+} - ₹{" "}
                               {adv.amount}
                             </div>
                           ))
