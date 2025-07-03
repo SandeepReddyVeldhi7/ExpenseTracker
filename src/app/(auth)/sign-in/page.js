@@ -14,6 +14,7 @@ const SignIn = () => {
     email: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -22,42 +23,47 @@ const SignIn = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (isLoading) return;
+  setIsLoading(true);
 
-    // Show loading toast
-    const toastId = toast.loading("Signing in...");
+  const toastId = toast.loading("Signing in...");
 
-    try {
-      const response = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
-        redirect: false, // Prevent automatic redirect
-        callbackUrl: `/`,
-      });
+  try {
+    const response = await signIn("credentials", {
+      email: formData.email,
+      password: formData.password,
+      redirect: false,
+      callbackUrl: `/`,
+    });
 
-      if (response.ok) {
-      toast.success("Sign-in successful!", { id: toastId });
-
-      //  Fetch session to get the role
+    if (response.ok) {
+      // Fetch session to get the role and username
       const sessionRes = await fetch("/api/auth/session");
       const session = await sessionRes.json();
 
       if (session?.user?.role) {
-        localStorage.setItem("userRole", session.user.role); // owner or staff
+        localStorage.setItem("userRole", session.user.role);
       }
 
-      setFormData({ email: "", password: "" });
+      // 👉 Get a friendly name for the toast
+      const namePart = session?.user?.username?.split(" ")[0] || formData.email.split("@")[0];
 
+      toast.success(`Welcome, ${namePart}!`, { id: toastId });
+
+      setFormData({ email: "", password: "" });
       window.location.href = "/";
     } else {
       toast.error(response.error || "Sign-in failed", { id: toastId });
     }
-    } catch (error) {
-      console.log("Sign-in error:", error);
-      toast.error("An error occurred. Please try again.", { id: toastId });
-    }
-  };
+  } catch (error) {
+    console.log("Sign-in error:", error);
+    toast.error("An error occurred. Please try again.", { id: toastId });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div
@@ -122,11 +128,44 @@ const SignIn = () => {
         </div>
         {/* Submit Button */}
         <button
-          type="submit"
-          className="w-full mt-2 text-white bg-teal-600 hover:bg-teal-700 focus:ring-4 focus:outline-none focus:ring-blue-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center cursor-pointer"
-        >
-          Sign In
-        </button>
+  type="submit"
+  disabled={isLoading}
+  className={`w-full mt-2 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center transition duration-300
+    ${
+      isLoading
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-gradient-to-r from-teal-500 to-green-600 hover:from-teal-600 hover:to-green-700 focus:ring-4 focus:outline-none focus:ring-teal-200"
+    }
+  `}
+>
+  {isLoading ? (
+    <span className="flex items-center justify-center">
+      <svg
+        className="animate-spin h-5 w-5 mr-2 text-white"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v8z"
+        />
+      </svg>
+      Signing in...
+    </span>
+  ) : (
+    "Sign In"
+  )}
+</button>
+
       </form>
     </div>
   );
