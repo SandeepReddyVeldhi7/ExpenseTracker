@@ -18,15 +18,15 @@ export default function ReportsPage() {
   const [selectedExpense, setSelectedExpense] = useState(null);
   console.log("selectedExpense", selectedExpense);
   const renderName = (val) => {
-  if (!val) return "—";
-  if (typeof val === "string") return val;
-  if (typeof val === "object" && val !== null) {
-    if (typeof val.name === "string") return val.name;
-    if ('_id' in val && 'name' in val) return val.name;
-    return JSON.stringify(val);
-  }
-  return String(val);
-};
+    if (!val) return "—";
+    if (typeof val === "string") return val;
+    if (typeof val === "object" && val !== null) {
+      if (typeof val.name === "string") return val.name;
+      if ("_id" in val && "name" in val) return val.name;
+      return JSON.stringify(val);
+    }
+    return String(val);
+  };
 
   useEffect(() => {
     fetchReports();
@@ -68,39 +68,37 @@ export default function ReportsPage() {
           day: "numeric",
         }),
     },
-// {
-//   name: "Cashers",
-//   selector: row => {
-//     if (Array.isArray(row.allCashers)) {
-//       return row.allCashers
-//         .map(casher =>
-//           typeof casher === "string"
-//             ? casher
-//             : casher && typeof casher.name === "string"
-//             ? casher.name
-//             : "—"
-//         )
-//         .join(", ");
-//     }
-//     return "—";
-//   },
-//   cell: row => {
-//     if (Array.isArray(row.allCashers)) {
-//       return row.allCashers
-//         .map(casher =>
-//           typeof casher === "string"
-//             ? casher
-//             : casher && typeof casher.name === "string"
-//             ? casher.name
-//             : "—"
-//         )
-//         .join(", ");
-//     }
-//     return "—";
-//   },
-// },
-
-
+    // {
+    //   name: "Cashers",
+    //   selector: row => {
+    //     if (Array.isArray(row.allCashers)) {
+    //       return row.allCashers
+    //         .map(casher =>
+    //           typeof casher === "string"
+    //             ? casher
+    //             : casher && typeof casher.name === "string"
+    //             ? casher.name
+    //             : "—"
+    //         )
+    //         .join(", ");
+    //     }
+    //     return "—";
+    //   },
+    //   cell: row => {
+    //     if (Array.isArray(row.allCashers)) {
+    //       return row.allCashers
+    //         .map(casher =>
+    //           typeof casher === "string"
+    //             ? casher
+    //             : casher && typeof casher.name === "string"
+    //             ? casher.name
+    //             : "—"
+    //         )
+    //         .join(", ");
+    //     }
+    //     return "—";
+    //   },
+    // },
 
     {
       name: "Total Sale Amount",
@@ -135,8 +133,7 @@ export default function ReportsPage() {
   const totalCashersAmount = selectedExpense?.cashers?.reduce(
     (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
     0
-  )
-
+  );
 
   return (
     <div
@@ -218,9 +215,16 @@ export default function ReportsPage() {
           onClick={() => setSelectedExpense(null)}
         >
           <div
-            className="bg-white rounded-lg max-w-3xl w-full p-6 overflow-y-auto max-h-[90vh] text-gray-800"
+            className="bg-white rounded-lg max-w-3xl w-full p-4 overflow-y-auto max-h-[90vh] text-gray-800"
             onClick={(e) => e.stopPropagation()}
-          >
+          >    <div className="flex justify-end mb-4 ">
+              <button
+                onClick={() => setSelectedExpense(null)}
+                className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Close
+              </button>
+            </div>
             <h2 className="text-2xl font-bold mb-4">
               Daily Summary —{" "}
               {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
@@ -266,14 +270,13 @@ export default function ReportsPage() {
                   {c.items?.length > 0 && (
                     <>
                       <p className="underline text-sm">Main Items:</p>
-                     <ul className="ml-4 list-disc">
-  {c?.items?.map((item, i) => (
-    <li key={i}>
-      {renderName(item.name)}: ₹{item.price}
-    </li>
-  ))}
-</ul>
-
+                      <ul className="ml-4 list-disc">
+                        {c?.items?.map((item, i) => (
+                          <li key={i}>
+                            {renderName(item.name)}: ₹{item.price}
+                          </li>
+                        ))}
+                      </ul>
                     </>
                   )}
 
@@ -283,13 +286,12 @@ export default function ReportsPage() {
                         Addons (Tea/Juice/Other):
                       </p>
                       <ul className="ml-4 list-disc">
-  {c.addons.map((addon, i) => (
-    <li key={i}>
-      {renderName(addon.name)}: ₹{addon.price}
-    </li>
-  ))}
-</ul>
-
+                        {c.addons.map((addon, i) => (
+                          <li key={i}>
+                            {renderName(addon.name)}: ₹{addon.price}
+                          </li>
+                        ))}
+                      </ul>
                     </>
                   )}
 
@@ -309,8 +311,7 @@ export default function ReportsPage() {
                       <ul className="ml-4 list-disc">
                         {c.staffAdvances.map((adv, i) => (
                           <li key={i}>
-                          Staff ID: {renderName(adv.staffId)} — ₹{adv.amount}
-
+                            Staff ID: {renderName(adv.staffId)} — ₹{adv.amount}
                           </li>
                         ))}
                       </ul>
@@ -345,14 +346,7 @@ export default function ReportsPage() {
               <p>No drinks recorded.</p>
             )}
 
-            <div className="flex justify-end">
-              <button
-                onClick={() => setSelectedExpense(null)}
-                className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
-              >
-                Close
-              </button>
-            </div>
+        
           </div>
         </div>
       )}

@@ -25,7 +25,8 @@ export async function middleware(req) {
     "/reports",
     "/staff-list",
        "/attendence", 
-        "/sign-up" 
+        "/sign-up" ,
+        "/staffAttendance"
   ];
 
   if (
@@ -55,3 +56,4 @@ export const config = {
     "/sign-up"
   ],
 };
+ 

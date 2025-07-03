@@ -28,12 +28,14 @@ export default function ResponsiveNav() {
       icon: <FiUsers />,
       children: [
         { href: "/staff", label: "Add Staff Members " },
-        { href: "/staff-registation", label: "Staff Creation" },
         { href: "/staffAdvancesPage", label: "Staff Advances" },
         { href: "/staff-list", label: "Staff List" },
+        { href: "/staffAttendance", label: "Staff Attendence List" },
+        { href: "/staff-registation", label: "Staff login Creation" },
         { href: "/dashboard-users", label: "login Users List" },
+
         { href: "/sign-up", label: "Admin user creation" },
-        { href: "/admin-users", label: "Admin users" }
+        { href: "/admin-users", label: "Admin users" },
       ],
     },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
@@ -43,7 +45,6 @@ export default function ResponsiveNav() {
   ];
 
   const staffNavItems = [
-  
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
   ];
@@ -133,9 +134,7 @@ export default function ResponsiveNav() {
               key={idx}
               onClick={() => setShowMobileSheet(true)}
               className={`flex flex-col items-center ${
-                pathname.startsWith("/staff")
-                  ? "text-blue-600"
-                  : "text-black"
+                pathname.startsWith("/staff") ? "text-blue-600" : "text-black"
               }`}
             >
               <FiUsers className="text-lg" />
@@ -173,7 +172,6 @@ export default function ResponsiveNav() {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 bg-white text-black border-t shadow-lg z-50 rounded-t-lg"
           >
-            
             {navItems
               .find((i) => i.children)
               ?.children.map((child) => (
