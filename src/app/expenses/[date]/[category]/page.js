@@ -230,13 +230,13 @@ function CategoryPageContent({ date, category }) {
           (s, c) => s + (c.totalSealAmount || 0),
           0
         );
-console.log("totalCashersSale", totalCashersSale);
+        console.log("totalCashersSale", totalCashersSale);
         console.log("totalCashersAmount", totalCashersAmount);
         const totalShot = cashers.reduce(
           (sum, c) => sum + (parseFloat(c.shot) || 0),
           0
         );
-console.log("totalShot", totalShot);
+        console.log("totalShot", totalShot);
         const totalTeaJuiceInCashers = cashers.reduce((s, c) => {
           const teaJuice = c.addons
             .filter((a) => a.name === "tea" || a.name === "juice")
@@ -261,15 +261,18 @@ console.log("totalShot", totalShot);
             : 0;
           return s + items + otherAddons + advances;
         }, 0);
-          console.log("totalCashersExpensesExclTeaJuice",totalCashersExpensesExclTeaJuice)
+        console.log(
+          "totalCashersExpensesExclTeaJuice",
+          totalCashersExpensesExclTeaJuice
+        );
 
         const totalBusiness = totalCashersSale + totalDrinksAmount;
         const payout =
           totalCashersSale -
-          totalDrinksAmount -
-        totalCashersAmount  -
+          Math.abs(totalDrinksAmount) -
+          totalCashersAmount -
           totalShot;
-console.log("payout", payout)
+        console.log("payout", payout);
         // ✅ 5) Save all to state
         setTotalDetails({
           date,
@@ -475,7 +478,7 @@ console.log("payout", payout)
 
   const handleFinalSubmit = async () => {
     const toastId = toast.loading("Submitting all data...");
-   
+
     try {
       await fetch("/api/v1/expense/add-expense", {
         method: "POST",
@@ -915,7 +918,7 @@ console.log("payout", payout)
                   </div>
                 </div>
               ) : (
-                <div className="min-h-screen flex items-center justify-center bg-white">
+                <div className="min-h-screen flex items-center justify-center bg-white">	
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="mt-4 text-gray-600 font-medium">
