@@ -1,6 +1,6 @@
 {
   "name": "Hotel",
-  "short_name": "Expenses",
+  "short_name": "Hotel",
   "description": "Track and manage your daily expenses effortlessly.",
   "start_url": "/",
   "display": "standalone",
@@ -10,9 +10,13 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/icon3-192.jpg",
       "sizes": "192x192",
-      "type": "image/png"
+   "type": "image/jpeg"
+    },{
+      "src": "/icons/icon1-192.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
     }
   ]
 }

@@ -28,11 +28,12 @@ export default function ResponsiveNav() {
       icon: <FiUsers />,
       children: [
         { href: "/staff", label: "Add Staff Members " },
+        
         { href: "/staffAdvancesPage", label: "Staff Advances" },
-        { href: "/staff-list", label: "Staff List" },
+        
         { href: "/staffAttendance", label: "Staff Attendence List" },
         { href: "/staff-registation", label: "Staff login Creation" },
-        { href: "/dashboard-users", label: "login Users List" },
+        { href: "/dashboard-users", label: "login Staff List" },
 
         { href: "/sign-up", label: "Admin user creation" },
         { href: "/admin-users", label: "Admin users" },

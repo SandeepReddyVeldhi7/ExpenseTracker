@@ -11,12 +11,15 @@ export default async function RootLayout({ children }) {
       <head>
          {/*  Add manifest link */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#000000" />
-        <link rel="icon" href="/icons/icon-192.png"/>
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="/icons/icon3-192.jpg" />
+    <link rel="apple-touch-icon" href="/icons/icon3-192.jpg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
       </head>
       <body>
         {children}
-        {/* ✅ Show nav ONLY if logged in */}
+        {/*  Show nav ONLY if logged in */}
         {session?.user && <BottomNav />}
       </body>
     </html>
