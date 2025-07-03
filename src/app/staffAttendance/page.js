@@ -42,7 +42,7 @@ export default function AttendancePage() {
 
   return (
     <div className="p-4 min-h-screen bg-gray-100">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-center">
+      <h1 className="text-xl sm:text-2xl text-black font-bold mb-4 text-center">
         📅 Staff Monthly Attendance
       </h1>
 
@@ -50,7 +50,7 @@ export default function AttendancePage() {
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-          className="border rounded p-2"
+          className="border rounded text-black p-2"
         >
           {Array.from({ length: 12 }, (_, i) => (
             <option key={i + 1} value={i + 1}>
@@ -63,7 +63,7 @@ export default function AttendancePage() {
           type="number"
           value={selectedYear}
           onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          className="border rounded p-2 w-24"
+          className="border text-black rounded p-2 w-24"
         />
 
         <button
@@ -81,11 +81,11 @@ export default function AttendancePage() {
           <table className="min-w-[900px] w-full text-xs sm:text-sm border-collapse">
             <thead className="bg-gray-300 sticky top-0 z-10">
               <tr>
-                <th className="border p-2">S.no</th>
-                <th className="border p-2">Name</th>
-                <th className="border p-2">Designation</th>
+                <th className="border p-2 text-black">S.no</th>
+                <th className="border p-2 text-black ">Name</th>
+                <th className="border p-2 text-black">Designation</th>
                 {Array.from({ length: daysInMonth }, (_, i) => (
-                  <th key={i + 1} className="border p-1 text-center">
+                  <th key={i + 1} className="border p-1 text-black text-center">
                     {i + 1}
                   </th>
                 ))}
@@ -96,7 +96,7 @@ export default function AttendancePage() {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={daysInMonth + 5} className="text-center p-4">
+                  <td colSpan={daysInMonth + 5} className="text-center text-black p-4">
                     No attendance records found.
                   </td>
                 </tr>
@@ -111,12 +111,12 @@ export default function AttendancePage() {
                     <>
                       <tr
                         key={staff._id}
-                        className="text-center hover:bg-gray-50"
+                        className="text-center text-black hover:bg-gray-50"
                       >
                         <td className="border p-1">{idx + 1}</td>
                         <td
-                          className={`border p-1 font-medium cursor-pointer ${
-                            isExpanded ? "bg-blue-100" : "hover:bg-blue-50"
+                          className={`border p-1 font-medium cursor-pointer  text-black ${
+                            isExpanded ? "bg-blue-100 " : "hover:bg-blue-50"
                           }`}
                           onClick={() =>
                             setExpandedRow((prev) =>
@@ -126,7 +126,7 @@ export default function AttendancePage() {
                         >
                           {staff.name}
                         </td>
-                        <td className="border p-1">{staff.designation}</td>
+                        <td className="border p-1 ">{staff.designation}</td>
                         {Array.from({ length: daysInMonth }, (_, i) => {
                           const day = i + 1;
                           const isPresent = presentDays.includes(day);
@@ -149,30 +149,30 @@ export default function AttendancePage() {
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr className="bg-blue-50">
+                        <tr className="bg-blue-50 text-black">
                           <td
                             colSpan={daysInMonth + 5}
                             className="p-3 text-left text-xs sm:text-sm"
                           >
                             <div>
-                              <p className="font-semibold mb-2">
+                              <p className="font-semibold mb-2 text-black">
                                 📌 Details for {staff.name}
                               </p>
-                              <p>
+                              <p className="text-black">
                                 <strong>Designation:</strong> {staff.designation}
                               </p>
-                              <p>
+                              <p className="text-black">
                                 <strong>Total Present:</strong>{" "}
                                 {presentDays.length}
                               </p>
-                              <p>
+                              <p className="text-black">
                                 <strong>Total Absent:</strong>{" "}
                                 {daysInMonth - presentDays.length}
                               </p>
-                              <div className="mt-2">
+                              <div className="mt-2 text-black">
                                 <strong>Present Dates:</strong>
                                 {presentDays.length > 0 ? (
-                                  <ul className="list-disc list-inside">
+                                  <ul className="list-disc text-black list-inside">
                                     {staff.presentDates.map((d, i) => (
                                       <li key={i}>{formatDate(d)}</li>
                                     ))}
