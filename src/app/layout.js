@@ -24,7 +24,9 @@ export default async function RootLayout({ children }) {
       <body>
         {children}
         {session?.user && <ResponsiveNav/>}
+        <div  className="fixed bottom-4 right-0 z-50">
         <UpdateBanner manifestVersion={manifestVersion} />
+        </div>
       </body>
     </html>
   );
