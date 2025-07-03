@@ -28,7 +28,7 @@ export default function ResponsiveNav() {
       icon: <FiUsers />,
       children: [
         { href: "/staff", label: "Add Staff Members " },
-        
+         { href: "/staff-list", label: "Staff Members" },
         { href: "/staffAdvancesPage", label: "Staff Advances" },
         
         { href: "/staffAttendance", label: "Staff Attendence List" },
