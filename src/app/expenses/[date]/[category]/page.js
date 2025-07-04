@@ -239,6 +239,13 @@ function CategoryPageContent({ date, category }) {
           0
         );
         console.log("totalShot", totalShot);
+        //  Add totalOnlineSale here
+        const totalOnlineSale = cashers.reduce((sum, c) => {
+          const onlineTotal = c.addons
+            .filter((a) => a.name === "online")
+            .reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
+          return sum + onlineTotal;
+        }, 0);
         const totalTeaJuiceInCashers = cashers.reduce((s, c) => {
           const teaJuice = c.addons
             .filter((a) => a.name === "tea" || a.name === "juice")
@@ -301,13 +308,6 @@ function CategoryPageContent({ date, category }) {
 
     buildLiveSummary();
   }, [category, date]);
-
-  const totalOnlineSale = cashers.reduce((sum, c) => {
-    const onlineTotal = c.addons
-      .filter((a) => a.name === "online")
-      .reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
-    return sum + onlineTotal;
-  }, 0);
 
   //  Load saved form from localStorage every time path changes
   useEffect(() => {
@@ -588,11 +588,7 @@ function CategoryPageContent({ date, category }) {
   };
 
   const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-  const remainingAmount =
-    (totalDetails?.totalCashersSale || 0) -
-    (totalDetails?.totalDrinksAmount || 0) -
-    (totalDetails?.totalCashersExpensesExclTeaJuice || 0) -
-    (totalDetails?.totalShot || 0);
+
   const formatINR = (num) =>
     new Intl.NumberFormat("en-IN", {
       style: "currency",
