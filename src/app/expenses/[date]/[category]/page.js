@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Poppins } from "next/font/google";
 import { FaArrowLeft } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
+import dayjs from 'dayjs';
 
 // ✅ Google Font
 const poppins = Poppins({
@@ -18,6 +19,9 @@ const isTotalDetails = (cat) => cat === "totalDetails";
 
 // ✅ Wrapper with forced remount
 export default function CategoryPage() {
+  const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
+const [onlineTotal, setOnlineTotal] = useState(0);
+
   const router = useRouter();
   const { date, category } = useParams();
   return (
@@ -32,6 +36,7 @@ export default function CategoryPage() {
 // ✅ Actual page logic here
 function CategoryPageContent({ date, category }) {
   const router = useRouter();
+    const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
   const [soldAmount, setSoldAmount] = useState("");
   const [casherName, setCasherName] = useState("");
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
@@ -340,24 +345,56 @@ function CategoryPageContent({ date, category }) {
   // const excludeTeaJuice=
   //    totalExpense=total +exclude
   // ✅ Calculate drink total if needed
+  // useEffect(() => {
+  //   if (!isDrink(category)) return;
+
+  //   const updateFinalNet = () => {
+  //     const sold = parseFloat(soldAmount) || 0;
+  //     const comm = parseFloat(commission) || 0;
+  //     const commValue = category === "tea" ? (sold * comm) / 100 : comm;
+  //     const finalNet = sold - drinkTotal - commValue + previousCarryLoss;
+  //   m
+
+  //     // Save final net in localStorage under clear name:
+  //     const localKey = `expense-form-${date}-${category}`;
+  //     const data = JSON.parse(localStorage.getItem(localKey) || "{}");
+  //     data.remaining = finalNet;
+  //     localStorage.setItem(localKey, JSON.stringify(data));
+  //   };
+
+  //   updateFinalNet();
+  // }, [soldAmount, commission, drinkTotal, category, date]);
+
+
+
   useEffect(() => {
-    if (!isDrink(category)) return;
+  if (!isDrink(category)) return;
 
-    const updateFinalNet = () => {
-      const sold = parseFloat(soldAmount) || 0;
-      const comm = parseFloat(commission) || 0;
-      const commValue = category === "tea" ? (sold * comm) / 100 : comm;
-      const finalNet = sold - drinkTotal - commValue;
+  const updateFinalNetAndCarryLoss = () => {
+    const sold = parseFloat(soldAmount) || 0;
+    const comm = parseFloat(commission) || 0;
+    const commValue = category === "tea" ? (sold * comm) / 100 : comm;
 
-      // Save final net in localStorage under clear name:
-      const localKey = `expense-form-${date}-${category}`;
-      const data = JSON.parse(localStorage.getItem(localKey) || "{}");
-      data.remaining = finalNet;
-      localStorage.setItem(localKey, JSON.stringify(data));
-    };
+    // Calculate today before applying carry
+    const todayNet = sold - drinkTotal - commValue;
 
-    updateFinalNet();
-  }, [soldAmount, commission, drinkTotal, category, date]);
+    // Apply previous carryLoss from yesterday
+    const combinedNet = todayNet + previousCarryLoss;
+
+    // Determine new carryLoss
+    const newCarryLoss = combinedNet < 0 ? combinedNet : 0;
+
+    // Save both in localStorage
+    const localKey = `expense-form-${date}-${category}`;
+    const data = JSON.parse(localStorage.getItem(localKey) || "{}");
+    data.remaining = combinedNet;
+    data.finalNetAmount = combinedNet;
+    data.carryLoss = newCarryLoss;
+    localStorage.setItem(localKey, JSON.stringify(data));
+  };
+
+  updateFinalNetAndCarryLoss();
+}, [soldAmount, commission, drinkTotal, category, date, previousCarryLoss]);
 
   useEffect(() => {
     if (!isDrink(category)) return;
@@ -383,6 +420,38 @@ function CategoryPageContent({ date, category }) {
 
     getDrinkTotal();
   }, [category, date]);
+
+
+
+  useEffect(() => {
+  if (!isDrink(category) || !date) return;
+
+  const fetchYesterdayCarryLoss = async () => {
+    try {
+      const yesterdayDate = dayjs(date).subtract(1, 'day').format('YYYY-MM-DD');
+      const res = await fetch(`/api/v1/expense/daily-carryLoss-check?date=${yesterdayDate}`);
+      if (!res.ok) {
+        setPreviousCarryLoss(0);
+        return;
+      }
+
+      const data = await res.json();
+      const drink = (data.drinks || []).find(d => d.drinkType === category);
+
+      if (drink && drink.carryLoss && drink.carryLoss < 0) {
+        setPreviousCarryLoss(drink.carryLoss);
+      } else {
+        setPreviousCarryLoss(0);
+      }
+    } catch (err) {
+      console.error('Error fetching yesterday carryLoss', err);
+      setPreviousCarryLoss(0);
+    }
+  };
+
+  fetchYesterdayCarryLoss();
+}, [category, date]);
+
 
   // ✅ Handlers that save instantly
   const handleCasherNameChange = (value) => {
@@ -766,7 +835,7 @@ function CategoryPageContent({ date, category }) {
 
                     <p>Raw Total from Cashers: {drinkTotal.toFixed(2)}</p>
                     <hr className="border-white/20 my-2" />
-                    <p className="font-bold text-lg">
+                    {/* <p className="font-bold text-lg">
                       Final Net =
                       {(
                         soldAmount -
@@ -775,7 +844,25 @@ function CategoryPageContent({ date, category }) {
                           ? (soldAmount * commission) / 100
                           : parseFloat(commission || 0))
                       ).toFixed(2)}
-                    </p>
+                    </p> */}
+
+
+                    <p className="font-bold text-lg">
+  Final Net =
+  {(
+    soldAmount -
+    drinkTotal -
+    (category === "tea"
+      ? (soldAmount * commission) / 100
+      : parseFloat(commission || 0))
+    + previousCarryLoss
+  ).toFixed(2)}
+</p>
+
+<p className="text-sm text-yellow-300">
+  (Includes carry forward from yesterday: {previousCarryLoss || 0})
+</p>
+
                   </div>
                 )}
               </div>
