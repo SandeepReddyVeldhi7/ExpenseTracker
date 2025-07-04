@@ -19,9 +19,6 @@ const isTotalDetails = (cat) => cat === "totalDetails";
 
 // ✅ Wrapper with forced remount
 export default function CategoryPage() {
-  const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
-  const [onlineTotal, setOnlineTotal] = useState(0);
-
   const router = useRouter();
   const { date, category } = useParams();
   return (
@@ -288,7 +285,7 @@ function CategoryPageContent({ date, category }) {
           totalDrinksAmount,
           grandTotal: totalCashersAmount + totalDrinksAmount,
           totalCashersSale,
-
+          totalOnlineSale,
           totalTeaJuiceInCashers,
           totalCashersExpensesExclTeaJuice,
           totalBusiness,
@@ -304,6 +301,13 @@ function CategoryPageContent({ date, category }) {
 
     buildLiveSummary();
   }, [category, date]);
+
+  const totalOnlineSale = cashers.reduce((sum, c) => {
+    const onlineTotal = c.addons
+      .filter((a) => a.name === "online")
+      .reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
+    return sum + onlineTotal;
+  }, 0);
 
   //  Load saved form from localStorage every time path changes
   useEffect(() => {
@@ -510,10 +514,26 @@ function CategoryPageContent({ date, category }) {
     saveToLocalStorage({ staffAdvances: updated });
   };
 
+  // const updateStaffAdvance = (id, field, value) => {
+  //   const updated = staffAdvances.map((entry) =>
+  //     entry.id === id ? { ...entry, [field]: value } : entry
+  //   );
+  //   setStaffAdvances(updated);
+  //   saveToLocalStorage({ staffAdvances: updated });
+  // };
+
   const updateStaffAdvance = (id, field, value) => {
-    const updated = staffAdvances.map((entry) =>
-      entry.id === id ? { ...entry, [field]: value } : entry
-    );
+    const updated = staffAdvances.map((entry) => {
+      if (entry.id === id) {
+        const updatedEntry = { ...entry, [field]: value };
+        if (field === "staffId") {
+          const staff = staffList.find((s) => s._id === value);
+          updatedEntry.staffName = staff ? staff.name : "";
+        }
+        return updatedEntry;
+      }
+      return entry;
+    });
     setStaffAdvances(updated);
     saveToLocalStorage({ staffAdvances: updated });
   };
@@ -579,6 +599,38 @@ function CategoryPageContent({ date, category }) {
       currency: "INR",
       minimumFractionDigits: 2,
     }).format(num || 0);
+
+  useEffect(() => {
+    if (!isDrink(category)) return;
+    handleSaveDrink();
+  }, [soldAmount, commission, drinkTotal, previousCarryLoss]);
+
+  const handleSaveDrink = () => {
+    const sold = parseFloat(soldAmount) || 0;
+    const comm = parseFloat(commission) || 0;
+    const commValue = category === "tea" ? (sold * comm) / 100 : comm;
+
+    const todayNet = sold - drinkTotal - commValue;
+    const combinedNet = todayNet + previousCarryLoss;
+
+    const localKey = `expense-form-${date}-${category}`;
+    const data = {
+      soldAmount: sold,
+      commission: comm,
+      commissionValue: parseFloat(commValue.toFixed(2)),
+      finalNetAmount: parseFloat(combinedNet.toFixed(2)),
+      previousCarryLoss,
+      drinkTotal,
+    };
+
+    // For tea, store commissionPercent
+    if (category === "tea") {
+      data.commissionPercent = comm;
+    }
+
+    localStorage.setItem(localKey, JSON.stringify(data));
+    toast.success("Drink entry saved!");
+  };
 
   return (
     <div
@@ -900,7 +952,12 @@ function CategoryPageContent({ date, category }) {
                       <strong>Remaining / Payout:</strong>
                       {formatINR((totalDetails?.payout || 0).toFixed(2))}
                     </p>
-                    <div className="bg-black/40 p-4 rounded mt-4">
+                    <p>
+                      <strong>5) Total Online Sale:</strong>
+                      {formatINR(totalDetails?.totalOnlineSale?.toFixed(2))}
+                    </p>
+
+                    {/* <div className="bg-black/40 p-4 rounded mt-4">
                       <h3 className="text-lg font-bold mb-2">
                         Cashers Online Amount Summary
                       </h3>
@@ -916,7 +973,7 @@ function CategoryPageContent({ date, category }) {
                       ) : (
                         <p>No cashers recorded.</p>
                       )}
-                    </div>
+                    </div> */}
                   </div>
 
                   {/* CASHERS DETAIL */}
@@ -978,7 +1035,7 @@ function CategoryPageContent({ date, category }) {
                               <ul className="ml-4 list-disc">
                                 {c.staffAdvances.map((adv, i) => (
                                   <li key={i}>
-                                    {adv?.name || "N/A"}:{" "}
+                                    {adv?.staffName || "N/A"}:{" "}
                                     {formatINR(adv?.amount)}
                                   </li>
                                 ))}
