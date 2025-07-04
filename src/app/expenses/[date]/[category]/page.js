@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Poppins } from "next/font/google";
 import { FaArrowLeft } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
 
 // ✅ Google Font
 const poppins = Poppins({
@@ -20,7 +20,7 @@ const isTotalDetails = (cat) => cat === "totalDetails";
 // ✅ Wrapper with forced remount
 export default function CategoryPage() {
   const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
-const [onlineTotal, setOnlineTotal] = useState(0);
+  const [onlineTotal, setOnlineTotal] = useState(0);
 
   const router = useRouter();
   const { date, category } = useParams();
@@ -36,7 +36,7 @@ const [onlineTotal, setOnlineTotal] = useState(0);
 // ✅ Actual page logic here
 function CategoryPageContent({ date, category }) {
   const router = useRouter();
-    const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
+  const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
   const [soldAmount, setSoldAmount] = useState("");
   const [casherName, setCasherName] = useState("");
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
@@ -274,7 +274,7 @@ function CategoryPageContent({ date, category }) {
         const totalBusiness = totalCashersSale + totalDrinksAmount;
         const payout =
           totalCashersSale -
-       Math.max(0, totalDrinksAmount) -
+          Math.max(0, totalDrinksAmount) -
           totalCashersAmount -
           totalShot;
         console.log("payout", payout);
@@ -365,36 +365,34 @@ function CategoryPageContent({ date, category }) {
   //   updateFinalNet();
   // }, [soldAmount, commission, drinkTotal, category, date]);
 
-
-
   useEffect(() => {
-  if (!isDrink(category)) return;
+    if (!isDrink(category)) return;
 
-  const updateFinalNetAndCarryLoss = () => {
-    const sold = parseFloat(soldAmount) || 0;
-    const comm = parseFloat(commission) || 0;
-    const commValue = category === "tea" ? (sold * comm) / 100 : comm;
+    const updateFinalNetAndCarryLoss = () => {
+      const sold = parseFloat(soldAmount) || 0;
+      const comm = parseFloat(commission) || 0;
+      const commValue = category === "tea" ? (sold * comm) / 100 : comm;
 
-    // Calculate today before applying carry
-    const todayNet = sold - drinkTotal - commValue;
+      // Calculate today before applying carry
+      const todayNet = sold - drinkTotal - commValue;
 
-    // Apply previous carryLoss from yesterday
-    const combinedNet = todayNet + previousCarryLoss;
+      // Apply previous carryLoss from yesterday
+      const combinedNet = todayNet + previousCarryLoss;
 
-    // Determine new carryLoss
-    const newCarryLoss = combinedNet < 0 ? combinedNet : 0;
+      // Determine new carryLoss
+      const newCarryLoss = combinedNet < 0 ? combinedNet : 0;
 
-    // Save both in localStorage
-    const localKey = `expense-form-${date}-${category}`;
-    const data = JSON.parse(localStorage.getItem(localKey) || "{}");
-    data.remaining = combinedNet;
-    data.finalNetAmount = combinedNet;
-    data.carryLoss = newCarryLoss;
-    localStorage.setItem(localKey, JSON.stringify(data));
-  };
+      // Save both in localStorage
+      const localKey = `expense-form-${date}-${category}`;
+      const data = JSON.parse(localStorage.getItem(localKey) || "{}");
+      data.remaining = combinedNet;
+      data.finalNetAmount = combinedNet;
+      data.carryLoss = newCarryLoss;
+      localStorage.setItem(localKey, JSON.stringify(data));
+    };
 
-  updateFinalNetAndCarryLoss();
-}, [soldAmount, commission, drinkTotal, category, date, previousCarryLoss]);
+    updateFinalNetAndCarryLoss();
+  }, [soldAmount, commission, drinkTotal, category, date, previousCarryLoss]);
 
   useEffect(() => {
     if (!isDrink(category)) return;
@@ -421,37 +419,38 @@ function CategoryPageContent({ date, category }) {
     getDrinkTotal();
   }, [category, date]);
 
-
-
   useEffect(() => {
-  if (!isDrink(category) || !date) return;
+    if (!isDrink(category) || !date) return;
 
-  const fetchYesterdayCarryLoss = async () => {
-    try {
-      const yesterdayDate = dayjs(date).subtract(1, 'day').format('YYYY-MM-DD');
-      const res = await fetch(`/api/v1/expense/daily-carryLoss-check?date=${yesterdayDate}`);
-      if (!res.ok) {
+    const fetchYesterdayCarryLoss = async () => {
+      try {
+        const yesterdayDate = dayjs(date)
+          .subtract(1, "day")
+          .format("YYYY-MM-DD");
+        const res = await fetch(
+          `/api/v1/expense/daily-carryLoss-check?date=${yesterdayDate}`
+        );
+        if (!res.ok) {
+          setPreviousCarryLoss(0);
+          return;
+        }
+
+        const data = await res.json();
+        const drink = (data.drinks || []).find((d) => d.drinkType === category);
+
+        if (drink && drink.carryLoss && drink.carryLoss < 0) {
+          setPreviousCarryLoss(drink.carryLoss);
+        } else {
+          setPreviousCarryLoss(0);
+        }
+      } catch (err) {
+        console.error("Error fetching yesterday carryLoss", err);
         setPreviousCarryLoss(0);
-        return;
       }
+    };
 
-      const data = await res.json();
-      const drink = (data.drinks || []).find(d => d.drinkType === category);
-
-      if (drink && drink.carryLoss && drink.carryLoss < 0) {
-        setPreviousCarryLoss(drink.carryLoss);
-      } else {
-        setPreviousCarryLoss(0);
-      }
-    } catch (err) {
-      console.error('Error fetching yesterday carryLoss', err);
-      setPreviousCarryLoss(0);
-    }
-  };
-
-  fetchYesterdayCarryLoss();
-}, [category, date]);
-
+    fetchYesterdayCarryLoss();
+  }, [category, date]);
 
   // ✅ Handlers that save instantly
   const handleCasherNameChange = (value) => {
@@ -846,23 +845,22 @@ function CategoryPageContent({ date, category }) {
                       ).toFixed(2)}
                     </p> */}
 
-
                     <p className="font-bold text-lg">
-  Final Net =
-  {(
-    soldAmount -
-    drinkTotal -
-    (category === "tea"
-      ? (soldAmount * commission) / 100
-      : parseFloat(commission || 0))
-    + previousCarryLoss
-  ).toFixed(2)}
-</p>
+                      Final Net =
+                      {(
+                        soldAmount -
+                        drinkTotal -
+                        (category === "tea"
+                          ? (soldAmount * commission) / 100
+                          : parseFloat(commission || 0)) +
+                        previousCarryLoss
+                      ).toFixed(2)}
+                    </p>
 
-<p className="text-sm text-yellow-300">
-  (Includes carry forward from yesterday: {previousCarryLoss || 0})
-</p>
-
+                    <p className="text-sm text-yellow-300">
+                      (Includes carry forward from yesterday:{" "}
+                      {previousCarryLoss || 0})
+                    </p>
                   </div>
                 )}
               </div>
@@ -902,6 +900,23 @@ function CategoryPageContent({ date, category }) {
                       <strong>Remaining / Payout:</strong>
                       {formatINR((totalDetails?.payout || 0).toFixed(2))}
                     </p>
+                    <div className="bg-black/40 p-4 rounded mt-4">
+                      <h3 className="text-lg font-bold mb-2">
+                        Cashers Online Amount Summary
+                      </h3>
+                      {totalDetails.cashers &&
+                      totalDetails.cashers.length > 0 ? (
+                        <ul className="space-y-1 list-disc ml-5">
+                          {totalDetails.cashers.map((c, idx) => (
+                            <li key={idx}>
+                              {c.casherName}: {formatINR(c.totalSealAmount)}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No cashers recorded.</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* CASHERS DETAIL */}
@@ -1005,7 +1020,7 @@ function CategoryPageContent({ date, category }) {
                   </div>
                 </div>
               ) : (
-                <div className="min-h-screen flex items-center justify-center bg-white">	
+                <div className="min-h-screen flex items-center justify-center bg-white">
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="mt-4 text-gray-600 font-medium">

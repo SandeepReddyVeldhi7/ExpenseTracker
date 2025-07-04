@@ -217,7 +217,9 @@ export default function ReportsPage() {
           <div
             className="bg-white rounded-lg max-w-3xl w-full p-4 overflow-y-auto max-h-[90vh] text-gray-800"
             onClick={(e) => e.stopPropagation()}
-          >    <div className="flex justify-end mb-4 ">
+          >
+            {" "}
+            <div className="flex justify-end mb-4 ">
               <button
                 onClick={() => setSelectedExpense(null)}
                 className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
@@ -229,7 +231,6 @@ export default function ReportsPage() {
               Daily Summary —{" "}
               {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
             </h2>
-
             <div className="mb-4 space-y-2">
               <p>
                 <strong>1) Total Cashers Sale:</strong>{" "}
@@ -254,10 +255,32 @@ export default function ReportsPage() {
                 <strong>Remaining / Payout:</strong>{" "}
                 {formatINR(selectedExpense?.payout?.toFixed(2))}
               </p>
+              {/* ADD THIS BELOW */}
+              {selectedExpense.cashers &&
+                selectedExpense.cashers.length > 0 && (
+                  <div className="mb-4 space-y-2 bg-gray-100 p-3 rounded">
+                    <h3 className="text-lg font-bold mb-2">
+                      Cashers Online Amount Summary
+                    </h3>
+                    <ul className="list-disc ml-5 space-y-1">
+                      {selectedExpense.cashers.map((c, idx) => {
+                        const onlineAddon = c.addons?.find(
+                          (a) => a.name?.toLowerCase() === "online"
+                        );
+                        return (
+                          <li key={idx}>
+                            {c.casherName}:{" "}
+                            {onlineAddon
+                              ? formatINR(onlineAddon.price)
+                              : "No Online Amount"}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
             </div>
-
             <hr className="my-4" />
-
             <h3 className="text-lg font-bold mb-2">Cashers</h3>
             {selectedExpense?.cashers &&
             selectedExpense?.cashers?.length > 0 ? (
@@ -322,7 +345,6 @@ export default function ReportsPage() {
             ) : (
               <p>No cashers recorded.</p>
             )}
-
             <h3 className="text-lg font-bold mb-2">Drinks</h3>
             {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
               selectedExpense.drinks.map((d, idx) => (
@@ -345,8 +367,6 @@ export default function ReportsPage() {
             ) : (
               <p>No drinks recorded.</p>
             )}
-
-        
           </div>
         </div>
       )}
