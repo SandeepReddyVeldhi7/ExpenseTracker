@@ -203,9 +203,8 @@ function CategoryPageContent({ date, category }) {
               soldAmount,
               commissionPercent: commission,
               commissionValue: parseFloat(commissionValue.toFixed(2)),
-              finalNetAmount: parseFloat(
-                (soldAmount - drinkTotal - commissionValue).toFixed(2)
-              ),
+              finalNetAmount: parseFloat(data.finalNetAmount || 0),
+              carryLoss: parseFloat(data.carryLoss || 0),
             };
 
             const index = drinks.findIndex((d) => d.drinkType === key);
