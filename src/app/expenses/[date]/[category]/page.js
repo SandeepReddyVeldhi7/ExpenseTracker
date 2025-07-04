@@ -1049,22 +1049,48 @@ function CategoryPageContent({ date, category }) {
                     <h3 className="text-lg font-bold mb-2">Drinks</h3>
                     {totalDetails.drinks.length > 0 ? (
                       totalDetails.drinks.map((d, idx) => (
-                        <div
-                          key={idx}
-                          className="mb-2 border-b border-white/20 pb-1"
-                        >
-                          <p className="font-semibold">{d.drinkType}</p>
-                          <p>Sold Amount: {d.soldAmount}</p>
-                          <p>
-                            Commission:{" "}
-                            {d.drinkType === "tea"
-                              ? `${d.commissionPercent}%`
-                              : "Fixed"}{" "}
-                            → {d.commissionValue}
-                          </p>
+                        // <div
+                        //   key={idx}
+                        //   className="mb-2 border-b border-white/20 pb-1"
+                        // >
+                        //   <p className="font-semibold">{d.drinkType}</p>
+                        //   <p>Sold Amount: {d.soldAmount}</p>
+                        //   <p>
+                        //     Commission:{" "}
+                        //     {d.drinkType === "tea"
+                        //       ? `${d.commissionPercent}%`
+                        //       : "Fixed"}{" "}
+                        //     → {d.commissionValue}
+                        //   </p>
 
-                          <p>Final Net: {d.finalNetAmount}</p>
-                        </div>
+                        //   <p>Final Net: {d.finalNetAmount}</p>
+                        // </div>
+
+                        <div className="bg-black/40 p-4 rounded text-white space-y-2">
+  <p className="font-medium text-lg">{d.drinkType.toUpperCase()}</p>
+  <p>Sold Amount: {d.soldAmount}</p>
+  
+  {d.drinkType === 'tea' ? (
+    <p>
+      Commission ({d.commissionPercent}% of {d.soldAmount}): {d.commissionValue}
+    </p>
+  ) : (
+    <p>Fixed Commission: {d.commissionValue}</p>
+  )}
+
+  <p>Raw Total from Cashers: {d.drinkTotal}</p>
+
+  <hr className="border-white/20 my-2" />
+
+  <p className="font-bold text-lg">
+    Final Net = {d.finalNetAmount}
+  </p>
+
+  <p className="text-sm text-yellow-300">
+    (Includes carry forward from yesterday: {d.carryLoss || 0})
+  </p>
+</div>
+
                       ))
                     ) : (
                       <p>No drinks recorded.</p>
