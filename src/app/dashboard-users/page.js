@@ -89,11 +89,11 @@ export default function DashboardUsersList() {
               <table className="w-full min-w-[800px] text-sm text-black">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="p-3 text-left">Username</th>
-                    <th className="p-3 text-left">Email</th>
-                    <th className="p-3 text-left">Role</th>
-                    <th className="p-3 text-left">Created</th>
-                    <th className="p-3 text-left">Actions</th>
+                    <th className="p-3 text-left text-black">Username</th>
+                    <th className="p-3 text-left text-black">Email</th>
+                    <th className="p-3 text-left text-black">Role</th>
+                    <th className="p-3 text-left text-black">Created</th>
+                    <th className="p-3 text-left text-black">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
