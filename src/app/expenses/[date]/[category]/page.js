@@ -38,6 +38,7 @@ function CategoryPageContent({ date, category }) {
   const [casherName, setCasherName] = useState("");
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
   const [totalDetails, setTotalDetails] = useState(null);
+const [hasMounted, setHasMounted] = useState(false);
 
   const [dropdownInputs, setDropdownInputs] = useState([]);
   console.log("drop::::::::::::::", dropdownInputs);
@@ -77,6 +78,7 @@ function CategoryPageContent({ date, category }) {
     const remaining = parseFloat(localTotalSale || 0) - total;
     const shot = remaining - parseFloat(localMoneyLift || 0);
 
+
     const data = {
       casherName: localCasherName,
       items: localItems,
@@ -94,7 +96,13 @@ function CategoryPageContent({ date, category }) {
 
     localStorage.setItem(localKey, JSON.stringify(data));
   };
-
+useEffect(() => {
+  setHasMounted(true);
+}, []);
+useEffect(() => {
+  if (!isDrink(category) || !hasMounted) return;
+  handleSaveDrink();
+}, [soldAmount, commission, drinkTotal, previousCarryLoss, hasMounted]);
   // ✅ Fetch staff list once
   useEffect(() => {
     const fetchStaffList = async () => {
@@ -179,42 +187,100 @@ function CategoryPageContent({ date, category }) {
         });
 
         // ✅ 3) Merge local storage drinks
+        // ["tea", "juice"].forEach((key) => {
+        //   const localKey = `expense-form-${date}-${key}`;
+        //   const raw = localStorage.getItem(localKey);
+        //   if (raw) {
+        //     const data = JSON.parse(raw);
+        //     const soldAmount = parseFloat(data.soldAmount || 0);
+        //     const commission = parseFloat(data.commission || 0);
+
+        //     const rawAddons = cashers.flatMap((c) =>
+        //       c.addons.filter((a) => a.name === key)
+        //     );
+        //     const drinkTotal = rawAddons.reduce(
+        //       (sum, a) => sum + (parseFloat(a.price) || 0),
+        //       0
+        //     );
+
+        //     const commissionValue =
+        //       key === "tea" ? (soldAmount * commission) / 100 : commission;
+
+        //     const drinkData = {
+        //       drinkType: key,
+        //       soldAmount,
+        //       commissionPercent: commission,
+        //       commissionValue: parseFloat(commissionValue.toFixed(2)),
+        //       finalNetAmount: parseFloat(data.finalNetAmount || 0),
+        //       carryLoss: parseFloat(data.carryLoss || 0),
+        //     };
+
+        //     const index = drinks.findIndex((d) => d.drinkType === key);
+        //     if (index >= 0) {
+        //       drinks[index] = drinkData;
+        //     } else {
+        //       drinks.push(drinkData);
+        //     }
+        //   }
+        // });
+        // ✅ Step 3) Calculate drinkTotals from cashers
+        const drinkTotals = { tea: 0, juice: 0 };
+        cashers.forEach((c) => {
+          c.addons.forEach((a) => {
+            if (a.name === "tea" || a.name === "juice") {
+              drinkTotals[a.name] += parseFloat(a.price || 0);
+            }
+          });
+        });
+
+        // ✅ Step 3) Build the new drinks array
+        const newDrinks = [];
+
         ["tea", "juice"].forEach((key) => {
           const localKey = `expense-form-${date}-${key}`;
           const raw = localStorage.getItem(localKey);
+
           if (raw) {
             const data = JSON.parse(raw);
             const soldAmount = parseFloat(data.soldAmount || 0);
-            const commission = parseFloat(data.commission || 0);
-
-            const rawAddons = cashers.flatMap((c) =>
-              c.addons.filter((a) => a.name === key)
-            );
-            const drinkTotal = rawAddons.reduce(
-              (sum, a) => sum + (parseFloat(a.price) || 0),
-              0
-            );
+            const commissionPercent = parseFloat(data.commission || 0);
 
             const commissionValue =
-              key === "tea" ? (soldAmount * commission) / 100 : commission;
+              key === "tea"
+                ? (soldAmount * commissionPercent) / 100
+                : commissionPercent;
 
-            const drinkData = {
-              drinkType: key,
-              soldAmount,
-              commissionPercent: commission,
-              commissionValue: parseFloat(commissionValue.toFixed(2)),
-              finalNetAmount: parseFloat(data.finalNetAmount || 0),
-              carryLoss: parseFloat(data.carryLoss || 0),
-            };
+            const previousCarryLoss = parseFloat(data.carryLoss || 0);
 
-            const index = drinks.findIndex((d) => d.drinkType === key);
-            if (index >= 0) {
-              drinks[index] = drinkData;
-            } else {
-              drinks.push(drinkData);
-            }
-          }
+            const todayNet = soldAmount - drinkTotals[key] - commissionValue;
+            const finalNetAmount = parseFloat(
+              (todayNet + previousCarryLoss).toFixed(2)
+            );
+newDrinks.push({
+  drinkType: key,
+  soldAmount,
+  commissionPercent: key === "tea" ? commissionPercent : undefined,
+  commissionValue: parseFloat(commissionValue.toFixed(2)),
+  finalNetAmount,
+  carryLoss: previousCarryLoss,
+  drinkTotal: parseFloat(drinkTotals[key].toFixed(2))
+});
+
+          } else {
+  newDrinks.push({
+    drinkType: key,
+    soldAmount: 0,
+    commissionPercent: key === "tea" ? 0 : undefined,
+    commissionValue: 0,
+    finalNetAmount: 0,
+    carryLoss: 0,
+    drinkTotal: parseFloat(drinkTotals[key].toFixed(2)),
+  });
+}
+
         });
+
+        drinks = newDrinks;
 
         // ✅ 4) Totals
         const totalCashersAmount = cashers.reduce(
@@ -275,11 +341,15 @@ function CategoryPageContent({ date, category }) {
         );
 
         const totalBusiness = totalCashersSale + totalDrinksAmount;
-        const payout =
-          totalCashersSale -
-          Math.max(0, totalDrinksAmount) -
-          totalCashersAmount -
-          totalShot;
+        const payout = parseFloat(
+          (
+            totalCashersSale -
+            Math.max(0, totalDrinksAmount) -
+            totalCashersAmount -
+            totalShot
+          ).toFixed(2)
+        );
+
         console.log("payout", payout);
         // ✅ 5) Save all to state
         setTotalDetails({
@@ -595,10 +665,7 @@ function CategoryPageContent({ date, category }) {
       minimumFractionDigits: 2,
     }).format(num || 0);
 
-  useEffect(() => {
-    if (!isDrink(category)) return;
-    handleSaveDrink();
-  }, [soldAmount, commission, drinkTotal, previousCarryLoss]);
+  
 
   const handleSaveDrink = () => {
     const sold = parseFloat(soldAmount) || 0;
@@ -633,7 +700,7 @@ function CategoryPageContent({ date, category }) {
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
       <Toaster />
-      <div className=" min-h-screen  over-flow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
+      <div className=" min-h-screen  overflow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
         <div className="w-full relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
           <button
             onClick={() => router.back()}
@@ -883,7 +950,7 @@ function CategoryPageContent({ date, category }) {
                     <hr className="border-white/20 my-2" />
                     {/* <p className="font-bold text-lg">
                       Final Net =
-                      {(
+                      {(  
                         soldAmount -
                         drinkTotal -
                         (category === "tea"
@@ -902,11 +969,6 @@ function CategoryPageContent({ date, category }) {
                           : parseFloat(commission || 0)) +
                         previousCarryLoss
                       ).toFixed(2)}
-                    </p>
-
-                    <p className="text-sm text-yellow-300">
-                      (Includes carry forward from yesterday:{" "}
-                      {previousCarryLoss || 0})
                     </p>
                   </div>
                 )}
@@ -1067,30 +1129,33 @@ function CategoryPageContent({ date, category }) {
                         // </div>
 
                         <div className="bg-black/40 p-4 rounded text-white space-y-2">
-  <p className="font-medium text-lg">{d.drinkType.toUpperCase()}</p>
-  <p>Sold Amount: {d.soldAmount}</p>
-  
-  {d.drinkType === 'tea' ? (
-    <p>
-      Commission ({d.commissionPercent}% of {d.soldAmount}): {d.commissionValue}
-    </p>
-  ) : (
-    <p>Fixed Commission: {d.commissionValue}</p>
-  )}
+                          <p className="font-medium text-lg">
+                            {d.drinkType.toUpperCase()}
+                          </p>
+                          <p>Sold Amount: {d.soldAmount}</p>
 
-  <p>Raw Total from Cashers: {d.drinkTotal}</p>
+                          {d.drinkType === "tea" ? (
+                            <p>
+                              Commission ({d.commissionPercent}% of{" "}
+                              {d.soldAmount}): {d.commissionValue}
+                            </p>
+                          ) : (
+                            <p>Fixed Commission: {d.commissionValue}</p>
+                          )}
 
-  <hr className="border-white/20 my-2" />
+                          <p>Raw Total from Cashers: {d.drinkTotal}</p>
 
-  <p className="font-bold text-lg">
-    Final Net = {d.finalNetAmount}
-  </p>
+                          <hr className="border-white/20 my-2" />
 
-  <p className="text-sm text-yellow-300">
-    (Includes carry forward from yesterday: {d.carryLoss || 0})
-  </p>
-</div>
+                          <p className="font-bold text-lg">
+                            Final Net = {d.finalNetAmount}
+                          </p>
 
+                          <p className="text-sm text-yellow-300">
+                            (Includes carry forward from yesterday:{" "}
+                            {d.carryLoss || 0})
+                          </p>
+                        </div>
                       ))
                     ) : (
                       <p>No drinks recorded.</p>

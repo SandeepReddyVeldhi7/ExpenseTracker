@@ -15,6 +15,7 @@ export default function PayDetailsPage() {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
 
+  /** Load Payroll Data **/
   const loadData = async (
     m = selectedMonth,
     y = selectedYear,
@@ -23,8 +24,8 @@ export default function PayDetailsPage() {
   ) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/staff/get-staff");
-      const staff = await res.json();
+      const staffRes = await fetch("/api/v1/staff/get-staff");
+      const staff = await staffRes.json();
       setStaffList(staff);
 
       const payrollPromises = staff.map((s) => {
@@ -38,16 +39,18 @@ export default function PayDetailsPage() {
       const payrollResults = await Promise.all(payrollPromises);
       setPayrollData(payrollResults);
 
-      const newPaidStatus = {};
-      const newPayAmounts = {};
+      const statusMap = {};
+      const amountsMap = {};
       payrollResults.forEach((p, idx) => {
-        if (p.payable === 0) newPaidStatus[staff[idx]._id] = true;
-        newPayAmounts[staff[idx]._id] = Math.floor(p.payable || 0);
+        const id = staff[idx]._id;
+        if (p.payable === 0) statusMap[id] = true;
+        amountsMap[id] = Math.floor(p.payable || 0);
       });
-      setPaidStatus(newPaidStatus);
-      setPayAmounts(newPayAmounts);
+      setPaidStatus(statusMap);
+      setPayAmounts(amountsMap);
     } catch (err) {
-      console.error("Error loading payroll:", err);
+      console.error(err);
+      toast.error("Failed to load payroll data");
     } finally {
       setLoading(false);
     }
@@ -57,19 +60,21 @@ export default function PayDetailsPage() {
     loadData();
   }, []);
 
+  /** Handle Payment **/
   const handlePayAmountChange = (staffId, value) => {
     setPayAmounts((prev) => ({ ...prev, [staffId]: value }));
   };
 
-  const handlePay = async (staffId) => {
+  const handlePay = async (staffId, staffName) => {
     const amount = Math.floor(parseFloat(payAmounts[staffId]));
     if (isNaN(amount) || amount < 0) {
       toast.error("Please enter a valid amount.");
       return;
     }
 
-    const toastId = toast.loading("Processing payment...");
+    if (!window.confirm(`Confirm paying ₹${amount} to ${staffName}?`)) return;
 
+    const toastId = toast.loading("Processing payment...");
     try {
       const res = await fetch("/api/v1/staff/pay-salary", {
         method: "POST",
@@ -83,21 +88,22 @@ export default function PayDetailsPage() {
       });
       const result = await res.json();
 
-      if (res.ok) {
+      if (res.ok && result.payment) {
         toast.success("Payment saved!", { id: toastId });
         setPaidStatus((prev) => ({ ...prev, [staffId]: true }));
         loadData(selectedMonth, selectedYear);
       } else {
-        toast.error(result.message || "Error processing payment", {
+        toast.error(result.message || "Payment failed. Try again.", {
           id: toastId,
         });
       }
     } catch (err) {
       console.error(err);
-      toast.error("Payment failed!", { id: toastId });
+      toast.error("Error processing payment.", { id: toastId });
     }
   };
 
+  /** Filter Handlers **/
   const handleSelectThisMonth = () => {
     const now = new Date();
     setSelectedMonth(now.getMonth() + 1);
@@ -117,13 +123,14 @@ export default function PayDetailsPage() {
     loadData(null, null, customStartDate, customEndDate);
   };
 
+  /** Render **/
   if (loading) {
     return (
-      <div className="min-h-screen  flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-gray-600 font-medium">
-            Loading Pay Details list...
+            Loading payroll data...
           </p>
         </div>
       </div>
@@ -131,11 +138,12 @@ export default function PayDetailsPage() {
   }
 
   return (
-    <div className="max-w-6xl flex justify-center items-center flex-col  mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-500 font-sans">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-50 font-sans">
+      <Toaster />
+
       <h1 className="text-xl sm:text-2xl text-center font-bold mb-4">
         📒 Staff Payroll Ledger
       </h1>
-      <Toaster />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
@@ -171,7 +179,7 @@ export default function PayDetailsPage() {
       </div>
 
       {/* Period Info */}
-      <h2 className="text-sm sm:text-base mb-1 font-semibold">
+      <h2 className="text-sm sm:text-base mb-3 font-semibold">
         Showing Salary for:{" "}
         {customStartDate && customEndDate
           ? `${customStartDate} to ${customEndDate}`
@@ -182,29 +190,29 @@ export default function PayDetailsPage() {
       </h2>
 
       {/* Table */}
-      <div className="w-full relative mt-8 mb-6 overflow-x-auto border rounded-lg shadow-sm">
-        <table className="w-full border border-collapse border-black text-xs sm:text-sm">
-          <thead className="bg-gray-300 mt-6 text-black">
+      <div className="w-full overflow-x-auto border rounded-lg shadow-sm">
+        <table className="w-full border-collapse border text-xs sm:text-sm">
+          <thead className="bg-gray-300 text-black">
             <tr>
               <th className="p-2 border">S.no</th>
               <th className="p-2 border">Name</th>
-              <th className="p-2 border">Salary Month</th>
+              <th className="p-2 border">Month</th>
               <th className="p-2 border">Attendance</th>
-              <th className="p-2 border">Salary</th>
+              <th className="p-2 border">Earned Salary</th>
               <th className="p-2 border">Advances</th>
-              <th className="p-2 border">Prev. Carry Fwd</th>
               <th className="p-2 border">Payable</th>
+              <th className="p-2 border">Carry Forward (Next Month)</th>
               <th className="p-2 border">Paid Amount</th>
               <th className="p-2 border">Action</th>
             </tr>
           </thead>
           <tbody>
-            {payrollData.length > 0 && staffList.length > 0 ? (
+            {payrollData.length && staffList.length ? (
               payrollData.every(
                 (p) => p.presentDays === 0 && p.earnedSalary === 0
               ) ? (
                 <tr>
-                  <td colSpan="10" className="text-center p-4">
+                  <td colSpan="12" className="text-center p-4">
                     No data exists for selected period.
                   </td>
                 </tr>
@@ -219,49 +227,36 @@ export default function PayDetailsPage() {
                         {p.month
                           ? `${new Date(p.year, p.month - 1).toLocaleString(
                               "default",
-                              {
-                                month: "long",
-                              }
+                              { month: "long" }
                             )} ${p.year}`
                           : "-"}
                       </td>
-                      <td className="p-2 border text-center">
-                        {p.presentDays}
-                      </td>
+                      <td className="p-2 border text-center">{p.presentDays}</td>
                       <td className="p-2 border text-right">
-                        ₹ {Math.floor(p.earnedSalary || 0)}
+                        ₹ {Math.round(p.earnedSalary || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="p-2 border text-left">
-                        {p?.advances?.length > 0 ? (
-                          p?.advances.map((adv, i) => (
-                            <div key={i} className="whitespace-nowrap">
-                              {new Date(adv.date).toLocaleDateString('en-GB')
-} - ₹{" "}
-                              {adv.amount}
-                            </div>
-                          ))
+                        {p?.advances?.length ? (
+                          <div className="max-h-24 overflow-y-auto space-y-1">
+                            {p.advances.map((adv, i) => (
+                              <div key={i} className="whitespace-nowrap">
+                                {new Date(adv.date).toLocaleDateString("en-GB")} - ₹ {adv.amount}
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <span>No advances</span>
+                          <span className="text-black italic">None</span>
                         )}
                       </td>
-                      <td
-                        className={`p-2 border text-right ${
-                          p.previousCarryForward > 0
-                            ? "text-red-600"
-                            : p.previousCarryForward < 0
-                            ? "text-green-600"
-                            : "text-black"
-                        }`}
-                      >
-                        {p.previousCarryForward > 0
-                          ? `Advance Due: ₹ ${p.previousCarryForward}`
-                          : p.previousCarryForward < 0
-                          ? `Credit: ₹ ${Math.abs(p.previousCarryForward)}`
-                          : "₹ 0"}
-                      </td>
-
                       <td className="p-2 border text-right">
-                        ₹ {Math.floor(p.payable || 0)}
+                        ₹ {Math.round(p.payable || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td className="p-2 border text-right">
+                        {p.carryForward > 0
+                          ? `- Advance Due:  ${Math.round(p.carryForward).toLocaleString('en-IN')}`
+                          : p.carryForward < 0
+                          ? `Credit:  ${Math.abs(Math.round(p.carryForward)).toLocaleString('en-IN')}`
+                          : " 0"}
                       </td>
                       <td className="p-2 border text-center">
                         <input
@@ -277,9 +272,9 @@ export default function PayDetailsPage() {
                       </td>
                       <td className="p-2 border text-center">
                         <button
-                          onClick={() => {
-                            if (!paidStatus[staffId]) handlePay(staffId);
-                          }}
+                          onClick={() =>
+                            !paidStatus[staffId] && handlePay(staffId, p.staffName)
+                          }
                           disabled={paidStatus[staffId]}
                           className={`px-3 py-1 rounded text-xs ${
                             paidStatus[staffId]
@@ -296,7 +291,7 @@ export default function PayDetailsPage() {
               )
             ) : (
               <tr>
-                <td colSpan="10" className="text-center p-4">
+                <td colSpan="12" className="text-center p-4">
                   No staff found.
                 </td>
               </tr>

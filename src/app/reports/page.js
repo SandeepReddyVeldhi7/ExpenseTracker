@@ -134,6 +134,12 @@ export default function ReportsPage() {
     (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
     0
   );
+  const totalOnlineAmount = selectedExpense.cashers.reduce((sum, c) => {
+    const onlineAddon = c.addons?.find(
+      (a) => a.name?.toLowerCase() === "online"
+    );
+    return sum + (parseFloat(onlineAddon?.price) || 0);
+  }, 0);
 
   return (
     <div
@@ -279,6 +285,9 @@ export default function ReportsPage() {
                     </ul>
                   </div>
                 )}
+              <div className="mt-2 font-semibold">
+                Total Online Amount: {formatINR(totalOnlineAmount) || 0}
+              </div>
             </div>
             <hr className="my-4" />
             <h3 className="text-lg font-bold mb-2">Cashers</h3>
