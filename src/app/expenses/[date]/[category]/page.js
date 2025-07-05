@@ -284,6 +284,7 @@ function CategoryPageContent({ date, category }) {
         const totalDrinksAmount =
           (tea?.finalNetAmount || 0) + (juice?.finalNetAmount || 0);
 
+          console.log("totalDrinks:::::::::::::",totalDrinksAmount)
         const totalCashersSale = cashers.reduce(
           (s, c) => s + (c.totalSealAmount || 0),
           0

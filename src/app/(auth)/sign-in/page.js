@@ -46,7 +46,9 @@ export default function SignIn() {
           localStorage.setItem("userRole", session.user.role);
         }
 
-        const namePart = session?.user?.username?.split(" ")[0] || formData.email.split("@")[0];
+        const namePart =
+          session?.user?.username?.split(" ")[0] ||
+          formData.email.split("@")[0];
         toast.success(`Welcome, ${namePart}!`, { id: toastId });
 
         setFormData({ email: "", password: "" });
@@ -78,12 +80,11 @@ export default function SignIn() {
         className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 flex flex-col items-center"
       >
         {/* LOGO */}
-        <div className="mb-4">
+        <div className="relative w-32 h-32 px-2 p-2  md:w-36 md:h-36 lg:w-40 lg:h-40 mb-4">
           <Image
             src="/icons/icon3-192.jpg"
             alt="Company Logo"
-            width={100}
-            height={100}
+            fill
             priority
             className="rounded-full object-cover"
           />
@@ -147,9 +148,11 @@ export default function SignIn() {
           type="submit"
           disabled={isLoading}
           className={`w-full mt-2 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center transition duration-300
-            ${isLoading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-teal-500 to-green-600 hover:from-teal-600 hover:to-green-700 focus:ring-4 focus:outline-none focus:ring-teal-200"}`}
+            ${
+              isLoading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-teal-500 to-green-600 hover:from-teal-600 hover:to-green-700 focus:ring-4 focus:outline-none focus:ring-teal-200"
+            }`}
         >
           {isLoading ? (
             <span className="flex items-center justify-center">
@@ -194,7 +197,7 @@ export default function SignIn() {
         >
           <img
             src="/icons/google-logo.png"
-            alt="Google logo" 
+            alt="Google logo"
             className="w-5 h-5"
           />
           <span className="text-gray-700">Sign in with Google</span>
