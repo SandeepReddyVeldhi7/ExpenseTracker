@@ -21,8 +21,9 @@ async function findUserByEmailOrUsername(emailOrUsername) {
   user = await DashboardUsers.findOne({
     $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
   });
+  console.log("user:::::::",user)
   if (user) return { ...user.toObject(), role: user.role || "staff" }
-console.log("user:::::::",user)
+
   return null;
 }
 
@@ -79,47 +80,45 @@ export default NextAuth({
     /**
      * Runs on login - both credentials & google
      */
-    async signIn({ user, account, profile }) {
-      if (account.provider === "google") {
-        console.log("Google Sign-In attempt for:", user.email);
+  async signIn({ user, account, profile }) {
+  if (account.provider === "google") {
+    console.log("Google Sign-In attempt for:", user.email);
+    const dbUser = await findUserByEmailOrUsername(user.email);
+    if (!dbUser || !dbUser.role) {
+      console.log(`❌ Google SignIn blocked. Email not found or role missing in DB: ${user.email}`);
+      return false;
+    }
+    user.id = dbUser._id.toString();
+    user.username = dbUser.username || dbUser.email.split("@")[0];
+    user.role = dbUser.role;
+  }
+  return true;
+},
 
-        // Enforce DB check
-        const dbUser = await findUserByEmailOrUsername(user.email);
-        if (!dbUser) {
-          console.log(`❌ Google SignIn blocked. Email not found in DB: ${user.email}`);
-          return false;
-        }
-        console.log("db:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::",dbUser)
 
-        // Attach role to user object
-        user.id = dbUser._id.toString();
-        user.username = dbUser.username || dbUser.email.split("@")[0];
-        user.role = dbUser.role;
-      }
-
-      return true;
-    },
-
-    async jwt({ token, user }) {
+async jwt({ token, user }) {
   if (user) {
-    // First time (sign in)
     token.id = user.id;
     token.email = user.email;
     token.username = user.username;
     token.role = user.role;
-      token.image = user.image || user.picture || null;
+    token.image = user.image || user.picture || null;
   } 
-  else if (!token.role && token.email) {
-    // Subsequent calls / refresh
+  // Always re-validate role from DB on refresh
+  else if (token.email) {
     const dbUser = await findUserByEmailOrUsername(token.email);
-    if (dbUser) {
+    if (dbUser && dbUser.role) {
       token.id = dbUser._id.toString();
       token.username = dbUser.username || dbUser.email.split("@")[0];
       token.role = dbUser.role;
+    } else {
+      // Fallback role for safety
+      token.role = "staff";
     }
   }
   return token;
 },
+
 
 
     async session({ session, token }) {
