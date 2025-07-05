@@ -39,7 +39,7 @@ function CategoryPageContent({ date, category }) {
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
   const [totalDetails, setTotalDetails] = useState(null);
 const [hasMounted, setHasMounted] = useState(false);
-
+const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
   const [dropdownInputs, setDropdownInputs] = useState([]);
   console.log("drop::::::::::::::", dropdownInputs);
   const [staffAdvances, setStaffAdvances] = useState([]);
