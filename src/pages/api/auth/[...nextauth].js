@@ -116,7 +116,7 @@ export default NextAuth({
     }
   }
   return token;
-}
+},
 
 
     async session({ session, token }) {
