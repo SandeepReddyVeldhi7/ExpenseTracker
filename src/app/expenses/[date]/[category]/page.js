@@ -415,28 +415,7 @@ newDrinks.push({
     0
   );
   const total = itemsTotal + dropdownTotal + staffAdvanceTotal;
-  // const excludeTeaJuice=
-  //    totalExpense=total +exclude
-  // ✅ Calculate drink total if needed
-  // useEffect(() => {
-  //   if (!isDrink(category)) return;
 
-  //   const updateFinalNet = () => {
-  //     const sold = parseFloat(soldAmount) || 0;
-  //     const comm = parseFloat(commission) || 0;
-  //     const commValue = category === "tea" ? (sold * comm) / 100 : comm;
-  //     const finalNet = sold - drinkTotal - commValue + previousCarryLoss;
-  //   m
-
-  //     // Save final net in localStorage under clear name:
-  //     const localKey = `expense-form-${date}-${category}`;
-  //     const data = JSON.parse(localStorage.getItem(localKey) || "{}");
-  //     data.remaining = finalNet;
-  //     localStorage.setItem(localKey, JSON.stringify(data));
-  //   };
-
-  //   updateFinalNet();
-  // }, [soldAmount, commission, drinkTotal, category, date]);
 
   useEffect(() => {
     if (!isDrink(category)) return;
@@ -491,6 +470,17 @@ newDrinks.push({
 
     getDrinkTotal();
   }, [category, date]);
+
+  useEffect(() => {
+  if (!isDrink(category)) return;
+
+  const localKey = `expense-form-${date}-${category}`;
+  const raw = localStorage.getItem(localKey);
+  if (raw) {
+    const data = JSON.parse(raw);
+    setSavedFinalNetAmount(parseFloat(data.finalNetAmount || 0));
+  }
+}, [soldAmount, commission, drinkTotal, previousCarryLoss, category, date]);
 
   useEffect(() => {
     if (!isDrink(category) || !date) return;
@@ -948,18 +938,9 @@ newDrinks.push({
 
                     <p>Raw Total from Cashers: {drinkTotal.toFixed(2)}</p>
                     <hr className="border-white/20 my-2" />
-                    {/* <p className="font-bold text-lg">
-                      Final Net =
-                      {(  
-                        soldAmount -
-                        drinkTotal -
-                        (category === "tea"
-                          ? (soldAmount * commission) / 100
-                          : parseFloat(commission || 0))
-                      ).toFixed(2)}
-                    </p> */}
+                   
 
-                    <p className="font-bold text-lg">
+                    {/* <p className="font-bold text-lg">
                       Final Net =
                       {(
                         soldAmount -
@@ -969,7 +950,11 @@ newDrinks.push({
                           : parseFloat(commission || 0)) +
                         previousCarryLoss
                       ).toFixed(2)}
-                    </p>
+                    </p> */}
+                    <p className="font-bold text-lg">
+  Final Net = {savedFinalNetAmount.toFixed(2)}
+</p>
+
                   </div>
                 )}
               </div>
