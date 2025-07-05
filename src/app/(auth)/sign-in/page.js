@@ -190,7 +190,7 @@ export default function SignIn() {
         </div>
 
         {/* Google Sign-In Button */}
-        {/* <button
+         <button
           type="button"
           onClick={handleGoogleSignIn}
           className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-5 py-2.5 text-sm font-medium bg-white hover:bg-gray-50 transition duration-300 shadow-sm"
@@ -201,7 +201,7 @@ export default function SignIn() {
             className="w-5 h-5"
           />
           <span className="text-gray-700">Sign in with Google</span>
-        </button> */}
+        </button> 
       </form>
     </div>
   );
