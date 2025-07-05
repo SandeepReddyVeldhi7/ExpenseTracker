@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+
 import {
   FiChevronDown,
   FiUsers,
@@ -20,6 +22,8 @@ export default function ResponsiveNav() {
   const [navItems, setNavItems] = useState([]);
   const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
   const [showMobileSheet, setShowMobileSheet] = useState(false);
+  const { data: session } = useSession();
+  console.log("session", session);
 
   //  Define nav items with icons
   const ownerNavItems = [
@@ -28,9 +32,9 @@ export default function ResponsiveNav() {
       icon: <FiUsers />,
       children: [
         { href: "/staff", label: "Add Staff Members " },
-         { href: "/staff-list", label: "Staff Members" },
+        { href: "/staff-list", label: "Staff Members" },
         { href: "/staffAdvancesPage", label: "Staff Advances" },
-        
+
         { href: "/staffAttendance", label: "Staff Attendence List" },
         { href: "/staff-registation", label: "Staff login Creation" },
         { href: "/dashboard-users", label: "login Staff List" },
@@ -156,9 +160,18 @@ export default function ResponsiveNav() {
         )}
         <button
           onClick={() => signOut({ callbackUrl: "/sign-in" })}
-          className="flex flex-col items-center text-red-500"
+          className={`flex flex-col items-center ${
+            pathname === "/sign-in" ? "text-blue-600" : "text-black"
+          }`}
         >
-          <FiLogOut className="text-lg" />
+          <img
+            src={
+              session?.user?.image ||
+              "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+            }
+            alt="User Avatar"
+            className="w-5 h-5 rounded-full  object-cover border border-gray-300"
+          />
           <span className="text-xs">Logout</span>
         </button>
       </nav>

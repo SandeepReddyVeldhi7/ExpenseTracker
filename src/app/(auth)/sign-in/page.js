@@ -80,9 +80,9 @@ export default function SignIn() {
         className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 flex flex-col items-center"
       >
         {/* LOGO */}
-        <div className="relative w-32 h-32 px-2 p-2  md:w-36 md:h-36 lg:w-40 lg:h-40 mb-4">
+        <div className="relative w-40 h-40 px-2 p-2  mb-4">
           <Image
-            src="/icons/icon3-192.jpg"
+            src="/icons/icon3-192.png"
             alt="Company Logo"
             fill
             priority
