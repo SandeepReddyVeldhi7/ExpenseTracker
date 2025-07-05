@@ -141,7 +141,7 @@ export default function PayDetailsPage() {
     <div className="max-w-7xl mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-50 font-sans">
       <Toaster />
 
-      <h1 className="text-xl sm:text-2xl text-center font-bold mb-4">
+      <h1 className="text-xl sm:text-2xl text-black text-center font-bold mb-4">
         📒 Staff Payroll Ledger
       </h1>
 
@@ -149,29 +149,29 @@ export default function PayDetailsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <button
           onClick={handleSelectThisMonth}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          className="px-4 py-2 bg-blue-600 text-black  rounded hover:bg-blue-700 text-sm"
         >
           This Month
         </button>
 
         <div className="flex flex-col sm:flex-row gap-2">
-          <label className="text-sm font-medium">Start:</label>
+          <label className="text-sm text-black font-medium">Start:</label>
           <input
             type="date"
             value={customStartDate}
             onChange={(e) => setCustomStartDate(e.target.value)}
-            className="border p-1 rounded text-sm"
+            className="border p-1 text-black rounded text-sm"
           />
-          <label className="text-sm font-medium">End:</label>
+          <label className="text-sm text-black font-medium">End:</label>
           <input
             type="date"
             value={customEndDate}
             onChange={(e) => setCustomEndDate(e.target.value)}
-            className="border p-1 rounded text-sm"
+            className="border p-1 text-black rounded text-sm"
           />
           <button
             onClick={handleCustomFilter}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
+            className="px-4 py-2 bg-purple-600 text-black rounded hover:bg-purple-700 text-sm"
           >
             Apply Filter
           </button>
@@ -179,7 +179,7 @@ export default function PayDetailsPage() {
       </div>
 
       {/* Period Info */}
-      <h2 className="text-sm sm:text-base mb-3 font-semibold">
+      <h2 className="text-sm  text-black sm:text-base mb-3 font-semibold">
         Showing Salary for:{" "}
         {customStartDate && customEndDate
           ? `${customStartDate} to ${customEndDate}`
@@ -194,16 +194,16 @@ export default function PayDetailsPage() {
         <table className="w-full border-collapse border text-xs sm:text-sm">
           <thead className="bg-gray-300 text-black">
             <tr>
-              <th className="p-2 border">S.no</th>
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Month</th>
-              <th className="p-2 border">Attendance</th>
-              <th className="p-2 border">Earned Salary</th>
-              <th className="p-2 border">Advances</th>
-              <th className="p-2 border">Payable</th>
-              <th className="p-2 border">Carry Forward (Next Month)</th>
-              <th className="p-2 border">Paid Amount</th>
-              <th className="p-2 border">Action</th>
+              <th className="p-2 border text-black">S.no</th>
+              <th className="p-2 border text-black">Name</th>
+              <th className="p-2 border text-black">Month</th>
+              <th className="p-2 border text-black">Attendance</th>
+              <th className="p-2 border text-black">Earned Salary</th>
+              <th className="p-2 border text-black">Advances</th>
+              <th className="p-2 border text-black">Payable</th>
+              <th className="p-2 border text-black">Carry Forward (Next Month)</th>
+              <th className="p-2 border text-black">Paid Amount</th>
+              <th className="p-2 border text-black">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -212,7 +212,7 @@ export default function PayDetailsPage() {
                 (p) => p.presentDays === 0 && p.earnedSalary === 0
               ) ? (
                 <tr>
-                  <td colSpan="12" className="text-center p-4">
+                  <td colSpan="12" className="text-center text-black  p-4">
                     No data exists for selected period.
                   </td>
                 </tr>
@@ -221,9 +221,9 @@ export default function PayDetailsPage() {
                   const staffId = staffList[idx]._id;
                   return (
                     <tr key={staffId}>
-                      <td className="p-2 border text-center">{idx + 1}</td>
-                      <td className="p-2 border">{p.staffName}</td>
-                      <td className="p-2 border">
+                      <td className="p-2 border text-black text-center">{idx + 1}</td>
+                      <td className="p-2 border text-black">{p.staffName}</td>
+                      <td className="p-2 border text-black">
                         {p.month
                           ? `${new Date(p.year, p.month - 1).toLocaleString(
                               "default",
@@ -231,15 +231,15 @@ export default function PayDetailsPage() {
                             )} ${p.year}`
                           : "-"}
                       </td>
-                      <td className="p-2 border text-center">{p.presentDays}</td>
-                      <td className="p-2 border text-right">
+                      <td className="p-2 text-black border text-center">{p.presentDays}</td>
+                      <td className="p-2text-black border text-right">
                         ₹ {Math.round(p.earnedSalary || 0).toLocaleString('en-IN')}
                       </td>
-                      <td className="p-2 border text-left">
+                      <td className="p-2 text-black border text-left">
                         {p?.advances?.length ? (
                           <div className="max-h-24 overflow-y-auto space-y-1">
                             {p.advances.map((adv, i) => (
-                              <div key={i} className="whitespace-nowrap">
+                              <div key={i} className="whitespace-nowrap text-black ">
                                 {new Date(adv.date).toLocaleDateString("en-GB")} - ₹ {adv.amount}
                               </div>
                             ))}
@@ -248,17 +248,17 @@ export default function PayDetailsPage() {
                           <span className="text-black italic">None</span>
                         )}
                       </td>
-                      <td className="p-2 border text-right">
+                      <td className="p-2 border text-black text-right">
                         ₹ {Math.round(p.payable || 0).toLocaleString('en-IN')}
                       </td>
-                      <td className="p-2 border text-right">
+                      <td className="p-2 border text-black text-right">
                         {p.carryForward > 0
                           ? `- Advance Due:  ${Math.round(p.carryForward).toLocaleString('en-IN')}`
                           : p.carryForward < 0
                           ? `Credit:  ${Math.abs(Math.round(p.carryForward)).toLocaleString('en-IN')}`
                           : " 0"}
                       </td>
-                      <td className="p-2 border text-center">
+                      <td className="p-2 border text-black text-center">
                         <input
                           type="number"
                           min="0"
@@ -266,11 +266,11 @@ export default function PayDetailsPage() {
                           onChange={(e) =>
                             handlePayAmountChange(staffId, e.target.value)
                           }
-                          className="border p-1 w-24 text-right rounded text-xs"
+                          className="border text-black p-1 w-24 text-right rounded text-xs"
                           disabled={paidStatus[staffId]}
                         />
                       </td>
-                      <td className="p-2 border text-center">
+                      <td className="p-2 text-black  border text-center">
                         <button
                           onClick={() =>
                             !paidStatus[staffId] && handlePay(staffId, p.staffName)
@@ -278,8 +278,8 @@ export default function PayDetailsPage() {
                           disabled={paidStatus[staffId]}
                           className={`px-3 py-1 rounded text-xs ${
                             paidStatus[staffId]
-                              ? "bg-gray-400 cursor-not-allowed"
-                              : "bg-green-600 hover:bg-green-700 text-white"
+                              ? "bg-gray-400 text-black cursor-not-allowed"
+                              : "bg-green-600 text-black hover:bg-green-700 "
                           }`}
                         >
                           {paidStatus[staffId] ? "Paid" : "Pay"}
@@ -291,7 +291,7 @@ export default function PayDetailsPage() {
               )
             ) : (
               <tr>
-                <td colSpan="12" className="text-center p-4">
+                <td colSpan="12" className="text-center text-black p-4">
                   No staff found.
                 </td>
               </tr>
