@@ -21,10 +21,11 @@ async function findUserByEmailOrUsername(emailOrUsername) {
   user = await DashboardUsers.findOne({
     $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
   });
-  if (user) return { ...user.toObject(), role: "staff123" };
-
+  if (user) return { ...user.toObject(), role: user.role || "staff" }
+console.log("user:::::::",user)
   return null;
 }
+
 
 export default NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
@@ -88,6 +89,7 @@ export default NextAuth({
           console.log(`❌ Google SignIn blocked. Email not found in DB: ${user.email}`);
           return false;
         }
+        console.log("db:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::",dbUser)
 
         // Attach role to user object
         user.id = dbUser._id.toString();
@@ -105,6 +107,7 @@ export default NextAuth({
     token.email = user.email;
     token.username = user.username;
     token.role = user.role;
+      token.image = user.image || user.picture || null;
   } 
   else if (!token.role && token.email) {
     // Subsequent calls / refresh
@@ -125,6 +128,7 @@ export default NextAuth({
         email: token.email,
         username: token.username,
         role: token.role,
+  image: token.image || null,
       };
       return session;
     },
