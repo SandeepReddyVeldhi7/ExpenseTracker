@@ -7,6 +7,12 @@ import SalaryPayment from "@/models/SalaryPayment";
 
 
 
+
+
+
+
+
+
 export default async function handler(req, res) {
   await connectDB();
 
@@ -27,14 +33,14 @@ export default async function handler(req, res) {
     const staff = await Staff.findById(id);
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
-    // ✅ Attendance
+    // Attendance count
     const presentDays = await Attendance.countDocuments({
       staff: id,
       status: "Present",
       date: { $gte: startDate, $lte: endDate },
     });
 
-    // ✅ Advances from Expense.cashers[].staffAdvances
+    // Advances from DailySummary
     const expenses = await Expense.find({
       date: {
         $gte: startDate.toISOString().split("T")[0],
@@ -63,27 +69,15 @@ export default async function handler(req, res) {
       }
     });
 
-    // ✅ Existing Payment (if any)
-    const existingPayment = await SalaryPayment.findOne({
-      staff: id,
-      month: m + 1,
-      year: y,
-    });
-
-    const finalPaid = existingPayment?.finalPaid || 0;
-
-    // ✅ Compute amounts
+    // Salary calculation
     const perDaySalary = staff.salary / 30;
     const earnedSalary = perDaySalary * presentDays;
+
+    // Total due including previous
     const totalAdvanceDue = (staff.remainingAdvance || 0) + currentAdvance;
 
-    let payable = earnedSalary - totalAdvanceDue - finalPaid;
+    let payable = earnedSalary - totalAdvanceDue;
     if (payable < 0) payable = 0;
-
-    const newCarryForward =
-      payable === 0
-        ? Math.abs(earnedSalary - totalAdvanceDue - finalPaid)
-        : 0;
 
     res.json({
       staffName: staff.name,
@@ -91,14 +85,10 @@ export default async function handler(req, res) {
       monthlySalary: staff.salary,
       presentDays,
       earnedSalary,
-      previousCarryForward: staff.remainingAdvance || 0,
-      currentMonthAdvance: currentAdvance,
-      totalAdvanceDue,
-      finalPaid,
-      carryForward: staff.remainingAdvance || 0,
-      payable,
-      newCarryForward,
       advances: advancesList,
+      totalAdvanceDue,
+      payable,
+      carryForward: staff.remainingAdvance || 0,
       month: month ? parseInt(month) : m + 1,
       year: y,
     });
@@ -107,3 +97,6 @@ export default async function handler(req, res) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+
+

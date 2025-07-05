@@ -4,6 +4,7 @@ import Expense from "@/models/DailySummary";
 import SalaryPayment from "@/models/SalaryPayment";
 import Staff from "@/models/Staff";
 
+
 export default async function handler(req, res) {
   await connectDB();
 
@@ -12,7 +13,6 @@ export default async function handler(req, res) {
   }
 
   const { staffId, month, year, paidAmount } = req.body;
-
   const m = month ? parseInt(month) - 1 : new Date().getMonth();
   const y = year ? parseInt(year) : new Date().getFullYear();
 
@@ -30,40 +30,37 @@ export default async function handler(req, res) {
       date: { $gte: startDate, $lte: endDate },
     });
 
-    // Advances for this month
-    const advances = await Expense.find({
-      advance: staffId,
-      date: { $gte: startDate.toISOString().split("T")[0], $lte: endDate.toISOString().split("T")[0] }
+    // Advances
+    const expenses = await Expense.find({
+      date: {
+        $gte: startDate.toISOString().split("T")[0],
+        $lte: endDate.toISOString().split("T")[0],
+      },
     });
 
-    const currentAdvance = advances.reduce((sum, expense) => {
-      if (expense.items.length > 0) {
-        return sum + expense.items.reduce((s, item) => s + item.price, 0);
-      } else {
-        return sum + expense.totalCashersAmount;
+    let currentAdvance = 0;
+    expenses.forEach((exp) => {
+      if (Array.isArray(exp.cashers)) {
+        exp.cashers.forEach((casher) => {
+          if (Array.isArray(casher.staffAdvances)) {
+            casher.staffAdvances.forEach((a) => {
+              if (a.staffId.toString() === staffId) {
+                currentAdvance += a.amount;
+              }
+            });
+          }
+        });
       }
-    }, 0);
+    });
 
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-const perDaySalary = staff.salary / daysInMonth;
-const earnedSalary = perDaySalary * presentDays;
+    const perDaySalary = staff.salary / 30;
+    const earnedSalary = perDaySalary * presentDays;
 
+    // Compute new carry forward
+    const totalAdvanceDue = (staff.remainingAdvance || 0) + currentAdvance;
+    const newCarryForward = totalAdvanceDue - earnedSalary + paidAmount;
 
-    const previousCarryForward = staff.remainingAdvance || 0;
-const totalAdvanceDue = previousCarryForward + currentAdvance;
-
-
-    let finalPaid = Number(paidAmount);
-    if (isNaN(finalPaid) || finalPaid < 0) {
-      return res.status(400).json({ message: "Invalid paidAmount" });
-    }
-
-    // 🗝️ Compute the new carry forward
-   let newCarryForward = totalAdvanceDue - earnedSalary + finalPaid;
-
-
-
-    // ✅ UPSERT: update if exists, else create
+    // Save payment
     const payment = await SalaryPayment.findOneAndUpdate(
       { staff: staffId, month: m + 1, year: y },
       {
@@ -73,21 +70,22 @@ const totalAdvanceDue = previousCarryForward + currentAdvance;
         presentDays,
         earnedSalary,
         advanceDeducted: totalAdvanceDue,
-        finalPaid,
+        finalPaid: paidAmount,
         carryForward: newCarryForward,
       },
       { upsert: true, new: true }
     );
 
-    // ✅ Update Staff's remainingAdvance
+    // Update staff's remainingAdvance
     staff.remainingAdvance = newCarryForward;
     staff.lastPaid = new Date();
     await staff.save();
 
     res.json({ message: "Salary paid successfully", payment });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 }
+
+
