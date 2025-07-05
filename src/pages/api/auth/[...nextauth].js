@@ -99,14 +99,25 @@ export default NextAuth({
     },
 
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.username = user.username;
-        token.role = user.role;
-      }
-      return token;
-    },
+  if (user) {
+    // First time (sign in)
+    token.id = user.id;
+    token.email = user.email;
+    token.username = user.username;
+    token.role = user.role;
+  } 
+  else if (!token.role && token.email) {
+    // Subsequent calls / refresh
+    const dbUser = await findUserByEmailOrUsername(token.email);
+    if (dbUser) {
+      token.id = dbUser._id.toString();
+      token.username = dbUser.username || dbUser.email.split("@")[0];
+      token.role = dbUser.role;
+    }
+  }
+  return token;
+}
+
 
     async session({ session, token }) {
       session.user = {
