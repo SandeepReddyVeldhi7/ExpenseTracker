@@ -253,9 +253,21 @@ useEffect(() => {
             const previousCarryLoss = parseFloat(data.carryLoss || 0);
 
             const todayNet = soldAmount - drinkTotals[key] - commissionValue;
-            const finalNetAmount = parseFloat(
-              (todayNet + previousCarryLoss).toFixed(2)
-            );
+           const finalNetAmount = parseFloat(
+  (todayNet + previousCarryLoss).toFixed(2)
+);// ✅ Save back to localStorage
+const existing = raw ? JSON.parse(raw) : {};
+localStorage.setItem(localKey, JSON.stringify({
+  ...existing,
+  soldAmount,
+  commission: commissionPercent,
+  commissionValue: parseFloat(commissionValue.toFixed(2)),
+  finalNetAmount,
+  previousCarryLoss,
+  drinkTotal: parseFloat(drinkTotals[key].toFixed(2)),
+}));
+
+// ✅ Push one drink object
 newDrinks.push({
   drinkType: key,
   soldAmount,
@@ -265,6 +277,8 @@ newDrinks.push({
   carryLoss: previousCarryLoss,
   drinkTotal: parseFloat(drinkTotals[key].toFixed(2))
 });
+
+
 
           } else {
   newDrinks.push({
