@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 
 export default async function RootLayout({ children }) {
   const session = await getServerSession();
+  console.log("sesion::::::::",session)
   const manifestVersion = process.env.NEXT_PUBLIC_MANIFEST_VERSION || "1";
 
   return (
