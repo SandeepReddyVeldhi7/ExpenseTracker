@@ -38,8 +38,8 @@ function CategoryPageContent({ date, category }) {
   const [casherName, setCasherName] = useState("");
   const [items, setItems] = useState([{ id: 1, name: "", price: "" }]);
   const [totalDetails, setTotalDetails] = useState(null);
-const [hasMounted, setHasMounted] = useState(false);
-const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
   const [dropdownInputs, setDropdownInputs] = useState([]);
   console.log("drop::::::::::::::", dropdownInputs);
   const [staffAdvances, setStaffAdvances] = useState([]);
@@ -78,7 +78,6 @@ const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
     const remaining = parseFloat(localTotalSale || 0) - total;
     const shot = remaining - parseFloat(localMoneyLift || 0);
 
-
     const data = {
       casherName: localCasherName,
       items: localItems,
@@ -96,13 +95,13 @@ const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
 
     localStorage.setItem(localKey, JSON.stringify(data));
   };
-useEffect(() => {
-  setHasMounted(true);
-}, []);
-useEffect(() => {
-  if (!isDrink(category) || !hasMounted) return;
-  handleSaveDrink();
-}, [soldAmount, commission, drinkTotal, previousCarryLoss, hasMounted]);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  useEffect(() => {
+    if (!isDrink(category) || !hasMounted) return;
+    handleSaveDrink();
+  }, [soldAmount, commission, drinkTotal, previousCarryLoss, hasMounted]);
   // ✅ Fetch staff list once
   useEffect(() => {
     const fetchStaffList = async () => {
@@ -244,54 +243,31 @@ useEffect(() => {
             const data = JSON.parse(raw);
             const soldAmount = parseFloat(data.soldAmount || 0);
             const commissionPercent = parseFloat(data.commission || 0);
-
-            const commissionValue =
-              key === "tea"
-                ? (soldAmount * commissionPercent) / 100
-                : commissionPercent;
-
+            const commissionValue = parseFloat(data.commissionValue || 0);
             const previousCarryLoss = parseFloat(data.carryLoss || 0);
+            const finalNetAmount = parseFloat(data.finalNetAmount || 0);
+            const savedDrinkTotal = parseFloat(data.drinkTotal || 0);
 
-            const todayNet = soldAmount - drinkTotals[key] - commissionValue;
-           const finalNetAmount = parseFloat(
-  (todayNet + previousCarryLoss).toFixed(2)
-);// ✅ Save back to localStorage
-const existing = raw ? JSON.parse(raw) : {};
-localStorage.setItem(localKey, JSON.stringify({
-  ...existing,
-  soldAmount,
-  commission: commissionPercent,
-  commissionValue: parseFloat(commissionValue.toFixed(2)),
-  finalNetAmount,
-  previousCarryLoss,
-  drinkTotal: parseFloat(drinkTotals[key].toFixed(2)),
-}));
-
-// ✅ Push one drink object
-newDrinks.push({
-  drinkType: key,
-  soldAmount,
-  commissionPercent: key === "tea" ? commissionPercent : undefined,
-  commissionValue: parseFloat(commissionValue.toFixed(2)),
-  finalNetAmount,
-  carryLoss: previousCarryLoss,
-  drinkTotal: parseFloat(drinkTotals[key].toFixed(2))
-});
-
-
-
+            newDrinks.push({
+              drinkType: key,
+              soldAmount,
+              commissionPercent: key === "tea" ? commissionPercent : undefined,
+              commissionValue,
+              finalNetAmount,
+              carryLoss: previousCarryLoss,
+              drinkTotal: savedDrinkTotal,
+            });
           } else {
-  newDrinks.push({
-    drinkType: key,
-    soldAmount: 0,
-    commissionPercent: key === "tea" ? 0 : undefined,
-    commissionValue: 0,
-    finalNetAmount: 0,
-    carryLoss: 0,
-    drinkTotal: parseFloat(drinkTotals[key].toFixed(2)),
-  });
-}
-
+            newDrinks.push({
+              drinkType: key,
+              soldAmount: 0,
+              commissionPercent: key === "tea" ? 0 : undefined,
+              commissionValue: 0,
+              finalNetAmount: 0,
+              carryLoss: 0,
+              drinkTotal: parseFloat(drinkTotals[key].toFixed(2)),
+            });
+          }
         });
 
         drinks = newDrinks;
@@ -302,11 +278,12 @@ newDrinks.push({
           0
         );
         console.log("totalCashersAmount", totalCashersAmount);
-        const totalDrinksAmount = drinks.reduce(
-          (s, d) => s + (d.finalNetAmount || 0),
-          0
-        );
-        console.log("totalDrinksAmount", totalDrinksAmount);
+        const tea = drinks.find((d) => d.drinkType === "tea");
+        const juice = drinks.find((d) => d.drinkType === "juice");
+
+        const totalDrinksAmount =
+          (tea?.finalNetAmount || 0) + (juice?.finalNetAmount || 0);
+
         const totalCashersSale = cashers.reduce(
           (s, c) => s + (c.totalSealAmount || 0),
           0
@@ -430,7 +407,6 @@ newDrinks.push({
   );
   const total = itemsTotal + dropdownTotal + staffAdvanceTotal;
 
-
   useEffect(() => {
     if (!isDrink(category)) return;
 
@@ -486,15 +462,15 @@ newDrinks.push({
   }, [category, date]);
 
   useEffect(() => {
-  if (!isDrink(category)) return;
+    if (!isDrink(category)) return;
 
-  const localKey = `expense-form-${date}-${category}`;
-  const raw = localStorage.getItem(localKey);
-  if (raw) {
-    const data = JSON.parse(raw);
-    setSavedFinalNetAmount(parseFloat(data.finalNetAmount || 0));
-  }
-}, [soldAmount, commission, drinkTotal, previousCarryLoss, category, date]);
+    const localKey = `expense-form-${date}-${category}`;
+    const raw = localStorage.getItem(localKey);
+    if (raw) {
+      const data = JSON.parse(raw);
+      setSavedFinalNetAmount(parseFloat(data.finalNetAmount || 0));
+    }
+  }, [soldAmount, commission, drinkTotal, previousCarryLoss, category, date]);
 
   useEffect(() => {
     if (!isDrink(category) || !date) return;
@@ -668,8 +644,6 @@ newDrinks.push({
       currency: "INR",
       minimumFractionDigits: 2,
     }).format(num || 0);
-
-  
 
   const handleSaveDrink = () => {
     const sold = parseFloat(soldAmount) || 0;
@@ -952,7 +926,6 @@ newDrinks.push({
 
                     <p>Raw Total from Cashers: {drinkTotal.toFixed(2)}</p>
                     <hr className="border-white/20 my-2" />
-                   
 
                     {/* <p className="font-bold text-lg">
                       Final Net =
@@ -966,9 +939,8 @@ newDrinks.push({
                       ).toFixed(2)}
                     </p> */}
                     <p className="font-bold text-lg">
-  Final Net = {savedFinalNetAmount.toFixed(2)}
-</p>
-
+                      Final Net = {savedFinalNetAmount.toFixed(2)}
+                    </p>
                   </div>
                 )}
               </div>
