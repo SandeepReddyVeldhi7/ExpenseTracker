@@ -134,7 +134,7 @@ export default function ReportsPage() {
     (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
     0
   );
-  const totalOnlineAmount = selectedExpense.cashers.reduce((sum, c) => {
+  const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
     const onlineAddon = c.addons?.find(
       (a) => a.name?.toLowerCase() === "online"
     );
