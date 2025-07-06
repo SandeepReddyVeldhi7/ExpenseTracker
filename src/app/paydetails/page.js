@@ -6,37 +6,32 @@ import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function PayDetailsPage() {
-     const { data: session, status } = useSession();
-    const router = useRouter();
-     useEffect(() => {
-      if (status === "authenticated" && session.user.role !== "owner") {
-        router.push("/no-permission");
-      }
-    }, [status, session, router]);
-  
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
-    }
-  
-    if (status === "unauthenticated") {
-      return <p className="text-center mt-10">You must be logged in.</p>;
-    }
-  
-    if (session?.user?.role !== "owner") {
-      return null; // redirecting
-    }
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // ✅ All hooks at top
   const [staffList, setStaffList] = useState([]);
   const [payrollData, setPayrollData] = useState([]);
   const [payAmounts, setPayAmounts] = useState({});
   const [paidStatus, setPaidStatus] = useState({});
   const [loading, setLoading] = useState(false);
-
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
 
-  /** Load Payroll Data **/
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      loadData();
+    }
+  }, [status]);
+
   const loadData = async (
     m = selectedMonth,
     y = selectedYear,
@@ -64,7 +59,7 @@ export default function PayDetailsPage() {
       const amountsMap = {};
       payrollResults.forEach((p, idx) => {
         const id = staff[idx]._id;
-        if (p.payable === 0) statusMap[id] = true;
+        if (p.finalPaid && p.finalPaid > 0) statusMap[id] = true;
         amountsMap[id] = Math.floor(p.payable || 0);
       });
       setPaidStatus(statusMap);
@@ -77,11 +72,6 @@ export default function PayDetailsPage() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  /** Handle Payment **/
   const handlePayAmountChange = (staffId, value) => {
     setPayAmounts((prev) => ({ ...prev, [staffId]: value }));
   };
@@ -124,7 +114,6 @@ export default function PayDetailsPage() {
     }
   };
 
-  /** Filter Handlers **/
   const handleSelectThisMonth = () => {
     const now = new Date();
     setSelectedMonth(now.getMonth() + 1);
@@ -144,7 +133,18 @@ export default function PayDetailsPage() {
     loadData(null, null, customStartDate, customEndDate);
   };
 
-  /** Render **/
+  if (status === "loading") {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10">You must be logged in.</p>;
+  }
+
+  if (session?.user?.role !== "owner") {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -166,11 +166,10 @@ export default function PayDetailsPage() {
         📒 Staff Payroll Ledger
       </h1>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <button
           onClick={handleSelectThisMonth}
-          className="px-4 py-2 bg-blue-600 text-black  rounded hover:bg-blue-700 text-sm"
+          className="px-4 py-2 bg-blue-600 text-black rounded hover:bg-blue-700 text-sm"
         >
           This Month
         </button>
@@ -199,8 +198,7 @@ export default function PayDetailsPage() {
         </div>
       </div>
 
-      {/* Period Info */}
-      <h2 className="text-sm  text-black sm:text-base mb-3 font-semibold">
+      <h2 className="text-sm text-black sm:text-base mb-3 font-semibold">
         Showing Salary for:{" "}
         {customStartDate && customEndDate
           ? `${customStartDate} to ${customEndDate}`
@@ -210,21 +208,20 @@ export default function PayDetailsPage() {
             )} ${selectedYear}`}
       </h2>
 
-      {/* Table */}
       <div className="w-full overflow-x-auto border rounded-lg shadow-sm">
         <table className="w-full border-collapse border text-xs sm:text-sm">
           <thead className="bg-gray-300 text-black">
             <tr>
-              <th className="p-2 border text-black">S.no</th>
-              <th className="p-2 border text-black">Name</th>
-              <th className="p-2 border text-black">Month</th>
-              <th className="p-2 border text-black">Attendance</th>
-              <th className="p-2 border text-black">Earned Salary</th>
-              <th className="p-2 border text-black">Advances</th>
-              <th className="p-2 border text-black">Payable</th>
-              <th className="p-2 border text-black">Carry Forward (Next Month)</th>
-              <th className="p-2 border text-black">Paid Amount</th>
-              <th className="p-2 border text-black">Action</th>
+              <th className="p-2 border">S.no</th>
+              <th className="p-2 border">Name</th>
+              <th className="p-2 border">Month</th>
+              <th className="p-2 border">Attendance</th>
+              <th className="p-2 border">Earned Salary</th>
+              <th className="p-2 border">Advances</th>
+              <th className="p-2 border">Payable</th>
+              <th className="p-2 border">Carry Forward (Next Month)</th>
+              <th className="p-2 border">Paid Amount</th>
+              <th className="p-2 border">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -233,7 +230,7 @@ export default function PayDetailsPage() {
                 (p) => p.presentDays === 0 && p.earnedSalary === 0
               ) ? (
                 <tr>
-                  <td colSpan="12" className="text-center text-black  p-4">
+                  <td colSpan="12" className="text-center text-black p-4">
                     No data exists for selected period.
                   </td>
                 </tr>
@@ -242,9 +239,9 @@ export default function PayDetailsPage() {
                   const staffId = staffList[idx]._id;
                   return (
                     <tr key={staffId}>
-                      <td className="p-2 border text-black text-center">{idx + 1}</td>
-                      <td className="p-2 border text-black">{p.staffName}</td>
-                      <td className="p-2 border text-black">
+                      <td className="p-2 border text-center">{idx + 1}</td>
+                      <td className="p-2 border">{p.staffName}</td>
+                      <td className="p-2 border">
                         {p.month
                           ? `${new Date(p.year, p.month - 1).toLocaleString(
                               "default",
@@ -252,46 +249,46 @@ export default function PayDetailsPage() {
                             )} ${p.year}`
                           : "-"}
                       </td>
-                      <td className="p-2 text-black border text-center">{p.presentDays}</td>
-                      <td className="p-2text-black border text-right">
-                        ₹ {Math.round(p.earnedSalary || 0).toLocaleString('en-IN')}
+                      <td className="p-2 border text-center">
+                        {p.presentDays}
                       </td>
-                      <td className="p-2 text-black border text-left">
+                      <td className="p-2 border text-right">
+                        ₹ {Math.round(p.earnedSalary || 0).toLocaleString("en-IN")}
+                      </td>
+                      <td className="p-2 border text-left">
                         {p?.advances?.length ? (
                           <div className="max-h-24 overflow-y-auto space-y-1">
                             {p.advances.map((adv, i) => (
-                              <div key={i} className="whitespace-nowrap text-black ">
+                              <div key={i} className="whitespace-nowrap">
                                 {new Date(adv.date).toLocaleDateString("en-GB")} - ₹ {adv.amount}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-black italic">None</span>
+                          <span className="italic">None</span>
                         )}
                       </td>
-                      <td className="p-2 border text-black text-right">
-                        ₹ {Math.round(p.payable || 0).toLocaleString('en-IN')}
+                      <td className="p-2 border text-right">
+                        ₹ {Math.round(p.payable || 0).toLocaleString("en-IN")}
                       </td>
-                      <td className="p-2 border text-black text-right">
+                      <td className="p-2 border text-right">
                         {p.carryForward > 0
-                          ? `- Advance Due:  ${Math.round(p.carryForward).toLocaleString('en-IN')}`
+                          ? `- Advance Due:  ${Math.round(p.carryForward).toLocaleString("en-IN")}`
                           : p.carryForward < 0
-                          ? `Credit:  ${Math.abs(Math.round(p.carryForward)).toLocaleString('en-IN')}`
+                          ? `Credit:  ${Math.abs(Math.round(p.carryForward)).toLocaleString("en-IN")}`
                           : " 0"}
                       </td>
-                      <td className="p-2 border text-black text-center">
+                      <td className="p-2 border text-center">
                         <input
                           type="number"
                           min="0"
                           value={payAmounts[staffId] || ""}
-                          onChange={(e) =>
-                            handlePayAmountChange(staffId, e.target.value)
-                          }
-                          className="border text-black p-1 w-24 text-right rounded text-xs"
+                          onChange={(e) => handlePayAmountChange(staffId, e.target.value)}
+                          className="border p-1 w-24 text-right rounded text-xs"
                           disabled={paidStatus[staffId]}
                         />
                       </td>
-                      <td className="p-2 text-black  border text-center">
+                      <td className="p-2 border text-center">
                         <button
                           onClick={() =>
                             !paidStatus[staffId] && handlePay(staffId, p.staffName)
@@ -299,8 +296,8 @@ export default function PayDetailsPage() {
                           disabled={paidStatus[staffId]}
                           className={`px-3 py-1 rounded text-xs ${
                             paidStatus[staffId]
-                              ? "bg-gray-400 text-black cursor-not-allowed"
-                              : "bg-green-600 text-black hover:bg-green-700 "
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-green-600 hover:bg-green-700"
                           }`}
                         >
                           {paidStatus[staffId] ? "Paid" : "Pay"}
@@ -312,7 +309,7 @@ export default function PayDetailsPage() {
               )
             ) : (
               <tr>
-                <td colSpan="12" className="text-center text-black p-4">
+                <td colSpan="12" className="text-center p-4">
                   No staff found.
                 </td>
               </tr>

@@ -2,16 +2,6 @@ import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import Expense from "@/models/DailySummary";
 import Staff from "@/models/Staff";
-import SalaryPayment from "@/models/SalaryPayment";
-
-
-
-
-
-
-
-
-
 
 export default async function handler(req, res) {
   await connectDB();
@@ -33,14 +23,14 @@ export default async function handler(req, res) {
     const staff = await Staff.findById(id);
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
-    // Attendance count
+    // ✅ Attendance count
     const presentDays = await Attendance.countDocuments({
       staff: id,
       status: "Present",
       date: { $gte: startDate, $lte: endDate },
     });
 
-    // Advances from DailySummary
+    // ✅ Advances from DailySummary
     const expenses = await Expense.find({
       date: {
         $gte: startDate.toISOString().split("T")[0],
@@ -69,15 +59,15 @@ export default async function handler(req, res) {
       }
     });
 
-    // Salary calculation
+    // ✅ Salary calculation
     const perDaySalary = staff.salary / 30;
     const earnedSalary = perDaySalary * presentDays;
 
-    // Total due including previous
+    // ✅ Total due including previous
     const totalAdvanceDue = (staff.remainingAdvance || 0) + currentAdvance;
 
-    let payable = earnedSalary - totalAdvanceDue;
-    if (payable < 0) payable = 0;
+    // ❗ Allow payable to go negative
+    const payable = earnedSalary - totalAdvanceDue;
 
     res.json({
       staffName: staff.name,
@@ -97,6 +87,3 @@ export default async function handler(req, res) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 }
-
-
-
