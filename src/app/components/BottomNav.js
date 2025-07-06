@@ -20,7 +20,7 @@ import Image from "next/image";
 
 export default function ResponsiveNav() {
   const pathname = usePathname();
-  const [navItems, setNavItems] = useState([]);
+
   const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
   const [showMobileSheet, setShowMobileSheet] = useState(false);
   const { data: session,status } = useSession();
@@ -61,14 +61,22 @@ const avatarSrc =
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
   ];
 
-  useEffect(() => {
-    const role = localStorage.getItem("userRole");
-    setNavItems(
-      role === "staff" || role === "staff123" ? staffNavItems : ownerNavItems
-    );
+// Determine role
+let role = session?.user?.role || localStorage.getItem("userRole");
 
-    
-  }, []);
+// Store it for future refreshes
+useEffect(() => {
+  if (session?.user?.role) {
+    localStorage.setItem("userRole", session.user.role);
+  }
+}, [session]);
+
+// Choose nav items immediately
+const navItems = (role === "staff" || role === "staff123")
+  ? staffNavItems
+  : ownerNavItems;
+
+;
 
   return (
     <>
