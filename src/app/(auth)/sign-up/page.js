@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Poppins } from "next/font/google";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,14 @@ const poppins = Poppins({
 const Page = () => {
      const { data: session, status } = useSession();
     const router = useRouter();
+      const roles = ["owner"];
+    const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: "", // Default role
+  });
      useEffect(() => {
       if (status === "authenticated" && session.user.role !== "owner") {
         router.push("/no-permission");
@@ -30,14 +38,8 @@ const Page = () => {
     if (session?.user?.role !== "owner") {
       return null; // redirecting
     }
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "", // Default role
-  });
-  console.log("Form Data:", formData);
+  
+
  // Restrict roles to admin and user
 
   // Handle input changes
