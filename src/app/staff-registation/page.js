@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { useSession } from "next-auth/react";
 
 export default function RegisterStaff() {
      const { data: session, status } = useSession();
+      const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
     const router = useRouter();
      useEffect(() => {
       if (status === "authenticated" && session.user.role !== "owner") {
@@ -25,9 +28,7 @@ export default function RegisterStaff() {
     if (session?.user?.role !== "owner") {
       return null; // redirecting
     }
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+ 
 
 
   const handleSubmit = async (e) => {

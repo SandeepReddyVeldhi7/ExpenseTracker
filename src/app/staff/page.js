@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
 import CreatableSelect from 'react-select/creatable'
-import { requireRole } from '../components/RequiredRole'
-import { useRouter } from 'next/router'
+
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
-export default async function AddStaffForm() {
+export default  function AddStaffForm() {
       const { data: session, status } = useSession();
      const router = useRouter();
       useEffect(() => {
