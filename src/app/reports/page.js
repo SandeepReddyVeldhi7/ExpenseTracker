@@ -12,25 +12,25 @@ const poppins = Poppins({
 });
 
 export default function ReportsPage() {
-     const { data: session, status } = useSession();
-    const router = useRouter();
-     useEffect(() => {
-      if (status === "authenticated" && session.user.role !== "owner") {
-        router.push("/no-permission");
-      }
-    }, [status, session, router]);
-  
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  useEffect(() => {
+    if (status === "authenticated" && session.user.role !== "owner") {
+      router.push("/no-permission");
     }
-  
-    if (status === "unauthenticated") {
-      return <p className="text-center mt-10">You must be logged in.</p>;
-    }
-  
-    if (session?.user?.role !== "owner") {
-      return null; // redirecting
-    }
+  }, [status, session, router]);
+
+  if (status === "loading") {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10">You must be logged in.</p>;
+  }
+
+  if (session?.user?.role !== "owner") {
+    return null; // redirecting
+  }
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);
@@ -375,7 +375,7 @@ export default function ReportsPage() {
             ) : (
               <p>No cashers recorded.</p>
             )}
-            <h3 className="text-lg font-bold mb-2">Drinks</h3>
+            {/* <h3 className="text-lg font-bold mb-2">Drinks</h3>
             {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
               selectedExpense.drinks.map((d, idx) => (
                 <div
@@ -392,6 +392,40 @@ export default function ReportsPage() {
                     → ₹{d.commissionValue}
                   </p>
                   <p>Final Net: ₹{d.finalNetAmount}</p>
+                </div>
+              ))
+            ) : (
+              <p>No drinks recorded.</p>
+            )} */}
+            <h3 className="text-lg font-bold mb-2">Drinks</h3>
+            {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
+              selectedExpense.drinks.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="mb-4 p-3 border border-gray-300 rounded"
+                >
+                  <p className="font-semibold text-lg">
+                    {d.drinkType.toUpperCase()}
+                  </p>
+                  <p>Sold Amount: ₹{d.soldAmount}</p>
+                  <p>
+                    Commission:{" "}
+                    {d.drinkType === "tea"
+                      ? `${d.commissionPercent}%`
+                      : "Fixed"}{" "}
+                    → ₹{d.commissionValue}
+                  </p>
+                  <p>Final Net (after applying carry): ₹{d.finalNetAmount}</p>
+
+                  <div className="mt-2 p-2 bg-yellow-50 rounded">
+                    <p className="text-yellow-800 font-medium">
+                      Includes Carry Forward from Yesterday: ₹
+                      {d.carryForwardFromYesterday || 0}
+                    </p>
+                    <p className="text-yellow-800 font-medium">
+                      Will Carry Forward to Tomorrow: ₹{d.carryLoss || 0}
+                    </p>
+                  </div>
                 </div>
               ))
             ) : (

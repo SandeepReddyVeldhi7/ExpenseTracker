@@ -36,6 +36,7 @@ const drinkSchema = new mongoose.Schema({
   commissionPercent: Number,
   commissionValue: Number,
   finalNetAmount: Number,
+    carryForwardFromYesterday: { type: Number, default: 0 },
   carryLoss: { type: Number, default: 0 },
 }, { _id: false });
 

@@ -39,24 +39,26 @@ export default async function handler(req, res) {
     }
 
     // ✅ 2️⃣ For each drink, apply carryLoss from yesterday
-    const updatedDrinks = data.drinks.map((drink) => {
-      const previousCarry = carryMap[drink.drinkType] || 0;
-      
-      // frontend sends today's calculated net
-      const todayNet = drink.finalNetAmount ?? 0;
+const updatedDrinks = data.drinks.map((drink) => {
+  const previousCarry = carryMap[drink.drinkType] || 0;
 
-      // apply previous carry
-      const combinedNet = todayNet + previousCarry;
+  const soldAmount = drink.soldAmount ?? 0;
+  const expenseAmount = drink.expenseAmount ?? 0;
 
-      // decide today's carryLoss
-      const newCarryLoss = combinedNet < 0 ? combinedNet : 0;
+  const todayRawNet = soldAmount - expenseAmount;
+  const combinedNet = todayRawNet + previousCarry;
 
-      return {
-        ...drink,
-        finalNetAmount: combinedNet,
-        carryLoss: newCarryLoss
-      };
-    });
+  const newCarryLoss = combinedNet < 0 ? combinedNet : 0;
+
+  return {
+    ...drink,
+    finalNetAmount: combinedNet,
+    carryForwardFromYesterday: previousCarry,
+    carryLoss: newCarryLoss
+  };
+});
+
+
 
     // ✅ 3️⃣ Replace drinks in data with adjusted ones
     data.drinks = updatedDrinks;

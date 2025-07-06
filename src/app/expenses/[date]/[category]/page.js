@@ -564,13 +564,6 @@ function CategoryPageContent({ date, category }) {
     saveToLocalStorage({ staffAdvances: updated });
   };
 
-  // const updateStaffAdvance = (id, field, value) => {
-  //   const updated = staffAdvances.map((entry) =>
-  //     entry.id === id ? { ...entry, [field]: value } : entry
-  //   );
-  //   setStaffAdvances(updated);
-  //   saveToLocalStorage({ staffAdvances: updated });
-  // };
 
   const updateStaffAdvance = (id, field, value) => {
     const updated = staffAdvances.map((entry) => {
@@ -670,7 +663,7 @@ function CategoryPageContent({ date, category }) {
     }
 
     localStorage.setItem(localKey, JSON.stringify(data));
-    toast.success("Drink entry saved!");
+    // toast.success("Drink entry saved!");
   };
 
   return (
@@ -928,17 +921,7 @@ function CategoryPageContent({ date, category }) {
                     <p>Raw Total from Cashers: {drinkTotal.toFixed(2)}</p>
                     <hr className="border-white/20 my-2" />
 
-                    {/* <p className="font-bold text-lg">
-                      Final Net =
-                      {(
-                        soldAmount -
-                        drinkTotal -
-                        (category === "tea"
-                          ? (soldAmount * commission) / 100
-                          : parseFloat(commission || 0)) +
-                        previousCarryLoss
-                      ).toFixed(2)}
-                    </p> */}
+                    
                     <p className="font-bold text-lg">
                       Final Net = {savedFinalNetAmount.toFixed(2)}
                     </p>
@@ -986,23 +969,7 @@ function CategoryPageContent({ date, category }) {
                       {formatINR(totalDetails?.totalOnlineSale?.toFixed(2))}
                     </p>
 
-                    {/* <div className="bg-black/40 p-4 rounded mt-4">
-                      <h3 className="text-lg font-bold mb-2">
-                        Cashers Online Amount Summary
-                      </h3>
-                      {totalDetails.cashers &&
-                      totalDetails.cashers.length > 0 ? (
-                        <ul className="space-y-1 list-disc ml-5">
-                          {totalDetails.cashers.map((c, idx) => (
-                            <li key={idx}>
-                              {c.casherName}: {formatINR(c.totalSealAmount)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>No cashers recorded.</p>
-                      )}
-                    </div> */}
+                 
                   </div>
 
                   {/* CASHERS DETAIL */}
@@ -1083,22 +1050,7 @@ function CategoryPageContent({ date, category }) {
                     <h3 className="text-lg font-bold mb-2">Drinks</h3>
                     {totalDetails.drinks.length > 0 ? (
                       totalDetails.drinks.map((d, idx) => (
-                        // <div
-                        //   key={idx}
-                        //   className="mb-2 border-b border-white/20 pb-1"
-                        // >
-                        //   <p className="font-semibold">{d.drinkType}</p>
-                        //   <p>Sold Amount: {d.soldAmount}</p>
-                        //   <p>
-                        //     Commission:{" "}
-                        //     {d.drinkType === "tea"
-                        //       ? `${d.commissionPercent}%`
-                        //       : "Fixed"}{" "}
-                        //     → {d.commissionValue}
-                        //   </p>
-
-                        //   <p>Final Net: {d.finalNetAmount}</p>
-                        // </div>
+                       
 
                         <div className="bg-black/40 p-4 rounded text-white space-y-2">
                           <p className="font-medium text-lg">
