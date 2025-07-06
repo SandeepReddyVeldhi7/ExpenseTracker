@@ -38,9 +38,13 @@ function RootContent({ children }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
+ useEffect(() => {
+    if (session?.user?.role) {
+      localStorage.setItem("userRole", session.user.role);
+    }
+  }, [session]);
   if (!mounted) return null;
-
+ 
   const manifestVersion = process.env.NEXT_PUBLIC_MANIFEST_VERSION || "1";
 
   return (
