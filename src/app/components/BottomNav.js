@@ -16,7 +16,7 @@ import {
   FiBarChart2,
   FiLogOut,
 } from "react-icons/fi";
-import Image from "next/image";
+
 
 export default function ResponsiveNav() {
   const pathname = usePathname();
@@ -180,13 +180,14 @@ const navItems = (role === "staff" || role === "staff123")
             pathname === "/sign-in" ? "text-blue-600" : "text-black"
           }`}
         >
-         <Image
+  <img
   src={avatarSrc}
   alt="User Avatar"
   width={40}
   height={40}
   className="rounded-full object-cover border border-gray-300"
 />
+
           <span className="text-xs">Logout</span>
         </button>
       </nav>
