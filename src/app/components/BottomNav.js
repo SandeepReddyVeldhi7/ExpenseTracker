@@ -25,11 +25,10 @@ export default function ResponsiveNav() {
   const [showMobileSheet, setShowMobileSheet] = useState(false);
   const { data: session,status } = useSession();
   console.log("session:::::::", session);
-const avatarSrc =
-  status === "loading"
-    ? "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-    : session?.user?.image ||
-      "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+const avatarSrc = session?.user?.image 
+  ? session.user.image 
+  : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
 
       console.log("avatar",avatarSrc)
   //  Define nav items with icons
