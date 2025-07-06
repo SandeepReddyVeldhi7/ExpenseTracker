@@ -59,6 +59,8 @@ export default function ResponsiveNav() {
     setNavItems(
       role === "staff" || role === "staff123" ? staffNavItems : ownerNavItems
     );
+
+    
   }, []);
 
   return (
