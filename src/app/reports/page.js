@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { Poppins } from "next/font/google";
 import DataTable from "react-data-table-component";
 import toast, { Toaster } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -10,6 +12,25 @@ const poppins = Poppins({
 });
 
 export default function ReportsPage() {
+     const { data: session, status } = useSession();
+    const router = useRouter();
+     useEffect(() => {
+      if (status === "authenticated" && session.user.role !== "owner") {
+        router.push("/no-permission");
+      }
+    }, [status, session, router]);
+  
+    if (status === "loading") {
+      return <p className="text-center mt-10">Loading...</p>;
+    }
+  
+    if (status === "unauthenticated") {
+      return <p className="text-center mt-10">You must be logged in.</p>;
+    }
+  
+    if (session?.user?.role !== "owner") {
+      return null; // redirecting
+    }
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);

@@ -16,15 +16,22 @@ import {
   FiBarChart2,
   FiLogOut,
 } from "react-icons/fi";
+import Image from "next/image";
 
 export default function ResponsiveNav() {
   const pathname = usePathname();
   const [navItems, setNavItems] = useState([]);
   const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
   const [showMobileSheet, setShowMobileSheet] = useState(false);
-  const { data: session } = useSession();
-  console.log("session", session);
+  const { data: session,status } = useSession();
+  console.log("session:::::::", session);
+const avatarSrc =
+  status === "loading"
+    ? "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+    : session?.user?.image ||
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
+      console.log("avatar",avatarSrc)
   //  Define nav items with icons
   const ownerNavItems = [
     {
@@ -166,14 +173,13 @@ export default function ResponsiveNav() {
             pathname === "/sign-in" ? "text-blue-600" : "text-black"
           }`}
         >
-          <img
-            src={
-              session?.user?.image ||
-              "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-            }
-            alt="User Avatar"
-            className="w-5 h-5 rounded-full  object-cover border border-gray-300"
-          />
+         <Image
+  src={avatarSrc}
+  alt="User Avatar"
+  width={40}
+  height={40}
+  className="rounded-full object-cover border border-gray-300"
+/>
           <span className="text-xs">Logout</span>
         </button>
       </nav>

@@ -3,12 +3,32 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 export default function RegisterStaff() {
+     const { data: session, status } = useSession();
+    const router = useRouter();
+     useEffect(() => {
+      if (status === "authenticated" && session.user.role !== "owner") {
+        router.push("/no-permission");
+      }
+    }, [status, session, router]);
+  
+    if (status === "loading") {
+      return <p className="text-center mt-10">Loading...</p>;
+    }
+  
+    if (status === "unauthenticated") {
+      return <p className="text-center mt-10">You must be logged in.</p>;
+    }
+  
+    if (session?.user?.role !== "owner") {
+      return null; // redirecting
+    }
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
