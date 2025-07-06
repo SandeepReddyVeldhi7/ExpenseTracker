@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Poppins } from "next/font/google";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -10,6 +11,25 @@ const poppins = Poppins({
 });
 
 const Page = () => {
+     const { data: session, status } = useSession();
+    const router = useRouter();
+     useEffect(() => {
+      if (status === "authenticated" && session.user.role !== "owner") {
+        router.push("/no-permission");
+      }
+    }, [status, session, router]);
+  
+    if (status === "loading") {
+      return <p className="text-center mt-10">Loading...</p>;
+    }
+  
+    if (status === "unauthenticated") {
+      return <p className="text-center mt-10">You must be logged in.</p>;
+    }
+  
+    if (session?.user?.role !== "owner") {
+      return null; // redirecting
+    }
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -18,8 +38,7 @@ const Page = () => {
     role: "", // Default role
   });
   console.log("Form Data:", formData);
-const router = useRouter();
-  const roles = ["owner"]; // Restrict roles to admin and user
+ // Restrict roles to admin and user
 
   // Handle input changes
   const handleChange = (e) => {

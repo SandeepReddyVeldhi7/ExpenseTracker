@@ -1,9 +1,30 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function PayDetailsPage() {
+     const { data: session, status } = useSession();
+    const router = useRouter();
+     useEffect(() => {
+      if (status === "authenticated" && session.user.role !== "owner") {
+        router.push("/no-permission");
+      }
+    }, [status, session, router]);
+  
+    if (status === "loading") {
+      return <p className="text-center mt-10">Loading...</p>;
+    }
+  
+    if (status === "unauthenticated") {
+      return <p className="text-center mt-10">You must be logged in.</p>;
+    }
+  
+    if (session?.user?.role !== "owner") {
+      return null; // redirecting
+    }
   const [staffList, setStaffList] = useState([]);
   const [payrollData, setPayrollData] = useState([]);
   const [payAmounts, setPayAmounts] = useState({});

@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-800 to-lime-800 h-screen p-4">
       
-      <div className="relative w-[70vw] h-[70vw] max-w-[300px] mb-4">
+      <div className="relative w-[70vw] h-[70vw] lg:w-[600px] lg:p-6 lg:h-[70vh] mb-4">
         <Image
           src="/icons/icon3-192.png"
           alt="Company Logo"
