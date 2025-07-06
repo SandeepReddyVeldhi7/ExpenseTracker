@@ -212,16 +212,16 @@ export default function PayDetailsPage() {
         <table className="w-full border-collapse border text-xs sm:text-sm">
           <thead className="bg-gray-300 text-black">
             <tr>
-              <th className="p-2 border">S.no</th>
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Month</th>
-              <th className="p-2 border">Attendance</th>
-              <th className="p-2 border">Earned Salary</th>
-              <th className="p-2 border">Advances</th>
-              <th className="p-2 border">Payable</th>
-              <th className="p-2 border">Carry Forward (Next Month)</th>
-              <th className="p-2 border">Paid Amount</th>
-              <th className="p-2 border">Action</th>
+              <th className="p-2 border text-black">S.no</th>
+              <th className="p-2 border text-black">Name</th>
+              <th className="p-2 border text-black">Month</th>
+              <th className="p-2 border text-black">Attendance</th>
+              <th className="p-2 border text-black">Earned Salary</th>
+              <th className="p-2 border text-black">Advances</th>
+              <th className="p-2 border text-black">Payable</th>
+              <th className="p-2 border text-black">Carry Forward (Next Month)</th>
+              <th className="p-2 border text-black">Paid Amount</th>
+              <th className="p-2 border text-black">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -239,9 +239,9 @@ export default function PayDetailsPage() {
                   const staffId = staffList[idx]._id;
                   return (
                     <tr key={staffId}>
-                      <td className="p-2 border text-center">{idx + 1}</td>
-                      <td className="p-2 border">{p.staffName}</td>
-                      <td className="p-2 border">
+                      <td className="p-2 border text-black text-center">{idx + 1}</td>
+                      <td className="p-2 border text-black">{p.staffName}</td>
+                      <td className="p-2 border text-black">
                         {p.month
                           ? `${new Date(p.year, p.month - 1).toLocaleString(
                               "default",
@@ -249,36 +249,36 @@ export default function PayDetailsPage() {
                             )} ${p.year}`
                           : "-"}
                       </td>
-                      <td className="p-2 border text-center">
+                      <td className="p-2 border text-black  text-center">
                         {p.presentDays}
                       </td>
-                      <td className="p-2 border text-right">
+                      <td className="p-2 border text-black text-right">
                         ₹ {Math.round(p.earnedSalary || 0).toLocaleString("en-IN")}
                       </td>
-                      <td className="p-2 border text-left">
+                      <td className="p-2 border text-black text-left">
                         {p?.advances?.length ? (
                           <div className="max-h-24 overflow-y-auto space-y-1">
                             {p.advances.map((adv, i) => (
-                              <div key={i} className="whitespace-nowrap">
+                              <div key={i} className="whitespace-nowrap text-black">
                                 {new Date(adv.date).toLocaleDateString("en-GB")} - ₹ {adv.amount}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <span className="italic">None</span>
+                          <span className="italic text-black">None</span>
                         )}
                       </td>
-                      <td className="p-2 border text-right">
+                      <td className="p-2 border text-black text-right">
                         ₹ {Math.round(p.payable || 0).toLocaleString("en-IN")}
                       </td>
-                      <td className="p-2 border text-right">
+                      <td className="p-2 border text-black text-right">
                         {p.carryForward > 0
                           ? `- Advance Due:  ${Math.round(p.carryForward).toLocaleString("en-IN")}`
                           : p.carryForward < 0
                           ? `Credit:  ${Math.abs(Math.round(p.carryForward)).toLocaleString("en-IN")}`
                           : " 0"}
                       </td>
-                      <td className="p-2 border text-center">
+                      <td className="p-2 border text-black text-center">
                         <input
                           type="number"
                           min="0"
@@ -288,7 +288,7 @@ export default function PayDetailsPage() {
                           disabled={paidStatus[staffId]}
                         />
                       </td>
-                      <td className="p-2 border text-center">
+                      <td className="p-2 border  text-center">
                         <button
                           onClick={() =>
                             !paidStatus[staffId] && handlePay(staffId, p.staffName)
@@ -296,7 +296,7 @@ export default function PayDetailsPage() {
                           disabled={paidStatus[staffId]}
                           className={`px-3 py-1 rounded text-xs ${
                             paidStatus[staffId]
-                              ? "bg-gray-400 cursor-not-allowed"
+                              ? "bg-gray-600 cursor-not-allowed"
                               : "bg-green-600 hover:bg-green-700"
                           }`}
                         >
@@ -309,7 +309,7 @@ export default function PayDetailsPage() {
               )
             ) : (
               <tr>
-                <td colSpan="12" className="text-center p-4">
+                <td colSpan="12" className="text-center text-black p-4">
                   No staff found.
                 </td>
               </tr>
