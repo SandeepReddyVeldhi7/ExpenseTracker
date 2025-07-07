@@ -139,6 +139,19 @@ const getAddonSumForDrinkType = (drinkType) => {
     (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
     0
   );
+  const totalTeaExpensive = selectedExpense?.cashers?.reduce(
+  (sum, c) =>
+    sum +
+    (c.addons?.reduce(
+      (innerSum, a) =>
+        innerSum + (a.name?.toLowerCase() === "tea" ? parseFloat(a.price) || 0 : 0),
+      0
+    ) || 0),
+  0
+);
+
+
+  
 
   const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
     const onlineAddon = c.addons?.find(
@@ -376,6 +389,9 @@ const getAddonSumForDrinkType = (drinkType) => {
                       : "Fixed"}{" "}
                     → ₹{d.commissionValue}
                   </p>
+
+ <p>Total Tea Expensive: ₹{totalTeaExpensive}</p>
+
 <p>
   Final Net (after applying carry): ₹
   {formatINR(
