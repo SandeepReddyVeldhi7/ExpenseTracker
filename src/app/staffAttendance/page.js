@@ -8,29 +8,24 @@ import { useSession } from "next-auth/react";
 export default function AttendancePage() {
     const { data: session, status } = useSession();
   const router = useRouter();
-   useEffect(() => {
-    if (status === "authenticated" && session.user.role !== "owner") {
-      router.push("/no-permission");
-    }
-  }, [status, session, router]);
-
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
-
-  if (status === "unauthenticated") {
-    return <p className="text-center mt-10">You must be logged in.</p>;
-  }
-
-  if (session?.user?.role !== "owner") {
-    return null; // redirecting
-  }
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
+   useEffect(() => {
+    if (status === "authenticated" && session.user.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }, [status, session, router ]);
+
+    useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      loadData();
+    }
+  }, [status, session, selectedMonth, selectedYear]);
+  
 
   function getDaysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
@@ -53,9 +48,7 @@ export default function AttendancePage() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [selectedMonth, selectedYear]);
+
 
   const formatDate = (date) => {
     const d = new Date(date);

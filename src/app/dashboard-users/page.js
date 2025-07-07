@@ -8,29 +8,26 @@ import { FaTrash, FaUserShield, FaEdit } from "react-icons/fa";
 export default function DashboardUsersList() {
      const { data: session, status } = useSession();
     const router = useRouter();
-     useEffect(() => {
-      if (status === "authenticated" && session.user.role !== "owner") {
-        router.push("/no-permission");
-      }
-    }, [status, session, router]);
-  
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
-    }
-  
-    if (status === "unauthenticated") {
-      return <p className="text-center mt-10">You must be logged in.</p>;
-    }
-  
-    if (session?.user?.role !== "owner") {
-      return null; // redirecting
-    }
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+     const [users, setUsers] = useState([]);
+     const [loading, setLoading] = useState(true);
+
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({ email: "", username: "", role: "" });
+      // ✅ All hooks declared first
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }, [status, session, router]);
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      fetchUsers();
+    }
+  }, [status, session]);
+
+   const fetchUsers = async () => {
+       setLoading(true);
     try {
       const res = await fetch("/api/v1/dashboard-users/users");
       const data = await res.json();
@@ -42,10 +39,24 @@ export default function DashboardUsersList() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
+ useEffect(() => {
     fetchUsers();
   }, []);
+  // ✅ Guards AFTER all hooks
+  if (status === "loading") {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10">You must be logged in.</p>;
+  }
+
+  if (status === "authenticated" && session?.user?.role !== "owner") {
+    return null;
+  }
+ 
+
+ 
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
@@ -95,8 +106,8 @@ export default function DashboardUsersList() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-700 to-purple-700 p-6 flex justify-center">
       <Toaster />
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-5xl">
-        <h1 className="sm:text-3xl font-bold mb-6 text-center text-gray-800">
+      <div className=" rounded-xl shadow-xl p-6 w-full max-w-5xl">
+        <h1 className="sm:text-3xl bg-white font-bold mb-6 text-center text-gray-800">
           🛡️ Dashboard Users
         </h1>
 

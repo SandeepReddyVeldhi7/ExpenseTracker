@@ -9,27 +9,36 @@ import { FaTrash, FaUserShield, FaEdit } from "react-icons/fa";
 export default function DashboardUsersList() {
      const { data: session, status } = useSession();
     const router = useRouter();
-     useEffect(() => {
-      if (status === "authenticated" && session.user.role !== "owner") {
-        router.push("/no-permission");
-      }
-    }, [status, session, router]);
-  
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
-    }
-  
-    if (status === "unauthenticated") {
-      return <p className="text-center mt-10">You must be logged in.</p>;
-    }
-  
-    if (session?.user?.role !== "owner") {
-      return null; // redirecting
-    }
-  const [users, setUsers] = useState([]);
+      const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({ email: "", username: "", role: "" });
+      // ✅ All useEffect hooks declared FIRST
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      fetchUsers();
+    }
+  }, [status, session]);
+
+  // ✅ Guards *after* all hooks
+  if (status === "loading") {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10">You must be logged in.</p>;
+  }
+
+  if (status === "authenticated" && session?.user?.role !== "owner") {
+    return null;
+  }
+
 
   const fetchUsers = async () => {
     try {
@@ -45,9 +54,7 @@ export default function DashboardUsersList() {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
@@ -97,7 +104,7 @@ const toastLoading=toast.loading("Updating user...");
     <div className="min-h-screen sm:mt-8  bg-gradient-to-br from-indigo-800 to-purple-800 p-6">
       <Toaster />
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
+        <h1 className="text-xl sm:text-3xl font-bold text-center text-gray-800 mb-4">
           🛡️ Dashboard Admin Users
         </h1>
 

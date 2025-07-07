@@ -11,29 +11,41 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 export default function StaffList() {
-     const { data: session, status } = useSession();
-    const router = useRouter();
-     useEffect(() => {
-      if (status === "authenticated" && session.user.role !== "owner") {
-        router.push("/no-permission");
-      }
-    }, [status, session, router]);
-  
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
-    }
-  
-    if (status === "unauthenticated") {
-      return <p className="text-center mt-10">You must be logged in.</p>;
-    }
-  
-    if (session?.user?.role !== "owner") {
-      return null; // redirecting
-    }
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // ✅ Always declare state hooks first
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+
+  // ✅ Effects next
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      fetchStaff();
+    }
+  }, [status, session]);
+
+  // ✅ Render guards after all hooks
+  if (status === "loading") {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10">You must be logged in.</p>;
+  }
+
+  if (status === "authenticated" && session?.user?.role !== "owner") {
+    return null;
+  }
+
 
   const fetchStaff = async () => {
     try {
@@ -47,9 +59,8 @@ export default function StaffList() {
     }
   };
 
-  useEffect(() => {
-    fetchStaff();
-  }, []);
+ 
+
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this staff member?")) return;
