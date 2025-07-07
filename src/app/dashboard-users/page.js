@@ -163,7 +163,7 @@ export default function DashboardUsersList() {
             {/* Mobile view */}
             <div className="block md:hidden space-y-4">
               {users.map((user) => (
-                <div key={user._id} className="bg-gray-100 p-4 rounded-lg shadow text-sm">
+                <div key={user._id} className=" p-4 rounded-lg shadow text-sm">
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2 font-semibold text-gray-800">
                       <FaUserShield className="text-indigo-600" />
@@ -200,7 +200,7 @@ export default function DashboardUsersList() {
         {/* Edit Modal */}
         {editUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
+            <div className=" p-6 rounded-lg w-full max-w-md shadow-lg">
               <h2 className="text-xl font-bold mb-4">Edit User</h2>
               <label className="block mb-2">
                 Username
