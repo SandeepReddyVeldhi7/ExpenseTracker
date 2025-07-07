@@ -14,12 +14,29 @@ const poppins = Poppins({
 export default function ReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // States
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+console.log("selectedExpense",selectedExpense)
+  // Effect: redirect non-owner users
   useEffect(() => {
-    if (status === "authenticated" && session.user.role !== "owner") {
+    if (status === "authenticated" && session?.user?.role !== "owner") {
       router.push("/no-permission");
     }
   }, [status, session, router]);
 
+  // Effect: fetch reports for owners
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      fetchReports();
+    }
+  }, [status, session]);
+
+  // Early returns for loading/unauthenticated
   if (status === "loading") {
     return <p className="text-center mt-10">Loading...</p>;
   }
@@ -29,15 +46,26 @@ export default function ReportsPage() {
   }
 
   if (session?.user?.role !== "owner") {
-    return null; // redirecting
+    return null;
   }
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [expenses, setExpenses] = useState([]);
+const getAddonSumForDrinkType = (drinkType) => {
+  if (!selectedExpense?.cashers) return 0;
+  return selectedExpense.cashers.reduce((sum, casher) => {
+    const matchingAddons = casher.addons?.filter(
+      (addon) => addon.name?.toLowerCase() === drinkType.toLowerCase()
+    ) || [];
+    return sum + matchingAddons.reduce((a, b) => a + (parseFloat(b.price) || 0), 0);
+  }, 0);
+};
 
-  const [loading, setLoading] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState(null);
-  console.log("selectedExpense", selectedExpense);
+  // Helpers
+  const formatINR = (num) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+    }).format(num || 0);
+
   const renderName = (val) => {
     if (!val) return "—";
     if (typeof val === "string") return val;
@@ -49,16 +77,7 @@ export default function ReportsPage() {
     return String(val);
   };
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
-  const formatINR = (num) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-    }).format(num || 0);
-
+  // Fetch
   const fetchReports = async () => {
     setLoading(true);
     try {
@@ -77,6 +96,7 @@ export default function ReportsPage() {
     }
   };
 
+  // Table columns
   const columns = [
     {
       name: "Date",
@@ -89,50 +109,12 @@ export default function ReportsPage() {
           day: "numeric",
         }),
     },
-    // {
-    //   name: "Cashers",
-    //   selector: row => {
-    //     if (Array.isArray(row.allCashers)) {
-    //       return row.allCashers
-    //         .map(casher =>
-    //           typeof casher === "string"
-    //             ? casher
-    //             : casher && typeof casher.name === "string"
-    //             ? casher.name
-    //             : "—"
-    //         )
-    //         .join(", ");
-    //     }
-    //     return "—";
-    //   },
-    //   cell: row => {
-    //     if (Array.isArray(row.allCashers)) {
-    //       return row.allCashers
-    //         .map(casher =>
-    //           typeof casher === "string"
-    //             ? casher
-    //             : casher && typeof casher.name === "string"
-    //             ? casher.name
-    //             : "—"
-    //         )
-    //         .join(", ");
-    //     }
-    //     return "—";
-    //   },
-    // },
-
     {
       name: "Total Sale Amount",
       selector: (row) => row.totalAmount,
       sortable: true,
       cell: (row) => `${formatINR(row.totalCashersSale?.toFixed(2))}`,
     },
-    // {
-    //   name: "Total Business",
-    //   selector: (row) => row.totalBusiness || 0,
-    //   sortable: true,
-    //   cell: (row) => `${formatINR(row.totalBusiness?.toFixed(2))}`,
-    // },
     {
       name: "Remaining / Payout",
       selector: (row) => row.remainingAmount || 0,
@@ -151,10 +133,13 @@ export default function ReportsPage() {
       ),
     },
   ];
+
+  // Totals for modal
   const totalCashersAmount = selectedExpense?.cashers?.reduce(
     (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
     0
   );
+
   const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
     const onlineAddon = c.addons?.find(
       (a) => a.name?.toLowerCase() === "online"
@@ -235,18 +220,18 @@ export default function ReportsPage() {
           </p>
         )}
       </div>
+
       {/* Modal */}
       {selectedExpense && (
         <div
-          className="min-h-screen  fixed inset-0 bg-black/50 backdrop-blur-md flex justify-center items-center z-50"
+          className="min-h-screen fixed inset-0 bg-black/50 backdrop-blur-md flex justify-center items-center z-50"
           onClick={() => setSelectedExpense(null)}
         >
           <div
             className="bg-white rounded-lg max-w-3xl w-full p-4 overflow-y-auto max-h-[90vh] text-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
-            {" "}
-            <div className="flex justify-end mb-4 ">
+            <div className="flex justify-end mb-4">
               <button
                 onClick={() => setSelectedExpense(null)}
                 className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
@@ -272,9 +257,7 @@ export default function ReportsPage() {
                 {formatINR(selectedExpense.totalShot?.toFixed(2))}
               </p>
               <p>
-                <strong>
-                  4) Total Cashers Expenses (Including Tea/Juice):
-                </strong>{" "}
+                <strong>4) Total Cashers Expenses (Including Tea/Juice):</strong>{" "}
                 {formatINR(totalCashersAmount?.toFixed(2))}
               </p>
 
@@ -282,38 +265,37 @@ export default function ReportsPage() {
                 <strong>Remaining / Payout:</strong>{" "}
                 {formatINR(selectedExpense?.payout?.toFixed(2))}
               </p>
-              {/* ADD THIS BELOW */}
-              {selectedExpense.cashers &&
-                selectedExpense.cashers.length > 0 && (
-                  <div className="mb-4 space-y-2 bg-gray-100 p-3 rounded">
-                    <h3 className="text-lg font-bold mb-2">
-                      Cashers Online Amount Summary
-                    </h3>
-                    <ul className="list-disc ml-5 space-y-1">
-                      {selectedExpense.cashers.map((c, idx) => {
-                        const onlineAddon = c.addons?.find(
-                          (a) => a.name?.toLowerCase() === "online"
-                        );
-                        return (
-                          <li key={idx}>
-                            {c.casherName}:{" "}
-                            {onlineAddon
-                              ? formatINR(onlineAddon.price)
-                              : "No Online Amount"}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
+
+              {selectedExpense.cashers && selectedExpense.cashers.length > 0 && (
+                <div className="mb-4 space-y-2 bg-gray-100 p-3 rounded">
+                  <h3 className="text-lg font-bold mb-2">
+                    Cashers Online Amount Summary
+                  </h3>
+                  <ul className="list-disc ml-5 space-y-1">
+                    {selectedExpense.cashers.map((c, idx) => {
+                      const onlineAddon = c.addons?.find(
+                        (a) => a.name?.toLowerCase() === "online"
+                      );
+                      return (
+                        <li key={idx}>
+                          {c.casherName}:{" "}
+                          {onlineAddon
+                            ? formatINR(onlineAddon.price)
+                            : "No Online Amount"}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
               <div className="mt-2 font-semibold">
                 Total Online Amount: {formatINR(totalOnlineAmount) || 0}
               </div>
             </div>
             <hr className="my-4" />
+
             <h3 className="text-lg font-bold mb-2">Cashers</h3>
-            {selectedExpense?.cashers &&
-            selectedExpense?.cashers?.length > 0 ? (
+            {selectedExpense?.cashers && selectedExpense?.cashers?.length > 0 ? (
               selectedExpense?.cashers.map((c, idx) => (
                 <div
                   key={idx}
@@ -375,28 +357,7 @@ export default function ReportsPage() {
             ) : (
               <p>No cashers recorded.</p>
             )}
-            {/* <h3 className="text-lg font-bold mb-2">Drinks</h3>
-            {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
-              selectedExpense.drinks.map((d, idx) => (
-                <div
-                  key={idx}
-                  className="mb-4 p-3 border border-gray-300 rounded"
-                >
-                  <p className="font-semibold">{d.drinkType}</p>
-                  <p>Sold Amount: ₹{d.soldAmount}</p>
-                  <p>
-                    Commission:{" "}
-                    {d.drinkType === "tea"
-                      ? `${d.commissionPercent}%`
-                      : "Fixed"}{" "}
-                    → ₹{d.commissionValue}
-                  </p>
-                  <p>Final Net: ₹{d.finalNetAmount}</p>
-                </div>
-              ))
-            ) : (
-              <p>No drinks recorded.</p>
-            )} */}
+
             <h3 className="text-lg font-bold mb-2">Drinks</h3>
             {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
               selectedExpense.drinks.map((d, idx) => (
@@ -415,7 +376,14 @@ export default function ReportsPage() {
                       : "Fixed"}{" "}
                     → ₹{d.commissionValue}
                   </p>
-                  <p>Final Net (after applying carry): ₹{d.finalNetAmount}</p>
+<p>
+  Final Net (after applying carry): ₹
+  {formatINR(
+    (d.soldAmount || 0) -
+    (d.commissionValue || 0) -
+    getAddonSumForDrinkType(d.drinkType)
+  )}
+</p>
 
                   <div className="mt-2 p-2 bg-yellow-50 rounded">
                     <p className="text-yellow-800 font-medium">
