@@ -8,23 +8,42 @@ import toast, { Toaster } from "react-hot-toast";
 export default function StaffWithAdvancesPage() {
      const { data: session, status } = useSession();
     const router = useRouter();
-
-  
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
-    }
-  
-    if (status === "unauthenticated") {
-      return <p className="text-center mt-10">You must be logged in.</p>;
-    }
-  
-    if (session?.user?.role !== "owner") {
-      return null; // redirecting
-    }
   const [staffData, setStaffData] = useState([]);
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [loading, setLoading] = useState(false);
+  // ✅ Redirect unauthorized
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }, [status, session, router]);
+
+  // ✅ Load data only if authorized
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "owner") {
+      const now = new Date();
+      const thisMonth = now.getMonth() + 1;
+      const thisYear = now.getFullYear();
+      setMonth(thisMonth);
+      setYear(thisYear);
+      loadStaffWithAdvances(thisMonth, thisYear);
+    }
+  }, [status, session]);
+
+  // ✅ Render guards after all hooks
+  if (status === "loading") {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10">You must be logged in.</p>;
+  }
+
+  if (status === "authenticated" && session?.user?.role !== "owner") {
+    return null;
+  }
+
 
   // ✅ Unified load function
   const loadStaffWithAdvances = async (m, y) => {
@@ -45,15 +64,7 @@ export default function StaffWithAdvancesPage() {
     }
   };
 
-  // ✅ On mount: default to this month/year
-  useEffect(() => {
-    const now = new Date();
-    const thisMonth = now.getMonth() + 1;
-    const thisYear = now.getFullYear();
-    setMonth(thisMonth);
-    setYear(thisYear);
-    loadStaffWithAdvances(thisMonth, thisYear);
-  }, []);
+ 
 
   const handleFilter = () => {
  
@@ -75,7 +86,7 @@ export default function StaffWithAdvancesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto sm:mt-6 flex flex-col p-4 sm:p-8 border rounded">
+<div className="min-h-screen max-w-6xl mx-auto sm:mt-6 flex flex-col p-2 sm:p-4 border rounded overflow-y-auto pb-24">
 
       <h1 className="text-xl sm:text-2xl font-bold mb-4">
         👥 Staff Advances Summary
@@ -138,7 +149,7 @@ export default function StaffWithAdvancesPage() {
 
       {/* Table */}
       <div className="w-full overflow-x-auto">
-        <table className="min-w-full border border-collapse border-black text-sm">
+<table className="w-full border border-collapse border-black text-xs sm:text-sm">
           <thead className="bg-gray-400 text-black">
             <tr>
               <th className="p-2 border">S.no</th>
