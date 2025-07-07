@@ -140,16 +140,16 @@ export default function DashboardUsersList() {
                       <td className="p-3 text-sm text-black">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="p-3 flex gap-3">
+                      <td className="p-3 flex gap-4">
                         <button
                           onClick={() => openEditModal(user)}
-                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                          className="text-blue-600 hover:text-blue-800 text-lg flex items-center gap-1"
                         >
                           <FaEdit /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(user._id)}
-                          className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1"
+                          className="text-red-600 hover:text-red-800 text-lg flex items-center gap-1"
                         >
                           <FaTrash /> Delete
                         </button>
@@ -163,10 +163,10 @@ export default function DashboardUsersList() {
             {/* Mobile view */}
             <div className="block md:hidden space-y-4">
               {users.map((user) => (
-                <div key={user._id} className=" p-4 rounded-lg shadow text-sm">
+                <div key={user._id} className="bg-black p-4 rounded-lg shadow text-sm">
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2 font-semibold text-gray-800">
-                      <FaUserShield className="text-indigo-600" />
+                      <FaUserShield className="text-indigo-600 text-white" />
                       {user.username}
                     </div>
                     <div className="flex gap-2">
@@ -187,7 +187,7 @@ export default function DashboardUsersList() {
                   <div>
                     <div><strong>Email:</strong> {user.email}</div>
                     <div><strong>Role:</strong> <span className="capitalize">{user.role}</span></div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-black mt-1">
                       Created: {new Date(user.createdAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -234,7 +234,7 @@ export default function DashboardUsersList() {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setEditUser(null)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                  className="px-4 py-2 bg-black rounded hover:bg-gray-400"
                 >
                   Cancel
                 </button>
