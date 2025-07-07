@@ -8,11 +8,7 @@ import toast, { Toaster } from "react-hot-toast";
 export default function StaffWithAdvancesPage() {
      const { data: session, status } = useSession();
     const router = useRouter();
-     useEffect(() => {
-      if (status === "authenticated" && session.user.role !== "owner") {
-        router.push("/no-permission");
-      }
-    }, [status, session, router]);
+
   
     if (status === "loading") {
       return <p className="text-center mt-10">Loading...</p>;
