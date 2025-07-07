@@ -381,7 +381,7 @@ const getAddonSumForDrinkType = (drinkType) => {
   {formatINR(
     (d.soldAmount || 0) -
     (d.commissionValue || 0) -
-    getAddonSumForDrinkType(d.drinkType) -
+    getAddonSumForDrinkType(d.drinkType) +
     (d.carryForwardFromYesterday || 0)
   )}
 </p>
