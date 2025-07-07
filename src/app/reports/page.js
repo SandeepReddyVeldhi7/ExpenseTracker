@@ -381,9 +381,11 @@ const getAddonSumForDrinkType = (drinkType) => {
   {formatINR(
     (d.soldAmount || 0) -
     (d.commissionValue || 0) -
-    getAddonSumForDrinkType(d.drinkType)
+    getAddonSumForDrinkType(d.drinkType) -
+    (d.carryForwardFromYesterday || 0)
   )}
 </p>
+
 
                   <div className="mt-2 p-2 bg-yellow-50 rounded">
                     <p className="text-yellow-800 font-medium">
