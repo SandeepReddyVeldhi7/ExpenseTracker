@@ -119,7 +119,7 @@ export default function DashboardUsersList() {
           <>
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[800px] text-sm text-black">
-                <thead className="bg-gray-100">
+                <thead className="">
                   <tr>
                     <th className="p-3 text-left text-black">Username</th>
                     <th className="p-3 text-left text-black">Email</th>
