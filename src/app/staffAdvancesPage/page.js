@@ -75,7 +75,8 @@ export default function StaffWithAdvancesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto sm:mt-6 flex justify-center items-center flex-col h-screen p-4 sm:p-8  border rounded">
+    <div className="max-w-6xl mx-auto sm:mt-6 flex flex-col p-4 sm:p-8 border rounded">
+
       <h1 className="text-xl sm:text-2xl font-bold mb-4">
         👥 Staff Advances Summary
       </h1>
