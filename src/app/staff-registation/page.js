@@ -84,37 +84,37 @@ export default function RegisterStaff() {
   return (
     <div className="flex items-center justify-center h-screen  bg-gradient-to-r from-blue-500 to-purple-500">
       <div className="  ">
-        <div className="max-w-md mx-auto flex justify-center items-center flex-col  rounded-[4px] p-6  border bg-white ">
+        <div className="max-w-md mx-auto flex justify-center items-center flex-col  rounded-[4px] p-6  border ">
           <Toaster />
-          <h1 className="text-2xl font-bold mb-4">Register Staff</h1>
+          <h1 className="text-2xl font-bold mb-4 text-black">Register Staff</h1>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="text-black">
               <label>Email:</label>
               <input
                 type="email"
-                className="w-full border px-3 py-2"
+                className="w-full border px-3 py-2 text-black"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Staff Email"
               />
             </div>
 
-            <div>
+            <div className="text-black">
               <label>Username:</label>
               <input
                 type="text"
-                className="w-full border px-3 py-2"
+                className="w-full border px-3 text-black py-2"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Unique Username"
               />
             </div>
 
-            <div>
+            <div className="text-black">
               <label>Password:</label>
               <input
                 type="password"
-                className="w-full border px-3 py-2"
+                className="w-full text-black border px-3 py-2"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
