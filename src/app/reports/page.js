@@ -392,7 +392,7 @@ const getAddonSumForDrinkType = (drinkType) => {
 
  <p>Total Tea Expensive: ₹{totalTeaExpensive}</p>
 
-<p>
+{/* <p>
   Final Net (after applying carry): ₹
   {formatINR(
     (d.soldAmount || 0) -
@@ -400,7 +400,12 @@ const getAddonSumForDrinkType = (drinkType) => {
     getAddonSumForDrinkType(d.drinkType) +
     (d.carryForwardFromYesterday || 0)
   )}
+</p> */}
+
+<p>
+  Final Net (as saved): {formatINR(d.finalNetAmount || 0)}
 </p>
+
 
 
                   <div className="mt-2 p-2 bg-yellow-50 rounded">
