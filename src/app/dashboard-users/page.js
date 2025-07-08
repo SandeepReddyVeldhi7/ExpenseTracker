@@ -196,8 +196,8 @@ export default function DashboardUsersList() {
                     </div>
                   </div>
                   <div>
-                    <div><strong>Email:</strong> {user.email}</div>
-                    <div><strong>Role:</strong> <span className="capitalize">{user.role}</span></div>
+                    <div className="text-black"><strong>Email:</strong> {user.email}</div>
+                    <div className="text-black"><strong>Role:</strong> <span className="capitalize">{user.role}</span></div>
                     <div className="text-xs text-black mt-1">
                       Created: {new Date(user.createdAt).toLocaleDateString()}
                     </div>
