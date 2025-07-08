@@ -607,28 +607,71 @@ function CategoryPageContent({ date, category }) {
     saveToLocalStorage({ commission: value });
   };
 
-  const handleFinalSubmit = async () => {
-    const toastId = toast.loading("Submitting all data...");
+//   const handleFinalSubmit = async () => {
+//     const toastId = toast.loading("Submitting all data...");
 
-    try {
-      await fetch("/api/v1/expense/add-expense", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(totalDetails),
-      });
+//     try {
+//       await fetch("/api/v1/expense/add-expense", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//        body: JSON.stringify({
+//   ...totalDetails,
+//   drinks: totalDetails.drinks.map((d) => ({
+//     drinkType: d.drinkType,
+//     soldAmount: d.soldAmount,
+//     commissionPercent: d.commissionPercent,
+//     commissionValue: d.commissionValue
+//   }))
+// }),
+//       });
 
-      // clear localStorage
-      ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
-        localStorage.removeItem(`expense-form-${date}-${key}`);
-      });
+//       // clear localStorage
+//       ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
+//         localStorage.removeItem(`expense-form-${date}-${key}`);
+//       });
 
-      toast.success("All expenses submitted!", { id: toastId });
-      router.push("/expenses");
-    } catch (error) {
-      console.error(error);
-      toast.error("Error submitting expenses", { id: toastId });
-    }
-  };
+//       toast.success("All expenses submitted!", { id: toastId });
+//       router.push("/expenses");
+//     } catch (error) {
+//       console.error(error);
+//       toast.error("Error submitting expenses", { id: toastId });
+//     }
+//   };
+
+
+const handleFinalSubmit = async () => {
+  const toastId = toast.loading("Submitting all data...");
+
+  try {
+    // Remove computed/carry fields from drinks before submitting
+    const filteredData = {
+      ...totalDetails,
+      drinks: totalDetails.drinks.map((d) => ({
+        drinkType: d.drinkType,
+        soldAmount: d.soldAmount,
+        commissionPercent: d.commissionPercent,
+        commissionValue: d.commissionValue,
+      })),
+    };
+
+    await fetch("/api/v1/expense/add-expense", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filteredData),
+    });
+
+    // clear localStorage
+    ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
+      localStorage.removeItem(`expense-form-${date}-${key}`);
+    });
+
+    toast.success("All expenses submitted!", { id: toastId });
+    router.push("/expenses");
+  } catch (error) {
+    console.error(error);
+    toast.error("Error submitting expenses", { id: toastId });
+  }
+};
 
   const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
