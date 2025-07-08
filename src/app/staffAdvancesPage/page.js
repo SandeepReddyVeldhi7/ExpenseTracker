@@ -32,9 +32,9 @@ export default function StaffWithAdvancesPage() {
   }, [status, session]);
 
   // ✅ Render guards after all hooks
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
+  // if (status === "loading") {
+  //   return <p className="text-center mt-10">Loading...</p>;
+  // }
 
   if (status === "unauthenticated") {
     return <p className="text-center mt-10">You must be logged in.</p>;
@@ -159,22 +159,44 @@ export default function StaffWithAdvancesPage() {
             </tr>
           </thead>
           <tbody>
-            {staffData.length > 0 ? (
-              staffData.map((s, idx) => (
-                <tr key={s._id}>
-                  <td className="p-2 border text-center">{idx + 1}</td>
-                  <td className="p-2 border">{s.name}</td>
-                  <td className="p-2 border">{s.designation}</td>
-                  <td className="p-2 border text-right">₹ {s.totalAdvance.toLocaleString("en-IN")}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="text-center p-4 text-gray-500">
-                  No staff data.
-                </td>
-              </tr>
-            )}
+            {loading ? (
+  <>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <tr key={i} className="animate-pulse">
+        <td className="p-2 border text-center">
+          <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto"></div>
+        </td>
+        <td className="p-2 border">
+          <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        </td>
+        <td className="p-2 border">
+          <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+        </td>
+        <td className="p-2 border text-right">
+          <div className="h-4 bg-gray-300 rounded w-1/2 ml-auto"></div>
+        </td>
+      </tr>
+    ))}
+  </>
+) : staffData.length > 0 ? (
+  staffData.map((s, idx) => (
+    <tr key={s._id}>
+      <td className="p-2 border text-center">{idx + 1}</td>
+      <td className="p-2 border">{s.name}</td>
+      <td className="p-2 border">{s.designation}</td>
+      <td className="p-2 border text-right">
+        ₹ {s.totalAdvance.toLocaleString("en-IN")}
+      </td>
+    </tr>
+  ))
+) : (
+  <tr>
+    <td colSpan="4" className="text-center p-4 text-gray-500">
+      No staff data.
+    </td>
+  </tr>
+)}
+
           </tbody>
         </table>
       </div>

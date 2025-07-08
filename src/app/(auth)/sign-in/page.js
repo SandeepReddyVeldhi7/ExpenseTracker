@@ -15,6 +15,7 @@ const poppins = Poppins({
 export default function SignIn() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
+const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   /** Handle input changes **/
   const handleChange = (e) => {
@@ -69,8 +70,19 @@ export default function SignIn() {
 
   /** Handle Google sign-in **/
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" });
-  };
+  if (isGoogleLoading) return;
+  setIsGoogleLoading(true);
+
+  signIn("google", { callbackUrl: "/" })
+    .catch((err) => {
+      console.error(err);
+      toast.error("Google sign-in failed");
+    })
+    .finally(() => {
+      setIsGoogleLoading(false);
+    });
+};
+
 
   return (
     <div
@@ -193,18 +205,48 @@ export default function SignIn() {
         </div>
 
         {/* Google Sign-In Button */}
-         <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-5 py-2.5 text-sm font-medium bg-white hover:bg-gray-50 transition duration-300 shadow-sm"
-        >
-          <img
-            src="/icons/google-logo.png"
-            alt="Google logo"
-            className="w-5 h-5"
-          />
-          <span className="text-gray-700">Sign in with Google</span>
-        </button> 
+        <button
+  type="button"
+  onClick={handleGoogleSignIn}
+  disabled={isGoogleLoading}
+  className={`w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-5 py-2.5 text-sm font-medium bg-white transition duration-300 shadow-sm
+    ${isGoogleLoading ? "cursor-not-allowed opacity-70" : "hover:bg-gray-50"}`}
+>
+  {isGoogleLoading ? (
+    <>
+      <svg
+        className="animate-spin h-5 w-5 text-gray-700"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v8z"
+        />
+      </svg>
+      <span className="text-gray-700">Redirecting to Google...</span>
+    </>
+  ) : (
+    <>
+      <img
+        src="/icons/google-logo.png"
+        alt="Google logo"
+        className="w-5 h-5"
+      />
+      <span className="text-gray-700">Sign in with Google</span>
+    </>
+  )}
+</button>
+
       </form>
     </div>
   );

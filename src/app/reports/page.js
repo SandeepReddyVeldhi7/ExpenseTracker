@@ -36,10 +36,50 @@ console.log("selectedExpense",selectedExpense)
     }
   }, [status, session]);
 
-  // Early returns for loading/unauthenticated
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
+
+  if (status === "loading" || loading) {
+  return (
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-800 to-lime-800 ${poppins.className}`}>
+      <div className="max-w-6xl w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl space-y-6">
+        <div className="animate-pulse space-y-6">
+          {/* Title */}
+          <div className="h-8 w-1/3 bg-white/30 rounded mx-auto"></div>
+
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="h-12 bg-white/20 rounded"></div>
+            <div className="h-12 bg-white/20 rounded"></div>
+            <div className="h-12 bg-white/20 rounded"></div>
+          </div>
+
+          {/* Button */}
+          <div className="h-12 w-40 bg-white/20 rounded mx-auto"></div>
+
+          {/* Table Skeleton */}
+          <div className="border border-white/30 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-4 md:grid-cols-6 bg-white/10 border-b border-white/20">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="p-4">
+                  <div className="h-4 bg-white/20 rounded w-24 mx-auto"></div>
+                </div>
+              ))}
+            </div>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="grid grid-cols-4 md:grid-cols-6 border-b border-white/20">
+                {[...Array(6)].map((_, j) => (
+                  <div key={j} className="p-4">
+                    <div className="h-4 bg-white/10 rounded w-16 mx-auto"></div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
   if (status === "unauthenticated") {
     return <p className="text-center mt-10">You must be logged in.</p>;

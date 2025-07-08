@@ -24,9 +24,22 @@ export default  function AddStaffForm() {
 }, [status, session, router]);
 
    
-     if (status === "loading") {
-       return <p className="text-center mt-10">Loading...</p>;
-     }
+     // ⏳ Loading skeleton
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+        <div className="space-y-4 w-full max-w-md">
+          <div className="animate-pulse space-y-4 bg-gray-200 p-6 rounded-xl shadow-lg">
+            <div className="h-6 bg-gray-300 rounded w-1/2 mx-auto mb-4"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
    
      if (status === "unauthenticated") {
        return <p className="text-center mt-10">You must be logged in.</p>;

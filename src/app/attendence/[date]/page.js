@@ -48,14 +48,26 @@ useEffect(() => {
 
 if (loading) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="flex flex-col items-center">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-600 font-medium">Loading staff list...</p>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="w-full max-w-md space-y-4">
+        <div className="h-6 bg-gray-300 rounded animate-pulse w-2/3 mx-auto"></div>
+
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4 p-4 border rounded-lg shadow-sm animate-pulse">
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+            </div>
+            <div className="h-5 w-5 bg-gray-300 rounded"></div>
+          </div>
+        ))}
+
+        <div className="h-10 bg-gray-300 rounded animate-pulse"></div>
       </div>
     </div>
   );
 }
+
 
   const handleToggle = (id) => {
     console.log("id",id)
@@ -110,7 +122,7 @@ const handleSubmit = async () => {
 
   return (
    <div className="min-h-[90vh] bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-3xl">
+      <div className="bg-white rounded-2xl shadow-xl p-8 pb-20 w-full max-w-3xl">
                <Toaster position="top-center" reverseOrder={false} />
         <h1 className="text-xl font-bold text-gray-800 mb-6 text-center">
           Mark Attendance for {date}

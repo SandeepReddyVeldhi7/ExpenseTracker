@@ -99,6 +99,20 @@ const toastLoading=toast.loading("Updating user...");
       toast.error(err.message,{id:toastLoading});
     }
   };
+  const MobileUserSkeleton = () => (
+  <div className="bg-gray-200/60 rounded-lg p-4 shadow animate-pulse">
+    <div className="flex justify-between mb-3">
+      <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+      <div className="h-4 bg-gray-300 rounded w-1/6"></div>
+    </div>
+    <div className="space-y-2">
+      <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+      <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+      <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+    </div>
+  </div>
+);
+
 
   return (
     <div className="min-h-screen sm:mt-8  bg-gradient-to-br from-indigo-800 to-purple-800 p-6">
@@ -109,7 +123,25 @@ const toastLoading=toast.loading("Updating user...");
         </h1>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading users...</p>
+  <div className="space-y-4 animate-pulse">
+    {[...Array(5)].map((_, i) => (
+      <div
+        key={i}
+        className="bg-gray-200/60 rounded-lg p-4 shadow-sm"
+      >
+        <div className="flex justify-between mb-4">
+          <div className="h-4 bg-gray-300 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="h-4 bg-gray-300 rounded"></div>
+          <div className="h-4 bg-gray-300 rounded"></div>
+          <div className="h-4 bg-gray-300 rounded"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+
         ) : users.length === 0 ? (
           <p className="text-center text-gray-500">No users found.</p>
         ) : (
@@ -160,40 +192,49 @@ const toastLoading=toast.loading("Updating user...");
               </table>
             </div>
 
+        
             {/* Card View for Mobile */}
-            <div className="block md:hidden space-y-4 mt-4">
-              {users.map((user) => (
-                <div key={user._id} className="bg-gray-100 p-4 rounded-lg shadow">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2 font-semibold text-gray-800">
-                      <FaUserShield className="text-indigo-600" />
-                      {user.username}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="text-blue-600"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user._id)}
-                        className="text-red-600"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-black"><strong>Email:</strong> {user.email}</div>
-                    <div className="text-black"><strong>Role:</strong> <span className="capitalize">{user.role}</span></div>
-                    <div className="text-xs text-black mt-1">
-                      Created: {new Date(user.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              ))}
+<div className="block md:hidden space-y-4 mt-4">
+  {loading
+    ? [...Array(4)].map((_, i) => <MobileUserSkeleton key={i} />)
+    : users.map((user) => (
+        <div key={user._id} className="bg-gray-100 p-4 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-2 font-semibold text-gray-800">
+              <FaUserShield className="text-indigo-600" />
+              {user.username}
             </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => openEditModal(user)}
+                className="text-blue-600"
+              >
+                <FaEdit />
+              </button>
+              <button
+                onClick={() => handleDelete(user._id)}
+                className="text-red-600"
+              >
+                <FaTrash />
+              </button>
+            </div>
+          </div>
+          <div>
+            <div className="text-black">
+              <strong>Email:</strong> {user.email}
+            </div>
+            <div className="text-black">
+              <strong>Role:</strong>{" "}
+              <span className="capitalize">{user.role}</span>
+            </div>
+            <div className="text-xs text-black mt-1">
+              Created: {new Date(user.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+      ))}
+</div>
+
           </>
         )}
 
