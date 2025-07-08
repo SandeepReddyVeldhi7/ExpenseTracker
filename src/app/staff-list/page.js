@@ -34,9 +34,9 @@ export default function StaffList() {
   }, [status, session]);
 
   // ✅ Render guards after all hooks
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
+  // if (status === "loading") {
+  //   return <p className="text-center mt-10">Loading...</p>;
+  // }
 
   if (status === "unauthenticated") {
     return <p className="text-center mt-10">You must be logged in.</p>;
@@ -115,7 +115,51 @@ export default function StaffList() {
         </h1>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading staff list...</p>
+         <>
+    {/* Desktop Skeleton Table */}
+    <div className="hidden md:block overflow-x-auto">
+      <table className="w-full text-sm text-gray-700 min-w-[800px]">
+        <thead className="bg-gray-100 sticky top-0">
+          <tr>
+            <th className="p-4 text-left">Name</th>
+            <th className="p-4 text-left">Designation</th>
+            <th className="p-4 text-left">Salary</th>
+            <th className="p-4 text-left">Advance</th>
+            <th className="p-4 text-left">Status</th>
+            <th className="p-4 text-left">Joined</th>
+            <th className="p-4 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <tr key={i} className="animate-pulse divide-x divide-gray-200">
+              {Array.from({ length: 7 }).map((_, j) => (
+                <td key={j} className="p-4">
+                  <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {/* Mobile Skeleton Cards */}
+    <div className="block md:hidden space-y-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse bg-gray-100 p-4 rounded-lg shadow space-y-3"
+        >
+          <div className="h-5 bg-gray-300 rounded w-2/3"></div>
+          <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-300 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+        </div>
+      ))}
+    </div>
+  </>
         ) : staff.length === 0 ? (
           <p className="text-center text-gray-500">No staff found.</p>
         ) : (

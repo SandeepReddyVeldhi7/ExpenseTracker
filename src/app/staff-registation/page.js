@@ -17,10 +17,27 @@ export default function RegisterStaff() {
       }
     }, [status, session, router]);
   
-    if (status === "loading") {
-      return <p className="text-center mt-10">Loading...</p>;
-    }
-  
+     if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+        <div className="w-full max-w-md bg-white/20 backdrop-blur-lg rounded-xl shadow-lg p-8 border border-white/30 animate-pulse space-y-4">
+          <div className="h-8 bg-gray-300/50 rounded w-1/2 mx-auto mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-4 bg-gray-300/50 rounded w-1/4"></div>
+            <div className="h-10 bg-gray-300/50 rounded"></div>
+
+            <div className="h-4 bg-gray-300/50 rounded w-1/4"></div>
+            <div className="h-10 bg-gray-300/50 rounded"></div>
+
+            <div className="h-4 bg-gray-300/50 rounded w-1/4"></div>
+            <div className="h-10 bg-gray-300/50 rounded"></div>
+
+            <div className="h-10 bg-gray-300/50 rounded w-full"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
     if (status === "unauthenticated") {
       return <p className="text-center mt-10">You must be logged in.</p>;
     }
@@ -67,7 +84,7 @@ export default function RegisterStaff() {
   return (
     <div className="flex items-center justify-center h-screen  bg-gradient-to-r from-blue-500 to-purple-500">
       <div className="  ">
-        <div className="max-w-md mx-auto flex justify-center items-center flex-col  rounded-[4px] p-6  border bg-gray-500 ">
+        <div className="max-w-md mx-auto flex justify-center items-center flex-col  rounded-[4px] p-6  border bg-white ">
           <Toaster />
           <h1 className="text-2xl font-bold mb-4">Register Staff</h1>
           <form onSubmit={handleSubmit} className="space-y-4">

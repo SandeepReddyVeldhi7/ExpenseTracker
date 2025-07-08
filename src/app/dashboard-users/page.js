@@ -42,11 +42,7 @@ export default function DashboardUsersList() {
  useEffect(() => {
     fetchUsers();
   }, []);
-  // ✅ Guards AFTER all hooks
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
-
+ 
   if (status === "unauthenticated") {
     return <p className="text-center mt-10">You must be logged in.</p>;
   }
@@ -111,13 +107,28 @@ export default function DashboardUsersList() {
           🛡️ Dashboard Users
         </h1>
 
-        {loading ? (
-          <p className="text-center text-gray-500">Loading users...</p>
+       {loading ? (
+  <div className="space-y-4 animate-pulse">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className="bg-white/20 backdrop-blur p-4 rounded-lg shadow">
+        <div className="flex items-center justify-between mb-3">
+          <div className="h-4 bg-gray-300/50 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-300/50 rounded w-1/4"></div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="h-4 bg-gray-300/50 rounded"></div>
+          <div className="h-4 bg-gray-300/50 rounded"></div>
+          <div className="h-4 bg-gray-300/50 rounded"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+
         ) : users.length === 0 ? (
           <p className="text-center text-gray-500">No users found.</p>
         ) : (
           <>
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto bg-white">
               <table className="w-full min-w-[800px] text-sm text-black">
                 <thead className="">
                   <tr>
@@ -163,10 +174,10 @@ export default function DashboardUsersList() {
             {/* Mobile view */}
             <div className="block md:hidden space-y-4">
               {users.map((user) => (
-                <div key={user._id} className="bg-black p-4 rounded-lg shadow text-sm">
+                <div key={user._id} className="bg-white p-4 rounded-lg shadow text-sm">
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2 font-semibold text-gray-800">
-                      <FaUserShield className="text-indigo-600 text-white" />
+                      <FaUserShield className="text-indigo-600 " />
                       {user.username}
                     </div>
                     <div className="flex gap-2">

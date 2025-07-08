@@ -133,9 +133,7 @@ export default function PayDetailsPage() {
     loadData(null, null, customStartDate, customEndDate);
   };
 
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
+  
 
   if (status === "unauthenticated") {
     return <p className="text-center mt-10">You must be logged in.</p>;
@@ -146,17 +144,55 @@ export default function PayDetailsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600 font-medium">
-            Loading payroll data...
-          </p>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="w-full max-w-4xl space-y-6">
+        {/* Page Title Skeleton */}
+        <div className="h-8 w-1/3 bg-gray-200 rounded animate-pulse mx-auto"></div>
+
+        {/* Filter Bar Skeleton */}
+        <div className="flex flex-wrap gap-3 justify-center">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+          ))}
         </div>
+
+        {/* Table Skeleton */}
+        <div className="border rounded-lg overflow-hidden shadow-sm">
+          <div className="grid grid-cols-10 bg-gray-100 border-b">
+            {[...Array(10)].map((_, i) => (
+              <div
+                key={i}
+                className="p-3 text-center text-xs font-semibold text-gray-500"
+              >
+                <div className="h-4 bg-gray-300 rounded animate-pulse mx-auto w-20"></div>
+              </div>
+            ))}
+          </div>
+          {[...Array(6)].map((_, rowIdx) => (
+            <div
+              key={rowIdx}
+              className="grid grid-cols-10 border-b hover:bg-gray-50"
+            >
+              {[...Array(10)].map((_, colIdx) => (
+                <div
+                  key={colIdx}
+                  className="p-3 text-center"
+                >
+                  <div className="h-4 bg-gray-200 rounded animate-pulse mx-auto w-16"></div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Submit Button Skeleton */}
+        <div className="h-10 w-40 bg-gray-300 rounded animate-pulse mx-auto"></div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 border border-black rounded mt-10 bg-gray-50 font-sans">
@@ -169,7 +205,7 @@ export default function PayDetailsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <button
           onClick={handleSelectThisMonth}
-          className="px-4 py-2 bg-blue-600 text-black rounded hover:bg-blue-700 text-sm"
+          className="px-4 py-2 bg-[#fa3e5e] text-black rounded hover:bg-[#fa3e5e] text-sm"
         >
           This Month
         </button>
@@ -191,7 +227,7 @@ export default function PayDetailsPage() {
           />
           <button
             onClick={handleCustomFilter}
-            className="px-4 py-2 bg-purple-600 text-black rounded hover:bg-purple-700 text-sm"
+            className="px-4 py-2 bg-[#47ff54] text-black rounded hover:bg-[#47ff54]text-sm"
           >
             Apply Filter
           </button>

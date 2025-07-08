@@ -8,29 +8,48 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
 export default  function AddStaffForm() {
-      const { data: session, status } = useSession();
+  const { data: session, status } = useSession();
+  const [name, setName] = useState('')
+  const [designation, setDesignation] = useState('')
+  const [salary, setSalary] = useState('')
+
+      
      const router = useRouter();
       useEffect(() => {
-       if (status === "authenticated" && session.user.role !== "owner") {
-         router.push("/no-permission");
-       }
-     }, [status, session, router]);
+  if (status === "authenticated") {
+    if (!session?.user?.role || session.user.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }
+}, [status, session, router]);
+
    
-     if (status === "loading") {
-       return <p className="text-center mt-10">Loading...</p>;
-     }
+     // ⏳ Loading skeleton
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+        <div className="space-y-4 w-full max-w-md">
+          <div className="animate-pulse space-y-4 bg-gray-200 p-6 rounded-xl shadow-lg">
+            <div className="h-6 bg-gray-300 rounded w-1/2 mx-auto mb-4"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+            <div className="h-10 bg-gray-300 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
    
      if (status === "unauthenticated") {
        return <p className="text-center mt-10">You must be logged in.</p>;
      }
    
-     if (session?.user?.role !== "owner") {
-       return null; // redirecting
-     }
-  const [name, setName] = useState('')
-  const [designation, setDesignation] = useState('')
-  const [salary, setSalary] = useState('')
+     if (status === "authenticated" && (!session?.user?.role || session.user.role !== "owner")) {
+  return null;
+}
 
+  
 
   
   const designationOptions = [
