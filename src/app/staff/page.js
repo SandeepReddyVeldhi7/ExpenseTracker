@@ -8,13 +8,21 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
 export default  function AddStaffForm() {
-      const { data: session, status } = useSession();
+  const { data: session, status } = useSession();
+  const [name, setName] = useState('')
+  const [designation, setDesignation] = useState('')
+  const [salary, setSalary] = useState('')
+
+      
      const router = useRouter();
       useEffect(() => {
-       if (status === "authenticated" && session.user.role !== "owner") {
-         router.push("/no-permission");
-       }
-     }, [status, session, router]);
+  if (status === "authenticated") {
+    if (!session?.user?.role || session.user.role !== "owner") {
+      router.push("/no-permission");
+    }
+  }
+}, [status, session, router]);
+
    
      if (status === "loading") {
        return <p className="text-center mt-10">Loading...</p>;
@@ -24,13 +32,11 @@ export default  function AddStaffForm() {
        return <p className="text-center mt-10">You must be logged in.</p>;
      }
    
-     if (session?.user?.role !== "owner") {
-       return null; // redirecting
-     }
-  const [name, setName] = useState('')
-  const [designation, setDesignation] = useState('')
-  const [salary, setSalary] = useState('')
+     if (status === "authenticated" && (!session?.user?.role || session.user.role !== "owner")) {
+  return null;
+}
 
+  
 
   
   const designationOptions = [
