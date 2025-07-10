@@ -14,4 +14,4 @@ jobs:
         run: |
           curl -i --fail --show-error \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            'https://coach-dashboard-alpha.vercel.app/api/cron/notify-upcoming-webinars'
+            'https://rachinenterprise.vercel.app/api/cron/notify-upcoming-webinars'
