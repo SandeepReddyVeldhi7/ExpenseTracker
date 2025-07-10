@@ -286,7 +286,8 @@ function CategoryPageContent({ date, category }) {
 
           console.log("totalDrinks:::::::::::::",totalDrinksAmount)
         const totalCashersSale = cashers.reduce(
-          (s, c) => s + (c.totalSealAmount || 0),
+          (s, c) => s + (c.
+totalCashersAmount || 0),
           0
         );
         console.log("totalCashersSale", totalCashersSale);
