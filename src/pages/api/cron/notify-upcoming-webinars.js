@@ -1,9 +1,5 @@
-/**
- * Example Next.js API route (e.g. /pages/api/send-test-email.js)
- * Complete in one file – production-ready with logs
- */
 
-import connectDB from "../lib/mongoose";
+import { connectDB } from "@/lib/db";
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
