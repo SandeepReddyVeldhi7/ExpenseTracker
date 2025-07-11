@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           .status(400)
           .json({ message: "Missing plainToken in payload" });
       }
-
+ console.log("✅ Using Verification Token from env:", process.env.ZOOM_VERIFICATION_TOKEN);
       const crypto = await import("crypto");
       const hmac = crypto.createHmac(
         "sha256",
