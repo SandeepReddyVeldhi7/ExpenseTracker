@@ -47,7 +47,7 @@ export default function PayDetailsPage() {
       setStaffList(staff);
 
       // Fetch confirmed advances
-      let confirmedUrl = `/api/v1/advances/confirmed?month=${m}&year=${y}`;
+      let confirmedUrl = `/api/v1/staff/advances/confirmed?month=${m}&year=${y}`;
       const confirmedRes = await fetch(confirmedUrl);
       const confirmedList = await confirmedRes.json();
       const confirmedMap = {};
