@@ -42,13 +42,19 @@ export default function PayDetailsPage() {
   ) => {
     setLoading(true);
     try {
+      console.log("Fetching staff list...");
       const staffRes = await fetch("/api/v1/staff/get-staff");
+      if (!staffRes.ok) throw new Error("Failed to fetch staff list");
       const staff = await staffRes.json();
       setStaffList(staff);
+
+      console.log("Staff loaded:", staff);
 
       // Fetch confirmed advances
       let confirmedUrl = `/api/v1/staff/advances/confirmed?month=${m}&year=${y}`;
       const confirmedRes = await fetch(confirmedUrl);
+      if (!confirmedRes.ok)
+        throw new Error("Failed to fetch confirmed advances");
       const confirmedList = await confirmedRes.json();
       const confirmedMap = {};
       confirmedList.forEach((c) => {
@@ -56,15 +62,23 @@ export default function PayDetailsPage() {
       });
       setConfirmedAdvances(confirmedMap);
 
-      // Fetch payroll
-      const payrollPromises = staff.map((s) => {
+      console.log("Confirmed advances loaded:", confirmedList);
+
+      // Fetch payroll for all staff
+      const payrollPromises = staff.map(async (s) => {
         let url = `/api/v1/staff/payroll/${s._id}?month=${m}&year=${y}`;
         if (startDate && endDate) {
           url = `/api/v1/staff/payroll/${s._id}?start=${startDate}&end=${endDate}`;
         }
-        return fetch(url).then((r) => r.json());
+
+        console.log(`Fetching payroll for ${s.name}:`, url);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to fetch payroll for ${s.name}`);
+        return res.json();
       });
+
       const payrollResults = await Promise.all(payrollPromises);
+      console.log("Payroll data loaded:", payrollResults);
       setPayrollData(payrollResults);
 
       // Map paid status and input amounts
@@ -73,15 +87,13 @@ export default function PayDetailsPage() {
       payrollResults.forEach((p, idx) => {
         const id = staff[idx]._id;
         if (p.finalPaid && p.finalPaid > 0) statusMap[id] = true;
-
-        // Default to calculated payable, but we will override in render
         amountsMap[id] = Math.floor(p.payable || 0);
       });
       setPaidStatus(statusMap);
       setPayAmounts(amountsMap);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to load payroll data");
+      console.error("Error in loadData:", err);
+      toast.error(err.message || "Failed to load payroll data");
     } finally {
       setLoading(false);
     }
@@ -115,9 +127,24 @@ export default function PayDetailsPage() {
       const result = await res.json();
 
       if (res.ok && result.payment) {
-        toast.success("Payment saved!", { id: toastId });
+        const updated = result.payment;
+
+        // Optimistically update UI
         setPaidStatus((prev) => ({ ...prev, [staffId]: true }));
-        loadData(selectedMonth, selectedYear);
+        setPayAmounts((prev) => ({ ...prev, [staffId]: updated.finalPaid }));
+
+        setPayrollData((prev) =>
+          prev.map((p, i) =>
+            staffList[i]._id === staffId
+              ? { ...p, finalPaid: updated.finalPaid }
+              : p
+          )
+        );
+
+        toast.success("Payment saved!", { id: toastId });
+
+        // Optionally refresh everything silently
+        setTimeout(() => loadData(selectedMonth, selectedYear), 1000);
       } else {
         toast.error(result.message || "Payment failed. Try again.", {
           id: toastId,
@@ -234,14 +261,19 @@ export default function PayDetailsPage() {
                 const staffId = staff._id;
 
                 const confirmed = confirmedAdvances[staffId];
-                const confirmedAdvance = confirmed ? confirmed.confirmedAdvance : null;
-                const payable = confirmedAdvance !== null
-                  ? Math.max(0, (p.earnedSalary || 0) - confirmedAdvance)
+                const confirmedAdvance = confirmed
+                  ? confirmed.confirmedAdvance
                   : null;
+                const payable =
+                  confirmedAdvance !== null
+                    ? Math.max(0, (p.earnedSalary || 0) - confirmedAdvance)
+                    : null;
 
                 return (
                   <tr key={staffId}>
-                    <td className="p-2 border text-black text-center">{idx + 1}</td>
+                    <td className="p-2 border text-black text-center">
+                      {idx + 1}
+                    </td>
                     <td className="p-2 border text-black">{p.staffName}</td>
                     <td className="p-2 border text-black">
                       {p.month
@@ -251,35 +283,50 @@ export default function PayDetailsPage() {
                           )} ${p.year}`
                         : "-"}
                     </td>
-                    <td className="p-2 border text-black text-center">{p.presentDays}</td>
+                    <td className="p-2 border text-black text-center">
+                      {p.presentDays}
+                    </td>
                     <td className="p-2 border text-black text-right">
-                      ₹ {Math.round(p.earnedSalary || 0).toLocaleString("en-IN")}
+                      ₹{" "}
+                      {Math.round(p.earnedSalary || 0).toLocaleString("en-IN")}
                     </td>
                     <td className="p-2 border text-black text-right">
                       {confirmedAdvance !== null ? (
-                        `₹ ${confirmedAdvance.toLocaleString('en-IN')}`
+                        `₹ ${confirmedAdvance.toLocaleString("en-IN")}`
                       ) : (
-                        <span className="text-red-600 font-semibold">Not Confirmed</span>
+                        <span className="text-red-600 font-semibold">
+                          Not Confirmed
+                        </span>
                       )}
                     </td>
                     <td className="p-2 border text-black text-right">
-                      {payable !== null
-                        ? `₹ ${Math.round(payable).toLocaleString('en-IN')}`
-                        : <span className="text-red-600">N/A</span>}
+                      {payable !== null ? (
+                        `₹ ${Math.round(payable).toLocaleString("en-IN")}`
+                      ) : (
+                        <span className="text-red-600">N/A</span>
+                      )}
                     </td>
                     <td className="p-2 border text-black text-right">
                       {p.carryForward > 0
-                        ? `- Advance Due: ${Math.round(p.carryForward).toLocaleString("en-IN")}`
+                        ? `- Advance Due: ${Math.round(
+                            p.carryForward
+                          ).toLocaleString("en-IN")}`
                         : p.carryForward < 0
-                        ? `Credit: ${Math.abs(Math.round(p.carryForward)).toLocaleString("en-IN")}`
+                        ? `Credit: ${Math.abs(
+                            Math.round(p.carryForward)
+                          ).toLocaleString("en-IN")}`
                         : "0"}
                     </td>
                     <td className="p-2 border text-black text-center">
                       <input
                         type="number"
                         min="0"
-                        value={payable !== null ? payAmounts[staffId] || "" : ""}
-                        onChange={(e) => handlePayAmountChange(staffId, e.target.value)}
+                        value={
+                          payable !== null ? payAmounts[staffId] || "" : ""
+                        }
+                        onChange={(e) =>
+                          handlePayAmountChange(staffId, e.target.value)
+                        }
                         className="border p-1 w-24 text-right rounded text-xs"
                         disabled={paidStatus[staffId] || payable === null}
                       />
@@ -287,7 +334,8 @@ export default function PayDetailsPage() {
                     <td className="p-2 border text-center">
                       <button
                         onClick={() =>
-                          !paidStatus[staffId] && handlePay(staffId, p.staffName)
+                          !paidStatus[staffId] &&
+                          handlePay(staffId, p.staffName)
                         }
                         disabled={paidStatus[staffId] || payable === null}
                         className={`px-3 py-1 rounded text-xs ${

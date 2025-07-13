@@ -50,6 +50,9 @@ function CategoryPageContent({ date, category }) {
   const [moneyLift, setMoneyLift] = useState("");
   const [loading, setLoading] = useState(true);
   const localKey = `expense-form-${date}-${category}`;
+const [ocrImage, setOcrImage] = useState(null);
+const [ocrLines, setOcrLines] = useState([]);
+const [ocrLoading, setOcrLoading] = useState(false);
 
   // ✅ Helper: save all data
   const saveToLocalStorage = (newFields = {}) => {
@@ -388,6 +391,122 @@ totalSealAmount || 0),
       setCommission(parsed.commission || "");
     }
   }, [localKey, router.asPath]);
+const handleRunOCR = async () => {
+  if (!ocrImage) {
+    toast.error("Please select an image first");
+    return;
+  }
+
+  try {
+    setOcrLoading(true);
+
+    const formData = new FormData();
+    formData.append("image", ocrImage);
+
+    const res = await fetch("/api/ocr/azure/azure", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      throw new Error(error || "Server error");
+    }
+
+    const data = await res.json();
+    console.log("OCR lines:", data.lines);
+    const parsed = parseOcrLines(data.lines);
+
+  // 🟢 Update states
+  setItems(parsed.items);
+  setDropdownInputs(parsed.dropdownInputs);
+  setStaffAdvances(parsed.staffAdvances);
+  setTotalSale(parsed.totalSale);
+  setMoneyLift(parsed.moneyLift);
+
+  // 🟢 Save to local storage
+  saveToLocalStorage({
+    items: parsed.items,
+    dropdownInputs: parsed.dropdownInputs,
+    staffAdvances: parsed.staffAdvances,
+    totalSale: parsed.totalSale,
+    moneyLift: parsed.moneyLift
+  });
+
+  toast.success("OCR extraction and auto-fill complete!");
+  } catch (err) {
+    console.error(err);
+    toast.error(err.message);
+  } finally {
+    setOcrLoading(false);
+  }
+};
+
+function parseOcrLines(lines) {
+  let mode = "";
+  let items = [];
+  let dropdownInputs = [];
+  let staffAdvances = [];
+  let totalSale = "";
+  let moneyLift = "";
+
+  const parseAmountLine = (line) => {
+    // Remove currency, colons, dashes
+    line = line.replace(/[₹:,-]/g, " ").replace(/\s+/g, " ").trim();
+
+    const parts = line.split(" ");
+    if (parts.length < 2) return null;
+
+    const amount = parseFloat(parts[parts.length - 1]);
+    if (isNaN(amount)) return null;
+
+    const name = parts.slice(0, -1).join(" ").trim();
+    if (!name) return null;
+
+    return { name, amount };
+  };
+
+  lines.forEach((line) => {
+    line = line.trim();
+    if (!line) return;
+
+    const lower = line.toLowerCase();
+
+    if (lower.includes("items")) mode = "items";
+    else if (lower.includes("dropdown")) mode = "dropdown";
+    else if (lower.includes("staff advances")) mode = "staff";
+    else if (lower.includes("total sale")) mode = "totalSale";
+    else if (lower.includes("money lift")) mode = "moneyLift";
+    else {
+      const parsed = parseAmountLine(line);
+      if (!parsed) return;
+
+      const { name, amount } = parsed;
+
+      if (mode === "items") {
+        items.push({ id: Date.now() + Math.random(), name, price: amount });
+      } else if (mode === "dropdown") {
+        dropdownInputs.push({ id: Date.now() + Math.random(), value: name.toLowerCase(), price: amount });
+      } else if (mode === "staff") {
+        staffAdvances.push({ id: Date.now() + Math.random(), staffName: name, staffId: "", amount });
+      } else if (mode === "totalSale") {
+        totalSale = `${amount}`;
+      } else if (mode === "moneyLift") {
+        moneyLift = `${amount}`;
+      }
+    }
+  });
+
+  return {
+    items,
+    dropdownInputs,
+    staffAdvances,
+    totalSale,
+    moneyLift
+  };
+}
+
+
 
   //   const needed=["tea","juice"]
   // const filter= dropdownInputs.filter(e =>needed.includes(e.value)).reduce((sum,item)=>sum+item.price)
@@ -750,7 +869,7 @@ const handleFinalSubmit = async () => {
                     type="text"
                     value={item.name}
                     onChange={(e) =>
-                      handleChange(item.id, "name", e.target.value)
+                      handleChange(item.id, "name", e.target.value.trim())
                     }
                     className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="Item name"
@@ -759,7 +878,7 @@ const handleFinalSubmit = async () => {
                     type="number"
                     value={item.price}
                     onChange={(e) =>
-                      handleChange(item.id, "price", e.target.value)
+                      handleChange(item.id, "price", e.target.value.trim())
                     }
                     className="border p-2 w-1/3 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="Price"
@@ -780,6 +899,35 @@ const handleFinalSubmit = async () => {
               >
                 ➕ Add Item
               </button>
+{/* <div className="mb-4">
+  <label className="block mb-1 text-white">Upload Handwritten Note Image</label>
+  <input
+    type="file"
+    accept="image/*"
+    capture="environment"
+    onChange={(e) => setOcrImage(e.target.files[0])}
+    className="p-2 rounded w-full border text-black"
+  />
+</div> */}
+
+{/* <button
+  onClick={handleRunOCR}
+  disabled={!ocrImage || ocrLoading}
+  className={`bg-purple-700 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mb-4 ${ocrLoading ? "opacity-50" : ""}`}
+>
+  {ocrLoading ? "Processing Image..." : "Extract Text from Image"}
+</button> */}
+
+{ocrLines.length > 0 && (
+  <div className="bg-black/50 p-4 rounded text-white space-y-2 mt-2">
+    <p className="font-semibold">Extracted Lines:</p>
+    <ul className="list-disc ml-4">
+      {ocrLines.map((line, idx) => (
+        <li key={idx}>{line}</li>
+      ))}
+    </ul>
+  </div>
+)}
 
               <button
                 onClick={addDropdownInput}

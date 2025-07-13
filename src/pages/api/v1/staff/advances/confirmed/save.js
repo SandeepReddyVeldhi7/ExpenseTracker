@@ -38,7 +38,6 @@ export default async function handler(req, res) {
           systemCalculatedAdvance,
           ownerAdjustment,
           confirmedAdvance,
-          confirmedBy: session.user._id,
           confirmedAt: new Date(),
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
