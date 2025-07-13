@@ -45,7 +45,9 @@ export default function PayDetailsPage() {
       console.log("Fetching staff list...");
       const staffRes = await fetch("/api/v1/staff/get-staff");
       if (!staffRes.ok) throw new Error("Failed to fetch staff list");
-      const staff = await staffRes.json();
+const rawStaff = await staffRes.json();
+const staff = (rawStaff || []).filter((s) => s && s._id);
+
       setStaffList(staff);
 
       console.log("Staff loaded:", staff);
@@ -58,7 +60,7 @@ export default function PayDetailsPage() {
       const confirmedList = await confirmedRes.json();
       const confirmedMap = {};
       confirmedList.forEach((c) => {
-        confirmedMap[c.staff._id] = c;
+        confirmedMap[c.staff?._id] = c;
       });
       setConfirmedAdvances(confirmedMap);
 

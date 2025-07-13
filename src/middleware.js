@@ -4,6 +4,10 @@ import { getToken } from "next-auth/jwt";
 const secret = process.env.NEXTAUTH_SECRET;
 
 export async function middleware(req) {
+   // ✅ Allow NextAuth API routes to pass without auth
+  if (req.nextUrl.pathname.startsWith('/api/auth')) {
+    return NextResponse.next();
+  }
   const token = await getToken({ req, secret });
   console.log("token::::::::", token);
   console.log("checking::::::::", req.nextUrl.pathname);
