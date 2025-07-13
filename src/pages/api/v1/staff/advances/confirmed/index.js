@@ -4,7 +4,7 @@ import ConfirmedAdvance from "@/models/ConfirmedAdvance";
 
 export default async function handler(req, res) {
   await connectDB();
-
+console.log("w3ertyui9oiuytfdxcfgvhbjkl");
   if (req.method === 'GET') {
     try {
       const { month, year } = req.query;

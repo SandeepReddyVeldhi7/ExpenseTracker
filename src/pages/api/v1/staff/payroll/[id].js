@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import Expense from "@/models/DailySummary";
+import SalaryPayment from "@/models/SalaryPayment";
 import Staff from "@/models/Staff";
 
 export default async function handler(req, res) {
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed" });
   }
-
+  console.log(req.query);
   const { id } = req.query;
   const { month, year, start, end } = req.query;
 
@@ -68,7 +69,12 @@ export default async function handler(req, res) {
 
     // ❗ Allow payable to go negative
     const payable = earnedSalary - totalAdvanceDue;
-
+// ✅ Here's the *missing part*: load saved payment if it exists!
+    const savedPayment = await SalaryPayment.findOne({
+      staff: id,
+      month: month ? parseInt(month) : m + 1,
+      year: y,
+    });
     res.json({
       staffName: staff.name,
       designation: staff.designation,
@@ -81,6 +87,10 @@ export default async function handler(req, res) {
       carryForward: staff.remainingAdvance || 0,
       month: month ? parseInt(month) : m + 1,
       year: y,
+       // Add saved values if they exist
+  finalPaid: savedPayment ? savedPayment.finalPaid : 0,
+  advanceDeducted: savedPayment ? savedPayment.advanceDeducted : 0,
+  carryForwardSaved: savedPayment ? savedPayment.carryForward : (staff.remainingAdvance || 0),
     });
   } catch (err) {
     console.error(err);
