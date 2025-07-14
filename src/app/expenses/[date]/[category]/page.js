@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Poppins } from "next/font/google";
 import { FaArrowLeft } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
@@ -41,7 +41,8 @@ function CategoryPageContent({ date, category }) {
   const [hasMounted, setHasMounted] = useState(false);
   const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
   const [dropdownInputs, setDropdownInputs] = useState([]);
-  console.log("drop::::::::::::::", dropdownInputs);
+  const [showUploadGuide, setShowUploadGuide] = useState(false);
+const fileInputRef = useRef(null);
   const [staffAdvances, setStaffAdvances] = useState([]);
   const [drinkTotal, setDrinkTotal] = useState(0);
   const [commission, setCommission] = useState("");
@@ -188,43 +189,7 @@ const [ocrLoading, setOcrLoading] = useState(false);
           }
         });
 
-        // ✅ 3) Merge local storage drinks
-        // ["tea", "juice"].forEach((key) => {
-        //   const localKey = `expense-form-${date}-${key}`;
-        //   const raw = localStorage.getItem(localKey);
-        //   if (raw) {
-        //     const data = JSON.parse(raw);
-        //     const soldAmount = parseFloat(data.soldAmount || 0);
-        //     const commission = parseFloat(data.commission || 0);
-
-        //     const rawAddons = cashers.flatMap((c) =>
-        //       c.addons.filter((a) => a.name === key)
-        //     );
-        //     const drinkTotal = rawAddons.reduce(
-        //       (sum, a) => sum + (parseFloat(a.price) || 0),
-        //       0
-        //     );
-
-        //     const commissionValue =
-        //       key === "tea" ? (soldAmount * commission) / 100 : commission;
-
-        //     const drinkData = {
-        //       drinkType: key,
-        //       soldAmount,
-        //       commissionPercent: commission,
-        //       commissionValue: parseFloat(commissionValue.toFixed(2)),
-        //       finalNetAmount: parseFloat(data.finalNetAmount || 0),
-        //       carryLoss: parseFloat(data.carryLoss || 0),
-        //     };
-
-        //     const index = drinks.findIndex((d) => d.drinkType === key);
-        //     if (index >= 0) {
-        //       drinks[index] = drinkData;
-        //     } else {
-        //       drinks.push(drinkData);
-        //     }
-        //   }
-        // });
+      
         // ✅ Step 3) Calculate drinkTotals from cashers
         const drinkTotals = { tea: 0, juice: 0 };
         cashers.forEach((c) => {
@@ -442,6 +407,31 @@ const handleRunOCR = async () => {
   }
 };
 
+
+
+ // ✅ Flexible line parser for OCR
+function parseAmountLine(line) {
+  // Normalize separators like = /- ₹ :
+  line = line
+    .replace(/[₹=:/-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!line) return null;
+
+  const parts = line.split(" ");
+  if (parts.length < 2) return null;
+
+  const amount = parseFloat(parts[parts.length - 1]);
+  if (isNaN(amount)) return null;
+
+  const name = parts.slice(0, -1).join(" ").trim();
+  if (!name) return null;
+
+  return { name, amount };
+}
+
+// ✅ OCR lines parser using above
 function parseOcrLines(lines) {
   let mode = "";
   let items = [];
@@ -450,50 +440,66 @@ function parseOcrLines(lines) {
   let totalSale = "";
   let moneyLift = "";
 
-  const parseAmountLine = (line) => {
-    // Remove currency, colons, dashes
-    line = line.replace(/[₹:,-]/g, " ").replace(/\s+/g, " ").trim();
-
-    const parts = line.split(" ");
-    if (parts.length < 2) return null;
-
-    const amount = parseFloat(parts[parts.length - 1]);
-    if (isNaN(amount)) return null;
-
-    const name = parts.slice(0, -1).join(" ").trim();
-    if (!name) return null;
-
-    return { name, amount };
-  };
-
   lines.forEach((line) => {
     line = line.trim();
     if (!line) return;
 
-    const lower = line.toLowerCase();
+    const normalized = line.toLowerCase().replace(/\s+/g, "");
 
-    if (lower.includes("items")) mode = "items";
-    else if (lower.includes("dropdown")) mode = "dropdown";
-    else if (lower.includes("staff advances")) mode = "staff";
-    else if (lower.includes("total sale")) mode = "totalSale";
-    else if (lower.includes("money lift")) mode = "moneyLift";
-    else {
-      const parsed = parseAmountLine(line);
-      if (!parsed) return;
+    if (normalized.startsWith("items")) {
+      mode = "items";
+      return;
+    } 
+    if (normalized.startsWith("dropdown")) {
+      mode = "dropdown";
+      return;
+    } 
+    if (normalized.startsWith("staffadvances")) {
+      mode = "staff";
+      return;
+    } 
+    if (normalized.startsWith("totalsale") || normalized.startsWith("total")) {
+      mode = "totalSale";
+      return;
+    } 
+    if (normalized.startsWith("moneylift")) {
+      mode = "moneyLift";
+      return;
+    } 
 
-      const { name, amount } = parsed;
+    // Normalize for numeric parsing
+    const cleanNumberText = line.replace(/[₹=:/-]/g, " ").trim();
+    const numberPart = parseFloat(cleanNumberText);
 
-      if (mode === "items") {
-        items.push({ id: Date.now() + Math.random(), name, price: amount });
-      } else if (mode === "dropdown") {
-        dropdownInputs.push({ id: Date.now() + Math.random(), value: name.toLowerCase(), price: amount });
-      } else if (mode === "staff") {
-        staffAdvances.push({ id: Date.now() + Math.random(), staffName: name, staffId: "", amount });
-      } else if (mode === "totalSale") {
-        totalSale = `${amount}`;
+    if (!isNaN(numberPart)) {
+      if (mode === "totalSale") {
+        totalSale = `${numberPart}`;
       } else if (mode === "moneyLift") {
-        moneyLift = `${amount}`;
+        moneyLift = `${numberPart}`;
       }
+      return;
+    }
+
+    // Fallback for name + amount lines
+    const parsed = parseAmountLine(line);
+    if (!parsed) return;
+
+    const { name, amount } = parsed;
+
+    if (mode === "items") {
+      items.push({ id: Date.now() + Math.random(), name, price: amount });
+    } 
+    else if (mode === "dropdown") {
+      dropdownInputs.push({ id: Date.now() + Math.random(), value: name.toLowerCase(), price: amount });
+    } 
+    else if (mode === "staff") {
+      staffAdvances.push({ id: Date.now() + Math.random(), staffName: name, staffId: "", amount });
+    } 
+    else if (mode === "totalSale") {
+      totalSale = `${amount}`;
+    } 
+    else if (mode === "moneyLift") {
+      moneyLift = `${amount}`;
     }
   });
 
@@ -506,6 +512,19 @@ function parseOcrLines(lines) {
   };
 }
 
+
+
+
+
+
+
+
+
+
+
+ 
+
+ 
 
 
   //   const needed=["tea","juice"]
@@ -899,35 +918,63 @@ const handleFinalSubmit = async () => {
               >
                 ➕ Add Item
               </button>
-{/* <div className="mb-4">
-  <label className="block mb-1 text-white">Upload Handwritten Note Image</label>
+<div className="flex flex-col mb-6 gap-4">
+<button
+    onClick={() => setShowUploadGuide(true)}
+    className="bg-yellow-500 text-black py-3 rounded-lg font-semibold hover:bg-yellow-600 transition w-full"
+  >
+    📖 View Upload Instructions
+  </button>
+
+  {!ocrImage && (
+    <button
+      onClick={() => fileInputRef.current?.click()}
+      className="bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+    >
+      📸 Scan Handwritten Note
+    </button>
+  )}
+
   <input
     type="file"
     accept="image/*"
     capture="environment"
-    onChange={(e) => setOcrImage(e.target.files[0])}
-    className="p-2 rounded w-full border text-black"
+    ref={fileInputRef}
+    className="hidden"
+    onChange={(e) => {
+      if (e.target.files && e.target.files[0]) {
+        setOcrImage(e.target.files[0]);
+        toast.success("Image selected! Ready to extract.");
+      }
+    }}
   />
-</div> */}
 
-{/* <button
-  onClick={handleRunOCR}
-  disabled={!ocrImage || ocrLoading}
-  className={`bg-purple-700 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mb-4 ${ocrLoading ? "opacity-50" : ""}`}
->
-  {ocrLoading ? "Processing Image..." : "Extract Text from Image"}
-</button> */}
+  {ocrImage && (
+    <div className="flex flex-col items-center gap-4">
+      <img
+        src={URL.createObjectURL(ocrImage)}
+        alt="Selected"
+        className="max-w-xs rounded shadow-md"
+      />
 
-{ocrLines.length > 0 && (
-  <div className="bg-black/50 p-4 rounded text-white space-y-2 mt-2">
-    <p className="font-semibold">Extracted Lines:</p>
-    <ul className="list-disc ml-4">
-      {ocrLines.map((line, idx) => (
-        <li key={idx}>{line}</li>
-      ))}
-    </ul>
-  </div>
-)}
+      <button
+        onClick={handleRunOCR}
+        disabled={ocrLoading}
+        className="bg-purple-700 text-white py-3 rounded-lg font-semibold hover:bg-purple-800 transition w-full max-w-xs"
+      >
+        {ocrLoading ? "Processing..." : "✅ Extract Text from Image"}
+      </button>
+
+      <button
+        onClick={() => setOcrImage(null)}
+        className="text-red-500 underline text-sm mt-2"
+      >
+        Remove Image
+      </button>
+    </div>
+  )}
+</div>
+
 
               <button
                 onClick={addDropdownInput}
@@ -1296,6 +1343,75 @@ const handleFinalSubmit = async () => {
               </button>
             </div>
           )}
+
+
+{showUploadGuide && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg relative">
+      <button
+        onClick={() => setShowUploadGuide(false)}
+        className="absolute top-2 right-2 text-gray-500 hover:text-red-700 text-3xl"
+      >
+        &times;
+      </button>
+
+      <h2 className="text-lg text-black font-semibold mb-4">
+        📸 Before uploading your photo, please check:
+      </h2>
+
+      <ul className="list-disc pl-5 space-y-2 text-gray-800 text-sm">
+        <li>✅ Write clearly in plain handwriting</li>
+        <li>✅ One item per line only</li>
+        <li>✅ Prices can use = /- : ₹ (all accepted!)</li>
+        <li>✅ Use these exact headings (case-insensitive):</li>
+        <div className="ml-4 mt-2 space-y-1">
+          <p className="font-bold">• Items</p>
+          <p className="font-bold">• Dropdown</p>
+          <p className="font-bold">• Staff Advances</p>
+          <p className="font-bold">• Total Sale</p>
+          <p className="font-bold">• Money Lift</p>
+        </div>
+      </ul>
+
+      <p className="mt-4 text-sm font-medium text-gray-700">
+        ✅ Best to write like this example:
+      </p>
+
+      <pre className="bg-gray-100 text-black p-3 rounded text-sm mt-2 overflow-x-auto">
+{`Items
+Pen = 10 /-
+Pencil : 5 /-
+Eraser ₹ 3
+Dropdown
+Tea = 50 /-
+Juice : 40
+Staff Advances
+John 200
+Jane 300
+Total Sale 3000
+Money Lift 2000`}
+      </pre>
+
+      <p className="text-xs text-gray-500 mt-3">
+        Once ready, choose your image below.
+      </p>
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          setOcrImage(e.target.files[0]);
+          setShowUploadGuide(false);
+        }}
+        className="mt-4 p-2 rounded w-full border text-black"
+      />
+    </div>
+  </div>
+)}
+
+
+
         </div>
       </div>
     </div>
