@@ -1,96 +1,187 @@
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
+import ConfirmedAdvance from "@/models/ConfirmedAdvance";
+import DailySummary from "@/models/DailySummary";
 import Expense from "@/models/DailySummary";
 import SalaryPayment from "@/models/SalaryPayment";
 import Staff from "@/models/Staff";
 
+
+
+
+
+
+
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function prevMonthYear(month, year) {
+  if (month === 1) return { pm: 12, py: year - 1 };
+  return { pm: month - 1, py: year };
+}
+function startOfDayLocal(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+function endOfDayLocal(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+function addDaysLocal(d, days) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, 0, 0, 0, 0);
+}
+
+const TZ = "Asia/Kolkata";
+const ymd = (d) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+
 export default async function handler(req, res) {
   await connectDB();
 
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
-  console.log(req.query);
-  const { id } = req.query;
-  const { month, year, start, end } = req.query;
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
 
-  const m = month ? parseInt(month) - 1 : new Date().getMonth();
-  const y = year ? parseInt(year) : new Date().getFullYear();
-
-  const startDate = start ? new Date(start) : new Date(y, m, 1);
-  const endDate = end ? new Date(end) : new Date(y, m + 1, 0);
+  if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
 
   try {
+    const { id } = req.query;
+
+    // Salary month / year (the ledger month user is paying for)
+    const month = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1;
+    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+
+    // Advances filters (NOT attendance)
+    const startParam = req.query.start ? new Date(req.query.start) : null; // YYYY-MM-DD
+    const endParam = req.query.end ? new Date(req.query.end) : null;       // YYYY-MM-DD
+    const untilParam = req.query.advanceUntil ? new Date(req.query.advanceUntil) : null;
+
+    // ── SALARY MONTH BOUNDS ──
+    const m0 = month - 1;
+    const y0 = year;
+    const salaryMonthStart = new Date(y0, m0, 1, 0, 0, 0, 0);
+    const salaryMonthEnd = new Date(y0, m0 + 1, 0, 23, 59, 59, 999);
+
+    // ── ATTENDANCE WINDOW = ALWAYS the selected salary month ──
+    const attendanceStart = salaryMonthStart;
+    const attendanceEnd = salaryMonthEnd;
+
+    // ── ADVANCES WINDOW (decoupled from attendance) ──
+    // End cutoff priority:
+    // 1) explicit advanceUntil
+    // 2) else explicit end
+    // 3) else DEFAULT to salaryMonthEnd (NOT today)
+    const advancesCutoff = untilParam ?? endParam ?? salaryMonthEnd;
+
+    // Start:
+    // 1) explicit start
+    // 2) else if cutoff within salary month → salaryMonthStart
+    // 3) else (including next-month advances) → day after salaryMonthEnd
+    let advancesStart = startParam
+      ? startOfDayLocal(startParam)
+      : (advancesCutoff <= salaryMonthEnd ? new Date(salaryMonthStart) : addDaysLocal(salaryMonthEnd, 1));
+
+    // Avoid double counting if previous month already saved a cutoff
+    const { pm, py } = prevMonthYear(month, year);
+    const lastPayment = await SalaryPayment.findOne({ staff: id, month: pm, year: py }).lean();
+    if (lastPayment?.advanceUntil) {
+      const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
+      if (nextDay > advancesStart) advancesStart = nextDay;
+    }
+
+    const advancesEnd = endOfDayLocal(advancesCutoff);
+    if (advancesEnd < advancesStart) {
+      return res.status(400).json({ message: "Advances end date is before start date." });
+    }
+
+    // ── STAFF ──
     const staff = await Staff.findById(id);
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
-    // ✅ Attendance count
+    // ── ATTENDANCE COUNT ──
     const presentDays = await Attendance.countDocuments({
       staff: id,
       status: "Present",
-      date: { $gte: startDate, $lte: endDate },
+      date: { $gte: attendanceStart, $lte: attendanceEnd },
     });
 
-    // ✅ Advances from DailySummary
-    const expenses = await Expense.find({
-      date: {
-        $gte: startDate.toISOString().split("T")[0],
-        $lte: endDate.toISOString().split("T")[0],
-      },
-    });
+    // ── ADVANCES (DailySummary has string dates in IST 'YYYY-MM-DD') ──
+    const startStr = ymd(advancesStart);
+    const endStr = ymd(advancesEnd);
+
+    const summaries = await DailySummary.find({
+      date: { $gte: startStr, $lte: endStr },
+    }).lean();
 
     let advancesList = [];
     let currentAdvance = 0;
-
-    expenses.forEach((exp) => {
-      if (Array.isArray(exp.cashers)) {
-        exp.cashers.forEach((casher) => {
-          if (Array.isArray(casher.staffAdvances)) {
-            casher.staffAdvances.forEach((a) => {
-              if (a.staffId.toString() === id) {
-                advancesList.push({
-                  date: exp.date,
-                  amount: a.amount,
-                });
-                currentAdvance += a.amount;
-              }
-            });
+    for (const day of summaries) {
+      for (const casher of day.cashers || []) {
+        for (const a of casher.staffAdvances || []) {
+          if (String(a.staffId) === String(id)) {
+            const amt = Number(a.amount) || 0;
+            advancesList.push({ date: day.date, amount: amt });
+            currentAdvance += amt;
           }
-        });
+        }
       }
-    });
+    }
 
-    // ✅ Salary calculation
-    const perDaySalary = staff.salary / 30;
+    // ── COMPUTE PAYABLE ──
+    const perDaySalary = (Number(staff.salary) || 0) / 30;
     const earnedSalary = perDaySalary * presentDays;
 
-    // ✅ Total due including previous
-    const totalAdvanceDue = (staff.remainingAdvance || 0) + currentAdvance;
-
-    // ❗ Allow payable to go negative
+    const previousCarryForward = Number(staff.remainingAdvance) || 0;
+    const totalAdvanceDue = previousCarryForward + currentAdvance;
     const payable = earnedSalary - totalAdvanceDue;
-// ✅ Here's the *missing part*: load saved payment if it exists!
-    const savedPayment = await SalaryPayment.findOne({
-      staff: id,
-      month: month ? parseInt(month) : m + 1,
-      year: y,
-    });
+
+    const savedPayment = await SalaryPayment.findOne({ staff: id, month, year: y0 }).lean();
+
+    const fmt = (d) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+
+    // ── RESPONSE ──
     res.json({
       staffName: staff.name,
       designation: staff.designation,
       monthlySalary: staff.salary,
+
+      // attendance & earnings
       presentDays,
       earnedSalary,
-      advances: advancesList,
-      totalAdvanceDue,
+
+      // advances
+      advances: advancesList, // [{ date:'YYYY-MM-DD', amount }]
+      totalAdvanceDue,        // previous carry + advances in range
       payable,
-      carryForward: staff.remainingAdvance || 0,
-      month: month ? parseInt(month) : m + 1,
-      year: y,
-       // Add saved values if they exist
-  finalPaid: savedPayment ? savedPayment.finalPaid : 0,
-  advanceDeducted: savedPayment ? savedPayment.advanceDeducted : 0,
-  carryForwardSaved: savedPayment ? savedPayment.carryForward : (staff.remainingAdvance || 0),
+      carryForward: previousCarryForward,
+
+      // period + meta
+      month,
+      year: y0,
+
+      // saved payment echoes
+      finalPaid: savedPayment?.paidAmount || 0,
+      advanceDeducted: savedPayment
+        ? (Number(savedPayment.advances) || 0) + (Number(savedPayment.previousCarryForward) || 0)
+        : 0,
+      carryForwardSaved: savedPayment?.newCarryForward ?? previousCarryForward,
+
+      // periods as display-friendly strings
+      attendanceStart: fmt(attendanceStart),
+      attendanceEnd: fmt(attendanceEnd),
+      advancesStart: fmt(advancesStart),
+      advancesEnd: fmt(advancesEnd),
+
+      // raw cutoff kept for compatibility if you rely on it elsewhere
+      advanceUntil: advancesEnd,
     });
   } catch (err) {
     console.error(err);

@@ -249,6 +249,8 @@ const getAddonSumForDrinkType = (drinkType) => {
             pagination
             highlightOnHover
             striped
+              paginationPerPage={30}
+                defaultSortAsc={false} 
             responsive
             theme="dark"
             customStyles={{

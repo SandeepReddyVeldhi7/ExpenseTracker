@@ -2,7 +2,11 @@ import mongoose from "mongoose";
 
 const salaryPaymentSchema = new mongoose.Schema(
   {
-    staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff", required: true },
+    staff: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      required: true,
+    },
     month: { type: Number, required: true },
     year: { type: Number, required: true },
     presentDays: { type: Number, required: true },
@@ -12,6 +16,8 @@ const salaryPaymentSchema = new mongoose.Schema(
     totalAvailable: { type: Number, required: true },
     payable: { type: Number, required: true },
     paidAmount: { type: Number, required: true },
+    advanceUntil: { type: Date },
+
     newCarryForward: { type: Number, required: true },
     remark: { type: String },
     paidAt: { type: Date, default: Date.now },

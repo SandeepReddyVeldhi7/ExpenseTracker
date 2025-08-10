@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     }
 
     // Get all matching daily summaries
-    const summaries = await DailySummary.find(query).populate('cashers.staffAdvances.staffId', 'name').sort({ date: 1 }).lean();
+    const summaries = await DailySummary.find(query).populate('cashers.staffAdvances.staffId', 'name').sort({ date: -1 }).lean();
 
     // Optionally, clean up _id/createdAt/updatedAt if you want
     const cleanedSummaries = summaries.map((s) => ({
