@@ -1,8 +1,16 @@
 // pages/api/v1/staff/advances/[id].js
-
 import { connectDB } from "@/lib/db";
-import Expense from "@/models/DailySummary";
+import DailySummary from "@/models/DailySummary";
 import Staff from "@/models/Staff";
+
+const TZ = "Asia/Kolkata";
+const ymd = (d) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 
 export default async function handler(req, res) {
   await connectDB();
@@ -11,38 +19,51 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { id } = req.query;
-  const { month, year } = req.query;
-
   try {
+    const { id, month, year } = req.query;
+
     const staff = await Staff.findById(id);
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
-    let filter = { advance: id };
-
-    // ✅ If month+year given, apply date range:
+    // Build date strings in IST (YYYY-MM-DD)
+    let startStr = "0000-01-01";
+    let endStr = "9999-12-31";
     if (month && year) {
-      const m = parseInt(month) - 1;
-      const y = parseInt(year);
-      const start = new Date(y, m, 1);
-      const end = new Date(y, m + 1, 0);
-      filter.date = { $gte: start.toISOString().split("T")[0], $lte: end.toISOString().split("T")[0] };
+      const m = Number(month) - 1;
+      const y = Number(year);
+      const start = new Date(y, m, 1, 0, 0, 0, 0);
+      const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
+      startStr = ymd(start);
+      endStr = ymd(end);
     }
 
-    const advances = await Expense.find(filter).sort({ date: -1 });
+    // Pull summaries by date string, then extract this staff's advances
+    const summaries = await DailySummary.find({
+      date: { $gte: startStr, $lte: endStr },
+    }).lean();
 
-    const formatted = advances.map((adv) => ({
-      _id: adv._id,
-      date: adv.date,
-      amount:
-        adv.items.length > 0
-          ? adv.items.reduce((sum, item) => sum + item.price, 0)
-          : adv.totalCashersAmount,
-    }));
+    const advances = [];
+    for (const day of summaries) {
+      for (const casher of day.cashers || []) {
+        for (const a of casher.staffAdvances || []) {
+          if (String(a.staffId) === String(id)) {
+            advances.push({
+              _id: a._id ?? undefined,
+              date: day.date, // already YYYY-MM-DD string
+              amount: Number(a.amount) || 0,
+            });
+          }
+        }
+      }
+    }
+
+    // Sort latest first
+    advances.sort((a, b) => (a.date < b.date ? 1 : -1));
 
     res.json({
       staffName: staff.name,
-      advances: formatted,
+      advances,
+      total: advances.reduce((s, a) => s + a.amount, 0),
     });
   } catch (err) {
     console.error(err);

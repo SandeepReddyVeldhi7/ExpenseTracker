@@ -21,7 +21,7 @@ export default function ReportsPage() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
-console.log("selectedExpense",selectedExpense)
+  console.log("selectedExpense", selectedExpense);
   // Effect: redirect non-owner users
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
@@ -36,50 +36,53 @@ console.log("selectedExpense",selectedExpense)
     }
   }, [status, session]);
 
-
   if (status === "loading" || loading) {
-  return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-800 to-lime-800 ${poppins.className}`}>
-      <div className="max-w-6xl w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl space-y-6">
-        <div className="animate-pulse space-y-6">
-          {/* Title */}
-          <div className="h-8 w-1/3 bg-white/30 rounded mx-auto"></div>
+    return (
+      <div
+        className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-800 to-lime-800 ${poppins.className}`}
+      >
+        <div className="max-w-6xl w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl space-y-6">
+          <div className="animate-pulse space-y-6">
+            {/* Title */}
+            <div className="h-8 w-1/3 bg-white/30 rounded mx-auto"></div>
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="h-12 bg-white/20 rounded"></div>
-            <div className="h-12 bg-white/20 rounded"></div>
-            <div className="h-12 bg-white/20 rounded"></div>
-          </div>
-
-          {/* Button */}
-          <div className="h-12 w-40 bg-white/20 rounded mx-auto"></div>
-
-          {/* Table Skeleton */}
-          <div className="border border-white/30 rounded-lg overflow-hidden">
-            <div className="grid grid-cols-4 md:grid-cols-6 bg-white/10 border-b border-white/20">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="p-4">
-                  <div className="h-4 bg-white/20 rounded w-24 mx-auto"></div>
-                </div>
-              ))}
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="h-12 bg-white/20 rounded"></div>
+              <div className="h-12 bg-white/20 rounded"></div>
+              <div className="h-12 bg-white/20 rounded"></div>
             </div>
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="grid grid-cols-4 md:grid-cols-6 border-b border-white/20">
-                {[...Array(6)].map((_, j) => (
-                  <div key={j} className="p-4">
-                    <div className="h-4 bg-white/10 rounded w-16 mx-auto"></div>
+
+            {/* Button */}
+            <div className="h-12 w-40 bg-white/20 rounded mx-auto"></div>
+
+            {/* Table Skeleton */}
+            <div className="border border-white/30 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-4 md:grid-cols-6 bg-white/10 border-b border-white/20">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="p-4">
+                    <div className="h-4 bg-white/20 rounded w-24 mx-auto"></div>
                   </div>
                 ))}
               </div>
-            ))}
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-4 md:grid-cols-6 border-b border-white/20"
+                >
+                  {[...Array(6)].map((_, j) => (
+                    <div key={j} className="p-4">
+                      <div className="h-4 bg-white/10 rounded w-16 mx-auto"></div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
+    );
+  }
 
   if (status === "unauthenticated") {
     return <p className="text-center mt-10">You must be logged in.</p>;
@@ -88,15 +91,18 @@ console.log("selectedExpense",selectedExpense)
   if (session?.user?.role !== "owner") {
     return null;
   }
-const getAddonSumForDrinkType = (drinkType) => {
-  if (!selectedExpense?.cashers) return 0;
-  return selectedExpense.cashers.reduce((sum, casher) => {
-    const matchingAddons = casher.addons?.filter(
-      (addon) => addon.name?.toLowerCase() === drinkType.toLowerCase()
-    ) || [];
-    return sum + matchingAddons.reduce((a, b) => a + (parseFloat(b.price) || 0), 0);
-  }, 0);
-};
+  const getAddonSumForDrinkType = (drinkType) => {
+    if (!selectedExpense?.cashers) return 0;
+    return selectedExpense.cashers.reduce((sum, casher) => {
+      const matchingAddons =
+        casher.addons?.filter(
+          (addon) => addon.name?.toLowerCase() === drinkType.toLowerCase()
+        ) || [];
+      return (
+        sum + matchingAddons.reduce((a, b) => a + (parseFloat(b.price) || 0), 0)
+      );
+    }, 0);
+  };
 
   // Helpers
   const formatINR = (num) =>
@@ -180,18 +186,16 @@ const getAddonSumForDrinkType = (drinkType) => {
     0
   );
   const totalTeaExpensive = selectedExpense?.cashers?.reduce(
-  (sum, c) =>
-    sum +
-    (c.addons?.reduce(
-      (innerSum, a) =>
-        innerSum + (a.name?.toLowerCase() === "tea" ? parseFloat(a.price) || 0 : 0),
-      0
-    ) || 0),
-  0
-);
-
-
-  
+    (sum, c) =>
+      sum +
+      (c.addons?.reduce(
+        (innerSum, a) =>
+          innerSum +
+          (a.name?.toLowerCase() === "tea" ? parseFloat(a.price) || 0 : 0),
+        0
+      ) || 0),
+    0
+  );
 
   const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
     const onlineAddon = c.addons?.find(
@@ -204,7 +208,7 @@ const getAddonSumForDrinkType = (drinkType) => {
     <div
       className={`min-h-screen bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4 ${poppins.className}`}
     >
-      <div className="w-full max-w-6xl bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl">
+      <div className="w-full max-w-6xl mb-4 bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl">
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
           📊 Expense Report
         </h1>
@@ -249,8 +253,8 @@ const getAddonSumForDrinkType = (drinkType) => {
             pagination
             highlightOnHover
             striped
-              paginationPerPage={30}
-                defaultSortAsc={false} 
+            paginationPerPage={30}
+            defaultSortAsc={false}
             responsive
             theme="dark"
             customStyles={{
@@ -312,7 +316,9 @@ const getAddonSumForDrinkType = (drinkType) => {
                 {formatINR(selectedExpense.totalShot?.toFixed(2))}
               </p>
               <p>
-                <strong>4) Total Cashers Expenses (Including Tea/Juice):</strong>{" "}
+                <strong>
+                  4) Total Cashers Expenses (Including Tea/Juice):
+                </strong>{" "}
                 {formatINR(totalCashersAmount?.toFixed(2))}
               </p>
 
@@ -321,28 +327,29 @@ const getAddonSumForDrinkType = (drinkType) => {
                 {formatINR(selectedExpense?.payout?.toFixed(2))}
               </p>
 
-              {selectedExpense.cashers && selectedExpense.cashers.length > 0 && (
-                <div className="mb-4 space-y-2 bg-gray-100 p-3 rounded">
-                  <h3 className="text-lg font-bold mb-2">
-                    Cashers Online Amount Summary
-                  </h3>
-                  <ul className="list-disc ml-5 space-y-1">
-                    {selectedExpense.cashers.map((c, idx) => {
-                      const onlineAddon = c.addons?.find(
-                        (a) => a.name?.toLowerCase() === "online"
-                      );
-                      return (
-                        <li key={idx}>
-                          {c.casherName}:{" "}
-                          {onlineAddon
-                            ? formatINR(onlineAddon.price)
-                            : "No Online Amount"}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
+              {selectedExpense.cashers &&
+                selectedExpense.cashers.length > 0 && (
+                  <div className="mb-4 space-y-2 bg-gray-100 p-3 rounded">
+                    <h3 className="text-lg font-bold mb-2">
+                      Cashers Online Amount Summary
+                    </h3>
+                    <ul className="list-disc ml-5 space-y-1">
+                      {selectedExpense.cashers.map((c, idx) => {
+                        const onlineAddon = c.addons?.find(
+                          (a) => a.name?.toLowerCase() === "online"
+                        );
+                        return (
+                          <li key={idx}>
+                            {c.casherName}:{" "}
+                            {onlineAddon
+                              ? formatINR(onlineAddon.price)
+                              : "No Online Amount"}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               <div className="mt-2 font-semibold">
                 Total Online Amount: {formatINR(totalOnlineAmount) || 0}
               </div>
@@ -350,7 +357,8 @@ const getAddonSumForDrinkType = (drinkType) => {
             <hr className="my-4" />
 
             <h3 className="text-lg font-bold mb-2">Cashers</h3>
-            {selectedExpense?.cashers && selectedExpense?.cashers?.length > 0 ? (
+            {selectedExpense?.cashers &&
+            selectedExpense?.cashers?.length > 0 ? (
               selectedExpense?.cashers.map((c, idx) => (
                 <div
                   key={idx}
@@ -432,23 +440,13 @@ const getAddonSumForDrinkType = (drinkType) => {
                     → ₹{d.commissionValue}
                   </p>
 
- <p>Total Tea Expensive: ₹{totalTeaExpensive}</p>
+                  {d.drinkType.toLowerCase() === "tea" && (
+                    <p>Total Tea Expensive: ₹{totalTeaExpensive}</p>
+                  )}
 
-{/* <p>
-  Final Net (after applying carry): ₹
-  {formatINR(
-    (d.soldAmount || 0) -
-    (d.commissionValue || 0) -
-    getAddonSumForDrinkType(d.drinkType) +
-    (d.carryForwardFromYesterday || 0)
-  )}
-</p> */}
-
-<p>
-  Final Net (as saved): {formatINR(d.finalNetAmount || 0)}
-</p>
-
-
+                  <p>
+                    Final Net (as saved): {formatINR(d.finalNetAmount || 0)}
+                  </p>
 
                   <div className="mt-2 p-2 bg-yellow-50 rounded">
                     <p className="text-yellow-800 font-medium">

@@ -2,6 +2,8 @@ import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import Staff from "@/models/Staff";
 
+
+
 export default async function handler(req, res) {
   await connectDB();
 
@@ -21,33 +23,32 @@ export default async function handler(req, res) {
   const endDate = new Date(y, m + 1, 0);
 
   try {
-    const staffList = await Staff.find({});
+    // 🔹 Only active staff are fetched
+    const staffList = await Staff.find({ active: true });
+console.log("Active staff count:", staffList.length);
+console.log("staffList:", staffList);
     const attendance = await Attendance.find({
       date: { $gte: startDate, $lte: endDate },
+      // (optional) if you want to ignore any stray records for inactive people:
+      // staff: { $in: staffList.map(s => s._id) },
     });
 
-    // Map attendance by staffId
+    // Map attendance by staffId (only Present)
     const attendanceMap = {};
-    // Map attendance by staffId (only P for present)
-   // Map attendance by staffId (only Present)
-attendance.forEach((record) => {
-  if (record.status === "Present") {
-    const staffId = record.staff.toString();
-    if (!attendanceMap[staffId]) attendanceMap[staffId] = [];
-    attendanceMap[staffId].push(record.date);
-  }
-});
-
-
-    // Build response
-    const result = staffList.map((staff) => {
-      return {
-        _id: staff._id,
-        name: staff.name,
-        designation: staff.designation,
-        presentDates: attendanceMap[staff._id.toString()] || [],
-      };
+    attendance.forEach((record) => {
+      if (record.status === "Present") {
+        const staffId = record.staff.toString();
+        if (!attendanceMap[staffId]) attendanceMap[staffId] = [];
+        attendanceMap[staffId].push(record.date);
+      }
     });
+
+    const result = staffList.map((staff) => ({
+      _id: staff._id,
+      name: staff.name,
+      designation: staff.designation,
+      presentDates: attendanceMap[staff._id.toString()] || [],
+    }));
 
     res.json(result);
   } catch (err) {

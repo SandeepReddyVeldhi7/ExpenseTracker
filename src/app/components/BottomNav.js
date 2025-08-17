@@ -47,6 +47,8 @@ const avatarSrc = session?.user?.image
 
         { href: "/sign-up", label: "Admin user creation" },
         { href: "/admin-users", label: "Admin users" },
+        { href: "/analytics", label: "Analytics" },
+
       ],
     },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },

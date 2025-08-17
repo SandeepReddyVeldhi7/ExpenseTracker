@@ -10,11 +10,11 @@ export default function StaffWithAdvancesPage() {
   const router = useRouter();
 
   const [staffData, setStaffData] = useState([]);
-  const [month, setMonth] = useState(new Date().getMonth() + 1); // keep as NUMBER
-  const [year, setYear] = useState(new Date().getFullYear());    // keep as NUMBER
+  const [month, setMonth] = useState(new Date().getMonth() + 1); // NUMBER
+  const [year, setYear] = useState(new Date().getFullYear());    // NUMBER
   const [loading, setLoading] = useState(false);
 
-  // Per-staff adjustment state: { [staffId]: { type: "add" | "sub", amount: string } }
+  // Per-staff adjustment: { [staffId]: { type: "add" | "sub", amount: string, note: string } }
   const [adjustRows, setAdjustRows] = useState({});
   // Map of confirmed docs keyed by staffId
   const [confirmedData, setConfirmedData] = useState({});
@@ -31,7 +31,7 @@ export default function StaffWithAdvancesPage() {
     if (status === "authenticated" && session?.user?.role === "owner") {
       loadStaffWithAdvances(month, year);
     }
-  }, [status, session]);
+  }, [status, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Loader
   const loadStaffWithAdvances = async (m, y) => {
@@ -48,7 +48,7 @@ export default function StaffWithAdvancesPage() {
       const rows = Array.isArray(data) ? data : [];
       setStaffData(rows);
 
-      // 2) confirmed advances (gate Pay button in Pay page)
+      // 2) confirmed advances (to show badges and current totals)
       const confirmedRes = await fetch(`/api/v1/staff/advances/confirmed?month=${mm}&year=${yy}`, { cache: "no-store" });
       const confirmedList = (await confirmedRes.json()) || [];
       const cMap = {};
@@ -57,14 +57,15 @@ export default function StaffWithAdvancesPage() {
       });
       setConfirmedData(cMap);
 
-      // 3) init adjust rows from existing confirms
+      // 3) init adjust rows from existing confirms (set type by sign; keep amount/note blank for DELTA input)
       const initAdjust = {};
       confirmedList.forEach((doc) => {
         if (!doc?.staff?._id) return;
         const adj = Number(doc.ownerAdjustment) || 0;
         initAdjust[doc.staff._id] = {
           type: adj < 0 ? "sub" : "add",
-          amount: String(Math.abs(adj)), // positive string for input
+          amount: "",
+          note: "",
         };
       });
       setAdjustRows((prev) => ({ ...prev, ...initAdjust }));
@@ -80,26 +81,27 @@ export default function StaffWithAdvancesPage() {
   const getAdjFor = (staffId) => {
     const row = adjustRows[staffId] || { type: "add", amount: "" };
     const abs = Math.max(0, Number(row.amount) || 0);
-    return row.type === "sub" ? -abs : abs; // signed adjustment
+    return row.type === "sub" ? -abs : abs; // signed DELTA
   };
 
   const previewConfirmed = (sys, signedAdj) => {
     const base = Math.max(0, (Number(sys) || 0) + (Number(signedAdj) || 0));
-    return Math.round(base * 1.5); // your 1.5x rule
+    return base;
   };
 
   // Confirm handler
   const handleConfirm = async (staffId, systemAdvance) => {
     const signedAdj = getAdjFor(staffId);
     const sys = Number(systemAdvance) || 0;
+    const note = (adjustRows[staffId]?.note || "").trim();
     const confirmed = previewConfirmed(sys, signedAdj);
 
-    // Show a clear confirm dialog
     const msg =
       `Confirm this advance?\n\n` +
-      `System Advance:  ₹${sys.toLocaleString("en-IN")}\n` +
-      `Owner Adjustment: ${signedAdj >= 0 ? "+" : ""}₹${Math.abs(signedAdj).toLocaleString("en-IN")}\n` +
-      `\nFinal (1.5×):   ₹${confirmed.toLocaleString("en-IN")}`;
+      `System Advance:           ₹${sys.toLocaleString("en-IN")}\n` +
+      `Owner Adjustment (delta): ${signedAdj >= 0 ? "+" : ""}₹${Math.abs(signedAdj).toLocaleString("en-IN")}` +
+      (note ? `\nNote: ${note}` : "") +
+      `\n\nFinal:                    ₹${confirmed.toLocaleString("en-IN")}`;
     if (!window.confirm(msg)) return;
 
     const toastId = toast.loading("Saving confirmation...");
@@ -112,13 +114,21 @@ export default function StaffWithAdvancesPage() {
           month: Number(month),
           year: Number(year),
           systemCalculatedAdvance: sys,
-          ownerAdjustment: signedAdj, // <<< only number, sign handled here
+          ownerAdjustment: signedAdj, // DELTA; API does $inc
+          note,
         }),
       });
       const result = await res.json();
       if (res.ok && result.success) {
         toast.success("Confirmed advance saved!", { id: toastId });
-        // refresh so Pay page can see this too
+
+        // Clear delta & note inputs, keep type
+        setAdjustRows((prev) => ({
+          ...prev,
+          [staffId]: { ...(prev[staffId] || { type: "add" }), amount: "", note: "" },
+        }));
+
+        // refresh so totals/badges update
         loadStaffWithAdvances(month, year);
       } else {
         toast.error(result.message || "Failed to save", { id: toastId });
@@ -222,7 +232,7 @@ export default function StaffWithAdvancesPage() {
               <th className="p-2 border">Name</th>
               <th className="p-2 border">Designation</th>
               <th className="p-2 border">System Advances</th>
-              <th className="p-2 border">Owner Adjustment</th>
+              <th className="p-2 border">Owner Adjustment (Delta)</th>
               <th className="p-2 border">Confirmed Advance (Preview)</th>
               <th className="p-2 border">Action</th>
             </tr>
@@ -243,9 +253,10 @@ export default function StaffWithAdvancesPage() {
                 const existing = confirmedData[s._id];
                 const sys = Number(s.totalAdvance) || 0;
 
-                const row = adjustRows[s._id] || { type: "add", amount: "" };
+                const row = adjustRows[s._id] || { type: "add", amount: "", note: "" };
                 const signedAdj = getAdjFor(s._id);
                 const preview = previewConfirmed(sys, signedAdj);
+                const currentOwnerAdj = Number(existing?.ownerAdjustment) || 0;
 
                 return (
                   <tr key={s._id}>
@@ -255,9 +266,9 @@ export default function StaffWithAdvancesPage() {
 
                     <td className="p-2 border text-right">₹ {sys.toLocaleString("en-IN")}</td>
 
-                    {/* Adjustment controls */}
+                    {/* Adjustment controls (DELTA + optional note) */}
                     <td className="p-2 border">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <div className="inline-flex rounded overflow-hidden border">
                           <button
                             type="button"
@@ -303,14 +314,32 @@ export default function StaffWithAdvancesPage() {
                           placeholder="e.g. 500"
                           className="border p-1 w-24 rounded text-xs text-right"
                         />
+
+                        <input
+                          type="text"
+                          value={row.note || ""}
+                          onChange={(e) =>
+                            setAdjustRows((prev) => ({
+                              ...prev,
+                              [s._id]: { ...prev[s._id], note: e.target.value },
+                            }))
+                          }
+                          placeholder="note (optional)"
+                          className="border p-1 w-28 rounded text-xs"
+                        />
                       </div>
 
-                      <div className="text-[11px] text-gray-500 mt-1">
-                        {row.type === "add" ? "Will add to system total" : "Will reduce from system total"}
+                      <div className="text-[11px] text-gray-600 mt-1">
+                        Delta for this month (adds or reduces cumulatively).
+                        {!!existing && (
+                          <span className="ml-1">
+                            Current total: {currentOwnerAdj >= 0 ? "+" : "−"}₹{Math.abs(currentOwnerAdj).toLocaleString("en-IN")}
+                          </span>
+                        )}
                       </div>
                     </td>
 
-                    {/* Preview confirmed (client) */}
+                    {/* Preview confirmed (client, delta applied to system for quick view) */}
                     <td className="p-2 border text-right">
                       ₹ {preview.toLocaleString("en-IN")}
                       {existing && (
@@ -325,7 +354,7 @@ export default function StaffWithAdvancesPage() {
                         onClick={() => handleConfirm(s._id, sys)}
                         className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
                       >
-                        {existing ? "Update" : "Confirm"}
+                        {existing ? "Add/Update (Delta)" : "Confirm (Delta)"}
                       </button>
                     </td>
                   </tr>
@@ -344,3 +373,4 @@ export default function StaffWithAdvancesPage() {
     </div>
   );
 }
+ 

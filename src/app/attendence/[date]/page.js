@@ -10,6 +10,7 @@ export default function AttendanceForDate({params}) {
 
     console.log("date",date)
   const [staffList, setStaffList] = useState([]);
+  console.log("staffList",staffList)
   const [attendance, setAttendance] = useState({});
 const [loading, setLoading] = useState(true);
 
@@ -27,7 +28,7 @@ useEffect(() => {
 
       const data= await res.json();
       console.log("data",data)
-      setStaffList(data);
+      setStaffList(data?.filter((staff) => staff.active===true));
 
       const initial = {};
       data.forEach((staff) => {

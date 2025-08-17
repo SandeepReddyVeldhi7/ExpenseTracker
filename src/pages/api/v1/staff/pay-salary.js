@@ -1,24 +1,12 @@
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import DailySummary from "@/models/DailySummary";
-import Expense from "@/models/DailySummary";
 import SalaryPayment from "@/models/SalaryPayment";
 import Staff from "@/models/Staff";
-
-
-
-
-
-
-
-
-
+import ConfirmedAdvance from "@/models/ConfirmedAdvance";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function prevMonthYear(month, year) {
-  if (month === 1) return { pm: 12, py: year - 1 };
-  return { pm: month - 1, py: year };
-}
+function prevMonthYear(month, year) { if (month === 1) return { pm: 12, py: year - 1 }; return { pm: month - 1, py: year }; }
 function startOfDayLocal(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
 function endOfDayLocal(d)   { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
 function addDaysLocal(d, days) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, 0,0,0,0); }
@@ -39,41 +27,39 @@ export default async function handler(req, res) {
   try {
     const { staffId, month, year, paidAmount, advanceUntil, remark, start, end } = req.body;
 
-    if (!advanceUntil) {
-      return res.status(400).json({ message: "Please provide 'advanceUntil'." });
-    }
+    if (!advanceUntil) return res.status(400).json({ message: "Please provide 'advanceUntil'." });
 
     const m = month ? Number(month) : new Date().getMonth() + 1;
-    const y = year ? Number(year)   : new Date().getFullYear();
+    const y = year  ? Number(year)  : new Date().getFullYear();
 
     const m0 = m - 1, y0 = y;
     const monthStart = new Date(y0, m0, 1, 0,0,0,0);
     const monthEnd   = new Date(y0, m0 + 1, 0, 23,59,59,999);
 
+    // Attendance window
     const attendanceStart = start ? startOfDayLocal(new Date(start)) : monthStart;
     const attendanceEnd   = end   ? endOfDayLocal(new Date(end))     : monthEnd;
-    if (attendanceEnd < attendanceStart) {
-      return res.status(400).json({ message: "Attendance end is before start." });
-    }
+    if (attendanceEnd < attendanceStart) return res.status(400).json({ message: "Attendance end is before start." });
 
-    // ── Adaptive advances window ──
+    // Advances window: start from attendanceStart (if any) → advanceUntil
     const cutoffDate = new Date(advanceUntil);
-    let advancesStart = (cutoffDate <= monthEnd)
-      ? new Date(monthStart)           // same-month advances
-      : addDaysLocal(monthEnd, 1);     // next-month advances
+    let advancesStart = start
+      ? startOfDayLocal(new Date(start))
+      : (cutoffDate <= monthEnd ? new Date(monthStart) : addDaysLocal(monthEnd, 1));
 
-    // Avoid double counting if previous salary month saved a cutoff
-    const { pm, py } = prevMonthYear(m, y);
-    const lastPayment = await SalaryPayment.findOne({ staff: staffId, month: pm, year: py }).lean();
-    if (lastPayment?.advanceUntil) {
-      const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
-      if (nextDay > advancesStart) advancesStart = nextDay;
-    }
+   const lastPayment = await SalaryPayment.findOne({
+  staff: staffId,
+  $or: [{ year: { $lt: y } }, { year: y, month: { $lt: m } }],
+}).sort({ year: -1, month: -1 }).lean();
+
+if (lastPayment?.advanceUntil) {
+  const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
+  if (nextDay > advancesStart) advancesStart = nextDay;
+}
+
 
     const advancesEnd = endOfDayLocal(cutoffDate);
-    if (advancesEnd < advancesStart) {
-      return res.status(400).json({ message: "Cutoff is before the valid advances start." });
-    }
+    if (advancesEnd < advancesStart) return res.status(400).json({ message: "Cutoff is before the valid advances start." });
 
     const staff = await Staff.findById(staffId);
     if (!staff) return res.status(404).json({ message: "Staff not found" });
@@ -84,24 +70,27 @@ export default async function handler(req, res) {
       date: { $gte: attendanceStart, $lte: attendanceEnd },
     });
 
-    // ── FIXED: fetch advances from DailySummary by STRING date range ──
+    // System advances between start..advanceUntil (DailySummary)
     const startStr = ymd(advancesStart);
     const endStr   = ymd(advancesEnd);
+    const summaries = await DailySummary.find({ date: { $gte: startStr, $lte: endStr } });
 
-    const summaries = await DailySummary.find({
-      date: { $gte: startStr, $lte: endStr },
-    });
-
-    let advances = 0;
+    let systemAdvance = 0;
     for (const day of summaries) {
       for (const casher of (day.cashers || [])) {
         for (const a of (casher.staffAdvances || [])) {
           if (String(a.staffId) === String(staffId)) {
-            advances += Number(a.amount) || 0;
+            systemAdvance += Number(a.amount) || 0;
           }
         }
       }
     }
+
+    // Owner adjustment (no 1.5)
+    const confirmed = await ConfirmedAdvance.findOne({ staff: staffId, month: m, year: y }).lean();
+    const ownerAdjustment = Number(confirmed?.ownerAdjustment) || 0;
+
+    const advances = Math.max(0, systemAdvance + ownerAdjustment);
 
     const perDaySalary = (staff.salary || 0) / 30;
     const earnedSalary = perDaySalary * presentDays;
@@ -120,7 +109,7 @@ export default async function handler(req, res) {
         year: y0,
         presentDays,
         earnedSalary,
-        advances, // save the computed sum
+        advances, // includes owner's adjustment
         previousCarryForward,
         totalAvailable: earnedSalary,
         payable,
