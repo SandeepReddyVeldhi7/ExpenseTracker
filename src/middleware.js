@@ -14,7 +14,8 @@ export async function middleware(req) {
 
   // ⛔️ Block all protected routes if not authenticated
   if (!token) {
-    return NextResponse.redirect(`${req.nextUrl.origin}/sign-in`);
+    return NextResponse.redirect(new URL('/sign-in', req.url));
+
   }
 
 
@@ -38,7 +39,8 @@ export async function middleware(req) {
     ownerOnlyPaths.includes(req.nextUrl.pathname)
   ) {
     if (token.role !== "owner") {
-      return NextResponse.redirect(`${req.nextUrl.origin}/sign-in`);
+return NextResponse.redirect(new URL('/sign-in', req.url));
+
     }
   }
 

@@ -1,3 +1,4 @@
+// pages/api/v1/staff/pay-salary.js
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import DailySummary from "@/models/DailySummary";
@@ -6,13 +7,24 @@ import Staff from "@/models/Staff";
 import ConfirmedAdvance from "@/models/ConfirmedAdvance";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function prevMonthYear(month, year) { if (month === 1) return { pm: 12, py: year - 1 }; return { pm: month - 1, py: year }; }
+// parse "YYYY-MM-DD" as a LOCAL date (midnight local of that day)
+function parseLocalYMD(ymd) {
+  if (!ymd) return null;
+  const m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const y = Number(m[1]), mm = Number(m[2]) - 1, d = Number(m[3]);
+    return new Date(y, mm, d, 0, 0, 0, 0);
+  }
+  const parsed = new Date(ymd);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function startOfDayLocal(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
 function endOfDayLocal(d)   { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
 function addDaysLocal(d, days) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, 0,0,0,0); }
 
 const TZ = "Asia/Kolkata";
-const ymd = (d) =>
+const fmt = (d) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
 export default async function handler(req, res) {
@@ -36,29 +48,29 @@ export default async function handler(req, res) {
     const monthStart = new Date(y0, m0, 1, 0,0,0,0);
     const monthEnd   = new Date(y0, m0 + 1, 0, 23,59,59,999);
 
-    // Attendance window
+    // Attendance window (use provided start/end if present)
     const attendanceStart = start ? startOfDayLocal(new Date(start)) : monthStart;
     const attendanceEnd   = end   ? endOfDayLocal(new Date(end))     : monthEnd;
     if (attendanceEnd < attendanceStart) return res.status(400).json({ message: "Attendance end is before start." });
 
-    // Advances window: start from attendanceStart (if any) → advanceUntil
-    const cutoffDate = new Date(advanceUntil);
-    let advancesStart = start
-      ? startOfDayLocal(new Date(start))
-      : (cutoffDate <= monthEnd ? new Date(monthStart) : addDaysLocal(monthEnd, 1));
+    // Parse advanceUntil as local date (avoid timezone drift)
+    const cutoffDateLocal = parseLocalYMD(advanceUntil);
+    if (!cutoffDateLocal) return res.status(400).json({ message: "Invalid 'advanceUntil' format. Use YYYY-MM-DD." });
 
-   const lastPayment = await SalaryPayment.findOne({
-  staff: staffId,
-  $or: [{ year: { $lt: y } }, { year: y, month: { $lt: m } }],
-}).sort({ year: -1, month: -1 }).lean();
+    // Advances window: from attendanceStart (if provided) → cutoffDateLocal
+    let advancesStart = start ? startOfDayLocal(new Date(start)) : (cutoffDateLocal <= monthEnd ? new Date(monthStart) : addDaysLocal(monthEnd, 1));
 
-if (lastPayment?.advanceUntil) {
-  const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
-  if (nextDay > advancesStart) advancesStart = nextDay;
-}
+    const lastPayment = await SalaryPayment.findOne({
+      staff: staffId,
+      $or: [{ year: { $lt: y } }, { year: y, month: { $lt: m } }],
+    }).sort({ year: -1, month: -1 }).lean();
 
+    if (lastPayment?.advanceUntil) {
+      const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
+      if (nextDay > advancesStart) advancesStart = nextDay;
+    }
 
-    const advancesEnd = endOfDayLocal(cutoffDate);
+    const advancesEnd = endOfDayLocal(cutoffDateLocal);
     if (advancesEnd < advancesStart) return res.status(400).json({ message: "Cutoff is before the valid advances start." });
 
     const staff = await Staff.findById(staffId);
@@ -71,6 +83,7 @@ if (lastPayment?.advanceUntil) {
     });
 
     // System advances between start..advanceUntil (DailySummary)
+    const ymd = d => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
     const startStr = ymd(advancesStart);
     const endStr   = ymd(advancesEnd);
     const summaries = await DailySummary.find({ date: { $gte: startStr, $lte: endStr } });
@@ -86,7 +99,7 @@ if (lastPayment?.advanceUntil) {
       }
     }
 
-    // Owner adjustment (no 1.5)
+    // Owner adjustment
     const confirmed = await ConfirmedAdvance.findOne({ staff: staffId, month: m, year: y }).lean();
     const ownerAdjustment = Number(confirmed?.ownerAdjustment) || 0;
 
@@ -95,7 +108,7 @@ if (lastPayment?.advanceUntil) {
     const perDaySalary = (staff.salary || 0) / 30;
     const earnedSalary = perDaySalary * presentDays;
 
-    const previousCarryForward = staff.remainingAdvance || 0;
+    const previousCarryForward = Number(staff.remainingAdvance) || 0;
     const payable = earnedSalary - (previousCarryForward + advances);
     const paid = Math.max(0, Number(paidAmount) || 0);
 
@@ -116,6 +129,10 @@ if (lastPayment?.advanceUntil) {
         paidAmount: paid,
         newCarryForward,
         advanceUntil: advancesEnd,
+        advanceUntilDate: fmt(cutoffDateLocal), // canonical local date string
+        // Persist attendance window for audit / canonical reference:
+        attendanceStart: fmt(attendanceStart),
+        attendanceEnd:   fmt(attendanceEnd),
         remark: remark || "",
         paidAt: new Date(),
       },
@@ -126,7 +143,11 @@ if (lastPayment?.advanceUntil) {
     staff.lastPaid = new Date();
     await staff.save();
 
-    res.json({ message: "Salary paid successfully", payment });
+    const paymentObj = payment.toObject ? payment.toObject() : payment;
+    paymentObj.paid = (Number(paymentObj.paidAmount || 0) > 0);
+    paymentObj.advanceCoveredUntil = paymentObj.advanceUntilDate || (paymentObj.advanceUntil ? new Date(paymentObj.advanceUntil).toISOString().slice(0,10) : null);
+
+    res.json({ message: "Salary paid successfully", payment: paymentObj });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", error: error.message });

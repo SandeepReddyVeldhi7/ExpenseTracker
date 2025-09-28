@@ -21,6 +21,10 @@ const salaryPaymentSchema = new mongoose.Schema(
     newCarryForward: { type: Number, required: true },
     remark: { type: String },
     paidAt: { type: Date, default: Date.now },
+    attendanceStart: { type: String }, 
+attendanceEnd:   { type: String }, 
+
+
   },
   { timestamps: true }
 );

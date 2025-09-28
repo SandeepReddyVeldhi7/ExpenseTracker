@@ -11,18 +11,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { month, year } = req.query;
-    if (!month || !year) {
-      return res.status(400).json({ message: "Month and year required" });
-    }
+    const month = req.query.month ? Number(req.query.month) : null;
+    const year  = req.query.year  ? Number(req.query.year)  : null;
 
-    const advances = await ConfirmedAdvance.find({ month: Number(month), year: Number(year) })
+    const q = {};
+    if (month) q.month = month;
+    if (year) q.year = year;
+
+    // find + populate staff for consistent frontend shape
+    const docs = await ConfirmedAdvance.find(q)
       .populate("staff", "name designation")
+      .sort({ updatedAt: -1 })
       .lean();
 
-    res.status(200).json(advances);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    // docs will have staff populated when available; return as-is
+    return res.status(200).json(docs || []);
+  } catch (err) {
+    console.error("GET /staff/advances/confirmed error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 }

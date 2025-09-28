@@ -11,12 +11,12 @@ export default function StaffWithAdvancesPage() {
 
   const [staffData, setStaffData] = useState([]);
   const [month, setMonth] = useState(new Date().getMonth() + 1); // NUMBER
-  const [year, setYear] = useState(new Date().getFullYear());    // NUMBER
+  const [year, setYear] = useState(new Date().getFullYear()); // NUMBER
   const [loading, setLoading] = useState(false);
 
   // Per-staff adjustment: { [staffId]: { type: "add" | "sub", amount: string, note: string } }
   const [adjustRows, setAdjustRows] = useState({});
-  // Map of confirmed docs keyed by staffId
+  // Map of confirmed docs keyed by staffId (strings)
   const [confirmedData, setConfirmedData] = useState({});
 
   // Redirect if not owner
@@ -31,7 +31,8 @@ export default function StaffWithAdvancesPage() {
     if (status === "authenticated" && session?.user?.role === "owner") {
       loadStaffWithAdvances(month, year);
     }
-  }, [status, session]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session]);
 
   // Loader
   const loadStaffWithAdvances = async (m, y) => {
@@ -49,20 +50,30 @@ export default function StaffWithAdvancesPage() {
       setStaffData(rows);
 
       // 2) confirmed advances (to show badges and current totals)
-      const confirmedRes = await fetch(`/api/v1/staff/advances/confirmed?month=${mm}&year=${yy}`, { cache: "no-store" });
+      const confirmedRes = await fetch(`/api/v1/staff/advances/confirmed?month=${mm}&year=${yy}`, {
+        cache: "no-store",
+      });
       const confirmedList = (await confirmedRes.json()) || [];
+
+      // Build map robustly: handle doc.staff being populated object OR raw id
       const cMap = {};
       confirmedList.forEach((doc) => {
-        if (doc?.staff?._id) cMap[doc.staff._id] = doc;
+        const rawStaff = doc?.staff;
+        const staffId = rawStaff && typeof rawStaff === "object" ? rawStaff._id : rawStaff;
+        if (staffId) {
+          cMap[String(staffId)] = doc;
+        }
       });
       setConfirmedData(cMap);
 
       // 3) init adjust rows from existing confirms (set type by sign; keep amount/note blank for DELTA input)
       const initAdjust = {};
       confirmedList.forEach((doc) => {
-        if (!doc?.staff?._id) return;
+        const rawStaff = doc?.staff;
+        const staffId = rawStaff && typeof rawStaff === "object" ? rawStaff._id : rawStaff;
+        if (!staffId) return;
         const adj = Number(doc.ownerAdjustment) || 0;
-        initAdjust[doc.staff._id] = {
+        initAdjust[String(staffId)] = {
           type: adj < 0 ? "sub" : "add",
           amount: "",
           note: "",
@@ -79,7 +90,8 @@ export default function StaffWithAdvancesPage() {
 
   // Helpers
   const getAdjFor = (staffId) => {
-    const row = adjustRows[staffId] || { type: "add", amount: "" };
+    const key = String(staffId);
+    const row = adjustRows[key] || { type: "add", amount: "" };
     const abs = Math.max(0, Number(row.amount) || 0);
     return row.type === "sub" ? -abs : abs; // signed DELTA
   };
@@ -89,11 +101,12 @@ export default function StaffWithAdvancesPage() {
     return base;
   };
 
-  // Confirm handler
+  // Confirm handler with optimistic update
   const handleConfirm = async (staffId, systemAdvance) => {
-    const signedAdj = getAdjFor(staffId);
+    const key = String(staffId);
+    const signedAdj = getAdjFor(key);
     const sys = Number(systemAdvance) || 0;
-    const note = (adjustRows[staffId]?.note || "").trim();
+    const note = (adjustRows[key]?.note || "").trim();
     const confirmed = previewConfirmed(sys, signedAdj);
 
     const msg =
@@ -119,17 +132,26 @@ export default function StaffWithAdvancesPage() {
         }),
       });
       const result = await res.json();
+
       if (res.ok && result.success) {
         toast.success("Confirmed advance saved!", { id: toastId });
+
+        // Optimistic update: if backend returned the upserted record, use it
+        const rec = result.record || null;
+        if (rec) {
+          const rawStaff = rec?.staff;
+          const staffKey = rawStaff && typeof rawStaff === "object" ? rawStaff._id : rawStaff || staffId;
+          setConfirmedData((prev) => ({ ...prev, [String(staffKey)]: rec }));
+        } else {
+          // If backend didn't return record, refresh that staff entry by reloading data for accuracy
+          loadStaffWithAdvances(month, year);
+        }
 
         // Clear delta & note inputs, keep type
         setAdjustRows((prev) => ({
           ...prev,
-          [staffId]: { ...(prev[staffId] || { type: "add" }), amount: "", note: "" },
+          [key]: { ...(prev[key] || { type: "add" }), amount: "", note: "" },
         }));
-
-        // refresh so totals/badges update
-        loadStaffWithAdvances(month, year);
       } else {
         toast.error(result.message || "Failed to save", { id: toastId });
       }
@@ -218,9 +240,7 @@ export default function StaffWithAdvancesPage() {
       {/* Info */}
       <h2 className="text-lg mb-4 font-semibold">
         Showing advances for:{" "}
-        {month && year
-          ? `${new Date(year, month - 1).toLocaleString("default", { month: "long" })} ${year}`
-          : "All time"}
+        {month && year ? `${new Date(year, month - 1).toLocaleString("default", { month: "long" })} ${year}` : "All time"}
       </h2>
 
       {/* Table */}
@@ -250,16 +270,18 @@ export default function StaffWithAdvancesPage() {
               ))
             ) : staffData.length > 0 ? (
               staffData.map((s, idx) => {
-                const existing = confirmedData[s._id];
+                const key = String(s._id);
+                const existing = confirmedData[key];
                 const sys = Number(s.totalAdvance) || 0;
 
-                const row = adjustRows[s._id] || { type: "add", amount: "", note: "" };
-                const signedAdj = getAdjFor(s._id);
+                const row = adjustRows[key] || { type: "add", amount: "", note: "" };
+                const signedAdj = getAdjFor(key);
                 const preview = previewConfirmed(sys, signedAdj);
                 const currentOwnerAdj = Number(existing?.ownerAdjustment) || 0;
+                const confirmedAdvanceVal = Number(existing?.confirmedAdvance) || 0;
 
                 return (
-                  <tr key={s._id}>
+                  <tr key={key}>
                     <td className="p-2 border text-center">{idx + 1}</td>
                     <td className="p-2 border">{s.name}</td>
                     <td className="p-2 border">{s.designation}</td>
@@ -275,12 +297,10 @@ export default function StaffWithAdvancesPage() {
                             onClick={() =>
                               setAdjustRows((prev) => ({
                                 ...prev,
-                                [s._id]: { ...prev[s._id], type: "add", amount: prev[s._id]?.amount ?? "" },
+                                [key]: { ...prev[key], type: "add", amount: prev[key]?.amount ?? "" },
                               }))
                             }
-                            className={`px-2 py-1 text-xs ${
-                              row.type === "add" ? "bg-green-600 text-white" : "bg-gray-200 text-black"
-                            }`}
+                            className={`px-2 py-1 text-xs ${row.type === "add" ? "bg-green-600 text-white" : "bg-gray-200 text-black"}`}
                           >
                             + Add
                           </button>
@@ -289,12 +309,10 @@ export default function StaffWithAdvancesPage() {
                             onClick={() =>
                               setAdjustRows((prev) => ({
                                 ...prev,
-                                [s._id]: { ...prev[s._id], type: "sub", amount: prev[s._id]?.amount ?? "" },
+                                [key]: { ...prev[key], type: "sub", amount: prev[key]?.amount ?? "" },
                               }))
                             }
-                            className={`px-2 py-1 text-xs ${
-                              row.type === "sub" ? "bg-red-600 text-white" : "bg-gray-200 text-black"
-                            }`}
+                            className={`px-2 py-1 text-xs ${row.type === "sub" ? "bg-red-600 text-white" : "bg-gray-200 text-black"}`}
                           >
                             − Reduce
                           </button>
@@ -308,7 +326,7 @@ export default function StaffWithAdvancesPage() {
                           onChange={(e) =>
                             setAdjustRows((prev) => ({
                               ...prev,
-                              [s._id]: { ...prev[s._id], amount: e.target.value },
+                              [key]: { ...prev[key], amount: e.target.value },
                             }))
                           }
                           placeholder="e.g. 500"
@@ -321,7 +339,7 @@ export default function StaffWithAdvancesPage() {
                           onChange={(e) =>
                             setAdjustRows((prev) => ({
                               ...prev,
-                              [s._id]: { ...prev[s._id], note: e.target.value },
+                              [key]: { ...prev[key], note: e.target.value },
                             }))
                           }
                           placeholder="note (optional)"
@@ -339,13 +357,38 @@ export default function StaffWithAdvancesPage() {
                       </div>
                     </td>
 
-                    {/* Preview confirmed (client, delta applied to system for quick view) */}
+                    {/* Confirmed value (prefer server canonical if present), plus preview for clarity */}
                     <td className="p-2 border text-right">
-                      ₹ {preview.toLocaleString("en-IN")}
-                      {existing && (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
-                          ✅ Confirmed
-                        </span>
+                      {existing ? (
+                        (() => {
+                          const canonical = Number(existing.confirmedAdvance) || 0;
+                          const previewNow = preview;
+                          if (canonical !== previewNow) {
+                            return (
+                              <div className="flex items-center justify-end gap-3">
+                                <div className="text-sm text-right">
+                                  <div>₹ {canonical.toLocaleString("en-IN")}</div>
+                                  <div className="text-xs text-gray-600">({`System: ₹${sys.toLocaleString("en-IN")}`})</div>
+                                </div>
+                                <span className="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">✅ Confirmed</span>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="flex items-center justify-end gap-2">
+                                <div>₹ {canonical.toLocaleString("en-IN")}</div>
+                                <span className="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">✅ Confirmed</span>
+                              </div>
+                            );
+                          }
+                        })()
+                      ) : (
+                        <div>
+                          ₹ {preview.toLocaleString("en-IN")}
+                          {preview !== sys && (
+                            <div className="text-xs text-gray-600">({`System: ₹${sys.toLocaleString("en-IN")}`})</div>
+                          )}
+                        </div>
                       )}
                     </td>
 
@@ -373,4 +416,3 @@ export default function StaffWithAdvancesPage() {
     </div>
   );
 }
- 
