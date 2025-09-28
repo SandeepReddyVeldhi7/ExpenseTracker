@@ -10,37 +10,29 @@ export default function PayDetailsPage() {
   const router = useRouter();
 
   const [staffList, setStaffList] = useState([]);
-  const [payrollData, setPayrollData] = useState({}); // map: staffIdString -> payroll
+  const [payrollData, setPayrollData] = useState({});
   const [payAmounts, setPayAmounts] = useState({});
-  const [paidStatus, setPaidStatus] = useState({}); // map: staffIdString -> boolean
+  const [paidStatus, setPaidStatus] = useState({});
   const [loading, setLoading] = useState(false);
-
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [advanceUntil, setAdvanceUntil] = useState("");
   const [activeFilters, setActiveFilters] = useState({ start: null, end: null, until: null });
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   const loadAbortRef = useRef(null);
   const applyDebounceRef = useRef(null);
-
-  // Modals for advances and owner-adjustments
   const [advModal, setAdvModal] = useState({ open: false, staffName: "", list: [] });
   const [ownerModal, setOwnerModal] = useState({ open: false, staffName: "", list: [] });
 
-  // currency formatter
   const INR = useMemo(() => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }), []);
 
-  // ---------- tooltip / modal helpers ----------
+  // Tooltip/modal helpers (unchanged)
   const advancesTooltip = (advList = []) => {
     if (!Array.isArray(advList) || advList.length === 0) return "No advances in this range";
-    const lines = advList.map((a) => {
-      const d = String(a?.date ?? "");
-      const amt = Number(a?.amount) || 0;
-      return `${d} — ₹${amt.toLocaleString("en-IN")}`;
-    });
+    const lines = advList.map((a) => `${String(a?.date ?? "")} — ₹${(Number(a?.amount) || 0).toLocaleString("en-IN")}`);
     const total = advList.reduce((s, a) => s + (Number(a?.amount) || 0), 0);
     lines.push(`Total — ₹${total.toLocaleString("en-IN")}`);
     return lines.join("\n");
@@ -61,7 +53,6 @@ export default function PayDetailsPage() {
 
   const openAdvancesModal = (staffName, list = []) => setAdvModal({ open: true, staffName: staffName || "Staff", list: Array.isArray(list) ? list : [] });
   const closeAdvancesModal = () => setAdvModal((p) => ({ ...p, open: false }));
-
   const openOwnerModal = (staffName, list = []) => setOwnerModal({ open: true, staffName: staffName || "Staff", list: Array.isArray(list) ? list : [] });
   const closeOwnerModal = () => setOwnerModal((p) => ({ ...p, open: false }));
 
@@ -70,13 +61,14 @@ export default function PayDetailsPage() {
       if (e.key === "Escape") {
         if (advModal.open) closeAdvancesModal();
         if (ownerModal.open) closeOwnerModal();
+        if (filterModalOpen) setFilterModalOpen(false);
       }
     }
-    if (advModal.open || ownerModal.open) window.addEventListener("keydown", onKey);
+    if (advModal.open || ownerModal.open || filterModalOpen) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [advModal.open, ownerModal.open]);
+  }, [advModal.open, ownerModal.open, filterModalOpen]);
 
-  // ---------- loader (concurrency + robust normalization) ----------
+  // Load data (unchanged)
   const loadData = async (m, y, startDate = null, endDate = null, cutoff = null) => {
     if (loadAbortRef.current) {
       try { loadAbortRef.current.abort(); } catch (e) {}
@@ -122,10 +114,7 @@ export default function PayDetailsPage() {
           }
           const payload = await res.json();
 
-          // Prefer explicit server flag that indicates the saved payment covers the requested range
           let isPaid = Boolean(payload?.paidForRequestedRange);
-
-          // Fallback heuristics if server did not include the flag:
           if (!isPaid) {
             const finalPaidNum = Number(payload?.finalPaid ?? payload?.paidAmount ?? 0);
             if (finalPaidNum > 0) {
@@ -146,7 +135,6 @@ export default function PayDetailsPage() {
             }
           }
 
-          // presentDays normalization
           const normalized = {
             ...(payload || {}),
             presentDays: typeof payload?.presentDays === "number" ? payload.presentDays : Number(payload?.presentDays ?? 0),
@@ -184,13 +172,12 @@ export default function PayDetailsPage() {
     }
   };
 
-  // ---------- filters ----------
+  // Filter handlers (unchanged)
   const applyFilters = () => {
     const start = customStartDate || null;
     const end = customEndDate || null;
     const until = advanceUntil || null;
 
-    // Require all three fields to be set
     if (!start || !end || !until) {
       toast.error("Please select Attendance Start, Attendance End, and Include Advances Up To dates.");
       return;
@@ -206,6 +193,7 @@ export default function PayDetailsPage() {
       setActiveFilters({ start, end, until });
       loadData(selectedMonth, selectedYear, start, end, until);
       applyDebounceRef.current = null;
+      setFilterModalOpen(false);
     }, 200);
   };
 
@@ -218,9 +206,10 @@ export default function PayDetailsPage() {
     setPayrollData({});
     setPaidStatus({});
     setPayAmounts({});
+    setFilterModalOpen(false);
   };
 
-  // ---------- pay handler ----------
+  // Pay handler (unchanged)
   const handlePay = async (rawStaffId, staffName) => {
     const staffKey = String(rawStaffId);
     const amount = Math.floor(parseFloat(String(payAmounts[staffKey])));
@@ -269,7 +258,6 @@ export default function PayDetailsPage() {
 
       if (res.ok && result.payment) {
         const updated = result.payment;
-
         const updatedPaidAmount = Number(updated.paidAmount || updated.finalPaid || updated.paid || 0);
         const updatedAdvanceUntilStr = updated.advanceCoveredUntil || updated.advanceUntil || null;
 
@@ -312,7 +300,7 @@ export default function PayDetailsPage() {
     }
   };
 
-  // helpers
+  // Helpers (unchanged)
   const handlePayAmountChange = (staffId, value) => {
     const key = String(staffId);
     setPayAmounts((prev) => ({ ...prev, [key]: value }));
@@ -321,26 +309,22 @@ export default function PayDetailsPage() {
     const now = new Date();
     setSelectedMonth(now.getMonth() + 1);
     setSelectedYear(now.getFullYear());
-    // Don't load data here; wait for user to apply filters
   };
 
   const isUnauthed = status === "unauthenticated";
   const isNotOwner = status === "authenticated" && session?.user?.role !== "owner";
 
-  const representativePayroll = (() => {
+  const representativePayroll = useMemo(() => {
     if (!staffList || staffList.length === 0) return null;
     const firstId = staffList[0]._id;
     return payrollData[String(firstId)] || null;
-  })();
+  }, [staffList, payrollData]);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
       router.push("/no-permission");
     }
   }, [status, session, router]);
-
-  // Removed the useEffect that automatically loads data on status change
-  // Removed the useEffect that reloads data on selectedMonth/selectedYear change
 
   useEffect(() => {
     return () => {
@@ -355,7 +339,7 @@ export default function PayDetailsPage() {
     };
   }, []);
 
-  // renderPayrollMonthCell & computeRemainingRange
+  // Render payroll month cell (unchanged)
   const renderPayrollMonthCell = (p) => {
     const monthLabel = p?.month && p?.year
       ? `${new Date(p.year, p.month - 1).toLocaleString("default", { month: "long" })} ${p.year}`
@@ -368,27 +352,24 @@ export default function PayDetailsPage() {
     const advanceCoveredUntil = p?.advanceCoveredUntil || p?.advanceUntil || null;
 
     return (
-      <td className="p-2 border text-black align-top">
+      <div className="text-base">
         <div className="font-medium">{monthLabel}</div>
-
         {attendanceStart && attendanceEnd && (
-          <div className="text-[11px] text-black mt-0.5">
-            Attendance: <span className="font-medium text-black">{attendanceStart}</span> → <span className="font-medium text-black">{attendanceEnd}</span>
+          <div className="text-sm text-gray-600 mt-0.5">
+            Attendance: <span className="font-medium">{attendanceStart}</span> → <span className="font-medium">{attendanceEnd}</span>
           </div>
         )}
-
         {advancesStart && advancesEnd && (
-          <div className="text-[11px] text-black">
-            Advances: <span className="font-medium text-black">{advancesStart}</span> → <span className="font-medium text-black">{advancesEnd}</span>
+          <div className="text-sm text-gray-600">
+            Advances: <span className="font-medium">{advancesStart}</span> → <span className="font-medium">{advancesEnd}</span>
           </div>
         )}
-
         {advanceCoveredUntil && (
-          <div className="text-[11px] text-amber-700 mt-0.5">
+          <div className="text-sm text-amber-700 mt-0.5">
             Already included up to: <strong>{advanceCoveredUntil}</strong>
           </div>
         )}
-      </td>
+      </div>
     );
   };
 
@@ -431,70 +412,175 @@ export default function PayDetailsPage() {
     }
   };
 
-  // UI render
   return (
-    <div className="relative max-w-7xl mx-auto p-4 sm:p-6 border border-black rounded mt-10 pb-20 bg-gray-50 font-sans">
+    <div className="relative max-w-7xl mx-auto p-4 sm:p-6 border border-gray-300 rounded-lg mt-6 sm:mt-10 pb-20 bg-gray-50 font-sans">
       <Toaster />
       {isUnauthed ? (
-        <p className="text-center mt-10">You must be logged in.</p>
+        <p className="text-center text-lg text-gray-800 mt-10">You must be logged in.</p>
       ) : isNotOwner ? (
-        <p className="text-center mt-10">Redirecting…</p>
+        <p className="text-center text-lg text-gray-800 mt-10">Redirecting…</p>
       ) : (
         <>
-          <h1 className="text-xl sm:text-2xl text-black text-center font-bold mb-4">📒 Staff Payroll Ledger</h1>
+          <h1 className="text-xl sm:text-2xl text-gray-800 text-center font-bold mb-4">📒 Staff Payroll Ledger</h1>
 
           {/* Controls */}
-          <div className="flex flex-col gap-3 mb-6">
+          <div className="flex flex-col gap-4 mb-6">
             <div className="flex flex-wrap items-center gap-3">
-              <button onClick={handleSelectThisMonth} className="px-4 py-2 bg-[#fa3e5e] text-black rounded text-sm">This Month</button>
-              <span className="px-2 py-1 rounded bg-gray-200 text-black text-sm">
+              {/* <button onClick={handleSelectThisMonth} className="px-4 py-2 bg-[#fa3e5e] text-white rounded text-base font-medium">This Month</button>
+              <span className="px-3 py-1 rounded bg-gray-200 text-gray-800 text-base">
                 {`${new Date(selectedYear, (selectedMonth || 1) - 1).toLocaleString("default", { month: "long" })} ${selectedYear}`}
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-end gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-black font-medium">Attendance start:</label>
-                <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="border p-1 text-black rounded text-sm" />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-black font-medium">Attendance end:</label>
-                <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="border p-1 text-black rounded text-sm" />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-black font-medium">Include advances up to:</label>
-                <input type="date" value={advanceUntil} onChange={(e) => setAdvanceUntil(e.target.value)} className="border p-1 text-black rounded text-sm" />
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={applyFilters} className="px-4 py-2 bg-blue-600 text-white rounded text-sm">Apply filters</button>
-                <button onClick={clearFilters} className="px-4 py-2 bg-gray-500 text-white rounded text-sm">Clear</button>
-              </div>
+              </span> */}
+              <button onClick={() => setFilterModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded text-base font-medium">Set Filters</button>
             </div>
           </div>
 
-          {/* Conditional rendering based on active filters */}
+          {/* Filter Modal */}
+          {filterModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setFilterModalOpen(false)}>
+              <div className="w-full max-w-md rounded-lg bg-white shadow-lg p-4" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">Set Filters</h3>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-base text-gray-800 font-medium">Attendance start:</label>
+                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="border p-2 rounded text-base text-gray-800" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-base text-gray-800 font-medium">Attendance end:</label>
+                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="border p-2 rounded text-base text-gray-800" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-base text-gray-800 font-medium">Include advances up to:</label>
+                    <input type="date" value={advanceUntil} onChange={(e) => setAdvanceUntil(e.target.value)} className="border p-2 rounded text-base text-gray-800" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={applyFilters} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded text-base font-medium">Apply</button>
+                    <button onClick={clearFilters} className="flex-1 px-4 py-2 bg-gray-500 text-white rounded text-base font-medium">Clear</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Conditional rendering */}
           {!activeFilters.start || !activeFilters.end || !activeFilters.until ? (
-            <p className="text-center text-black mt-10">Please select Attendance Start, Attendance End, and Include Advances Up To dates, then click Apply Filters.</p>
+            <p className="text-center text-lg text-gray-800 mt-10">Please select Attendance Start, Attendance End, and Include Advances Up To dates, then click Apply.</p>
           ) : (
             <>
-              <div className="mb-3">
-                <h2 className="text-sm text-black sm:text-base font-semibold">
-                  Attendance period:&nbsp;
-                  {representativePayroll?.attendanceStart && representativePayroll?.attendanceEnd ? `${representativePayroll.attendanceStart} → ${representativePayroll.attendanceEnd}` : "—"}
+              <div className="mb-4">
+                <h2 className="text-base sm:text-lg text-gray-800 font-semibold">
+                  Attendance period: {representativePayroll?.attendanceStart && representativePayroll?.attendanceEnd ? `${representativePayroll.attendanceStart} → ${representativePayroll.attendanceEnd}` : "—"}
                 </h2>
-                <h2 className="text-sm text-black sm:text-base font-semibold">
-                  Advances included:&nbsp;
-                  {representativePayroll?.advancesStart ? `${representativePayroll.advancesStart} → ${representativePayroll.advancesEnd}` : "—"}
+                <h2 className="text-base sm:text-lg text-gray-800 font-semibold">
+                  Advances included: {representativePayroll?.advancesStart ? `${representativePayroll.advancesStart} → ${representativePayroll.advancesEnd}` : "—"}
                 </h2>
               </div>
 
-              <h2 className="text-sm text-black sm:text-base mb-3 font-semibold">
+              <h2 className="text-base sm:text-lg text-gray-800 mb-4 font-semibold">
                 Showing Salary for: {headerLabel} {activeFilters.until ? `(Advances until: ${activeFilters.until})` : ""}
               </h2>
 
-              <div className="relative w-full overflow-x-auto border rounded-lg shadow-sm">
-                <table className="w-full border-collapse border text-xs sm:text-sm">
-                  <thead className="bg-gray-300 text-black">
+              {/* Mobile Card Layout */}
+              <div className="block sm:hidden space-y-4">
+                {staffList.length ? staffList.map((staff, idx) => {
+                  const key = String(staff._id);
+                  const p = payrollData[key] || {};
+                  const earned = Math.round(Number(p?.earnedSalary) || 0);
+                  const prevCarry = Math.round(Number(p?.carryForward) || 0);
+                  const systemAdvFromApi = Number(p?.systemAdvance) || 0;
+                  const systemAdvFromList = Array.isArray(p?.advances) ? p.advances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0) : 0;
+                  const systemAdv = Math.round(systemAdvFromApi || systemAdvFromList || 0);
+                  const ownerAdj = Math.round(Number(p?.ownerAdjustment) || 0);
+                  const finalAdv = Math.round(Number.isFinite(Number(p?.advancesFinal)) ? Number(p?.advancesFinal) : Math.max(0, systemAdv + ownerAdj));
+                  const prev = Math.max(0, prevCarry);
+                  const totalAdvanceDue = Math.max(0, prev + finalAdv);
+                  const payableNow = Math.max(0, Math.round(Number(p?.payable) || (earned - totalAdvanceDue)));
+                  const isPaid = !!paidStatus[key];
+                  const presentDays = Number.isFinite(Number(p?.presentDays)) ? Number(p.presentDays) : 0;
+                  const existingCovered = p?.advanceCoveredUntil || p?.advanceUntil || null;
+                  const remainingRange = computeRemainingRange(existingCovered, activeFilters.until);
+
+                  return (
+                    <div key={key} className="border rounded-lg p-4 bg-white shadow-sm">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">{p.staffName || staff.name}</h3>
+                        <span className="text-sm text-gray-600">#{idx + 1}</span>
+                      </div>
+                      <div className="space-y-2 text-base text-gray-800">
+                        {renderPayrollMonthCell(p)}
+                        <div><strong>Attendance:</strong> {presentDays} days</div>
+                        <div><strong>Earned Salary:</strong> ₹{earned.toLocaleString("en-IN")}</div>
+                        <div><strong>Prev. Carry Forward:</strong> ₹{prev.toLocaleString("en-IN")}</div>
+                        <div className="flex items-center gap-2">
+                          <span><strong>System Advances:</strong> ₹{systemAdv.toLocaleString("en-IN")}</span>
+                          <button
+                            type="button"
+                            className="text-sm text-blue-600 underline"
+                            title={advancesTooltip(p?.advances)}
+                            onClick={() => openAdvancesModal(p?.staffName || staff.name, p?.advances)}
+                          >
+                            ⓘ
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span><strong>Owner Adjustment:</strong> {ownerAdj >= 0 ? "+" : "−"} ₹{Math.abs(ownerAdj).toLocaleString("en-IN")}</span>
+                          <button
+                            type="button"
+                            className="text-sm text-blue-600 underline"
+                            title={ownerAdjTooltip(p?.ownerAdjustmentHistory)}
+                            onClick={() => openOwnerModal(p?.staffName || staff.name, p?.ownerAdjustmentHistory)}
+                          >
+                            ⓘ
+                          </button>
+                        </div>
+                        <div><strong>Final Advances:</strong> ₹{finalAdv.toLocaleString("en-IN")}</div>
+                        <div><strong>Payable:</strong> ₹{payableNow.toLocaleString("en-IN")}</div>
+                        <div className="flex items-center gap-2">
+                          <label><strong>Paid Amount:</strong></label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={payAmounts[key] !== undefined && payAmounts[key] !== null ? payAmounts[key] : payableNow}
+                            onChange={(e) => handlePayAmountChange(key, e.target.value)}
+                            className="border p-2 rounded w-full text-base text-gray-800"
+                            disabled={isPaid}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {isPaid ? (
+                            <span className="px-4 py-2 rounded bg-gray-600 text-white text-center text-base">Paid</span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handlePay(key, p.staffName || staff.name)}
+                                className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-base"
+                              >
+                                Pay
+                              </button>
+                              {existingCovered && (
+                                <div className="text-sm text-gray-600">
+                                  Already included up to: <strong>{existingCovered}</strong>
+                                </div>
+                              )}
+                              {remainingRange && (
+                                <div className="text-sm text-amber-700">
+                                  Will include: <strong>{remainingRange}</strong>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <p className="text-center text-lg text-gray-800 p-4">No staff found.</p>
+                )}
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden sm:block relative w-full overflow-x-auto border rounded-lg shadow-sm">
+                <table className="w-full border-collapse border text-sm">
+                  <thead className="bg-gray-300 text-gray-800">
                     <tr>
                       <th className="p-2 border">S.no</th>
                       <th className="p-2 border">Name</th>
@@ -510,7 +596,6 @@ export default function PayDetailsPage() {
                       <th className="p-2 border">Action</th>
                     </tr>
                   </thead>
-
                   <tbody>
                     {staffList.length ? staffList.map((staff, idx) => {
                       const key = String(staff._id);
@@ -527,64 +612,72 @@ export default function PayDetailsPage() {
                       const payableNow = Math.max(0, Math.round(Number(p?.payable) || (earned - totalAdvanceDue)));
                       const isPaid = !!paidStatus[key];
                       const presentDays = Number.isFinite(Number(p?.presentDays)) ? Number(p.presentDays) : 0;
-
                       const existingCovered = p?.advanceCoveredUntil || p?.advanceUntil || null;
                       const remainingRange = computeRemainingRange(existingCovered, activeFilters.until);
 
                       return (
                         <tr key={key}>
-                          <td className="p-2 border text-black text-center">{idx + 1}</td>
-                          <td className="p-2 border text-black">{p.staffName || staff.name}</td>
-
-                          {renderPayrollMonthCell(p)}
-
-                          <td className="p-2 border text-black text-center">{presentDays}</td>
-
-                          <td className="p-2 border text-black text-right">₹ {earned.toLocaleString("en-IN")}</td>
-                          <td className="p-2 border text-black text-right">₹ {prev.toLocaleString("en-IN")}</td>
-
-                          <td className="p-2 border text-black text-right whitespace-nowrap">
-                            ₹ {systemAdv.toLocaleString("en-IN")}
+                          <td className="p-2 border text-gray-800 text-center">{idx + 1}</td>
+                          <td className="p-2 border text-gray-800">{p.staffName || staff.name}</td>
+                          <td className="p-2 border text-gray-800">{renderPayrollMonthCell(p)}</td>
+                          <td className="p-2 border text-gray-800 text-center">{presentDays}</td>
+                          <td className="p-2 border text-gray-800 text-right">₹{earned.toLocaleString("en-IN")}</td>
+                          <td className="p-2 border text-gray-800 text-right">₹{prev.toLocaleString("en-IN")}</td>
+                          <td className="p-2 border text-gray-800 text-right whitespace-nowrap">
+                            ₹{systemAdv.toLocaleString("en-IN")}
                             <button
                               type="button"
-                              className="ml-1 text-xs opacity-70 align-middle cursor-pointer underline decoration-dotted"
+                              className="ml-1 text-sm text-blue-600 underline"
                               title={advancesTooltip(p?.advances)}
                               onClick={() => openAdvancesModal(p?.staffName || staff.name, p?.advances)}
-                              aria-label="Show advances details"
                             >
                               ⓘ
                             </button>
                           </td>
-
-                          <td className="p-2 border text-black text-right whitespace-nowrap">
-                            {ownerAdj >= 0 ? "+" : "−"} ₹ {Math.abs(ownerAdj).toLocaleString("en-IN")}
+                          <td className="p-2 border text-gray-800 text-right whitespace-nowrap">
+                            {ownerAdj >= 0 ? "+" : "−"} ₹{Math.abs(ownerAdj).toLocaleString("en-IN")}
                             <button
                               type="button"
-                              className="ml-1 text-xs opacity-70 align-middle cursor-pointer underline decoration-dotted"
+                              className="ml-1 text-sm text-blue-600 underline"
                               title={ownerAdjTooltip(p?.ownerAdjustmentHistory)}
                               onClick={() => openOwnerModal(p?.staffName || staff.name, p?.ownerAdjustmentHistory)}
-                              aria-label="Show owner adjustments details"
                             >
                               ⓘ
                             </button>
                           </td>
-
-                          <td className="p-2 border text-black text-right">₹ {finalAdv.toLocaleString("en-IN")}</td>
-
-                          <td className="p-2 border text-black text-right">₹ {payableNow.toLocaleString("en-IN")}</td>
-
-                          <td className="p-2 border text-black text-center">
-                            <input type="number" min="0" value={payAmounts[key] !== undefined && payAmounts[key] !== null ? payAmounts[key] : payableNow} onChange={(e) => handlePayAmountChange(key, e.target.value)} className="border p-1 w-24 text-right rounded text-xs" disabled={isPaid} />
+                          <td className="p-2 border text-gray-800 text-right">₹{finalAdv.toLocaleString("en-IN")}</td>
+                          <td className="p-2 border text-gray-800 text-right">₹{payableNow.toLocaleString("en-IN")}</td>
+                          <td className="p-2 border text-gray-800 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              value={payAmounts[key] !== undefined && payAmounts[key] !== null ? payAmounts[key] : payableNow}
+                              onChange={(e) => handlePayAmountChange(key, e.target.value)}
+                              className="border p-2 w-28 text-right rounded text-sm"
+                              disabled={isPaid}
+                            />
                           </td>
-
                           <td className="p-2 border text-center">
                             {isPaid ? (
-                              <span className="px-3 py-1 rounded text-xs bg-gray-600 text-white cursor-default">Paid</span>
+                              <span className="px-4 py-2 rounded text-sm bg-gray-600 text-white">Paid</span>
                             ) : (
                               <div className="flex flex-col items-center gap-2">
-                                <button onClick={() => handlePay(key, p.staffName || staff.name)} className="px-3 py-1 rounded text-xs bg-green-600 hover:bg-green-700 text-white">Pay</button>
-                                {existingCovered && <div className="text-[11px] text-black mt-1">Already included up to: <strong>{existingCovered}</strong></div>}
-                                {remainingRange && <div className="text-[11px] text-amber-700 mt-0.5">Will include: <strong>{remainingRange}</strong></div>}
+                                <button
+                                  onClick={() => handlePay(key, p.staffName || staff.name)}
+                                  className="px-4 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  Pay
+                                </button>
+                                {existingCovered && (
+                                  <div className="text-xs text-gray-600">
+                                    Already included up to: <strong>{existingCovered}</strong>
+                                  </div>
+                                )}
+                                {remainingRange && (
+                                  <div className="text-xs text-amber-700">
+                                    Will include: <strong>{remainingRange}</strong>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </td>
@@ -592,46 +685,46 @@ export default function PayDetailsPage() {
                       );
                     }) : (
                       <tr>
-                        <td colSpan="12" className="text-center text-black p-4">No staff found.</td>
+                        <td colSpan="12" className="text-center text-gray-800 p-4">No staff found.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
-
-                {loading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="h-10 w-10 rounded-full border-4 border-gray-300 border-t-transparent animate-spin" />
-                      <div className="text-sm text-black">Loading…</div>
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {loading && (
+                <div className="fixed inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm z-50">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-12 w-12 rounded-full border-4 border-gray-300 border-t-transparent animate-spin" />
+                    <div className="text-base text-gray-800">Loading…</div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
-          {/* Advances modal */}
+          {/* Advances Modal */}
           {advModal.open && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeAdvancesModal}>
-              <div className="w-full max-w-md rounded bg-white shadow-md" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="adv-modal-title">
-                <div className="flex items-center justify-between border-b p-3">
-                  <h3 id="adv-modal-title" className="font-semibold">Advances — {advModal.staffName}</h3>
-                  <button className="text-sm px-2 py-1 rounded border bg-gray-50 hover:bg-gray-100" onClick={closeAdvancesModal}>Close</button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeAdvancesModal}>
+              <div className="w-full max-w-lg rounded-lg bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between border-b p-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Advances — {advModal.staffName}</h3>
+                  <button className="text-base px-4 py-2 rounded border bg-gray-50 hover:bg-gray-100 text-gray-800" onClick={closeAdvancesModal}>Close</button>
                 </div>
-                <div className="max-h-80 overflow-auto p-3">
+                <div className="max-h-[70vh] overflow-auto p-4">
                   {Array.isArray(advModal.list) && advModal.list.length > 0 ? (
-                    <table className="w-full text-sm">
+                    <table className="w-full text-base">
                       <thead>
-                        <tr className="text-left text-black">
-                          <th className="py-1">Date</th>
-                          <th className="py-1 text-right">Amount</th>
+                        <tr className="text-left text-gray-800">
+                          <th className="py-2">Date</th>
+                          <th className="py-2 text-right">Amount</th>
                         </tr>
                       </thead>
                       <tbody>
                         {advModal.list.map((a, i) => (
                           <tr key={i} className="border-t">
-                            <td className="py-1">{String(a?.date ?? "")}</td>
-                            <td className="py-1 text-right">{INR.format(Number(a?.amount) || 0)}</td>
+                            <td className="py-2">{String(a?.date ?? "")}</td>
+                            <td className="py-2 text-right">{INR.format(Number(a?.amount) || 0)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -643,29 +736,29 @@ export default function PayDetailsPage() {
                       </tfoot>
                     </table>
                   ) : (
-                    <div className="text-sm text-black">No advances in this range.</div>
+                    <div className="text-base text-gray-800">No advances in this range.</div>
                   )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Owner adjustments modal */}
+          {/* Owner Adjustments Modal */}
           {ownerModal.open && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeOwnerModal}>
-              <div className="w-full max-w-md rounded bg-white shadow-md" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="owner-modal-title">
-                <div className="flex items-center justify-between border-b p-3">
-                  <h3 id="owner-modal-title" className="font-semibold">Owner Adjustments — {ownerModal.staffName}</h3>
-                  <button className="text-sm px-2 py-1 rounded border bg-gray-50 hover:bg-gray-100 text-black" onClick={closeOwnerModal}>Close</button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeOwnerModal}>
+              <div className="w-full max-w-lg rounded-lg bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between border-b p-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Owner Adjustments — {ownerModal.staffName}</h3>
+                  <button className="text-base px-4 py-2 rounded border bg-gray-50 hover:bg-gray-100 text-gray-800" onClick={closeOwnerModal}>Close</button>
                 </div>
-                <div className="max-h-80 overflow-auto p-3">
+                <div className="max-h-[70vh] overflow-auto p-4">
                   {Array.isArray(ownerModal.list) && ownerModal.list.length > 0 ? (
-                    <table className="w-full text-sm">
+                    <table className="w-full text-base">
                       <thead>
-                        <tr className="text-left text-black">
-                          <th className="py-1">Date</th>
-                          <th className="py-1">Note</th>
-                          <th className="py-1 text-right">Delta</th>
+                        <tr className="text-left text-gray-800">
+                          <th className="py-2">Date</th>
+                          <th className="py-2">Note</th>
+                          <th className="py-2 text-right">Delta</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -675,9 +768,9 @@ export default function PayDetailsPage() {
                           const amt = Number(h?.amount) || 0;
                           return (
                             <tr key={i} className="border-t">
-                              <td className="py-1">{dStr}</td>
-                              <td className="py-1">{(h?.note || "").trim()}</td>
-                              <td className="py-1 text-right">{amt >= 0 ? "+" : "−"} ₹{Math.abs(amt).toLocaleString("en-IN")}</td>
+                              <td className="py-2">{dStr}</td>
+                              <td className="py-2">{(h?.note || "").trim()}</td>
+                              <td className="py-2 text-right">{amt >= 0 ? "+" : "−"} ₹{Math.abs(amt).toLocaleString("en-IN")}</td>
                             </tr>
                           );
                         })}
@@ -695,7 +788,7 @@ export default function PayDetailsPage() {
                       </tfoot>
                     </table>
                   ) : (
-                    <div className="text-sm text-black">No owner adjustments this month.</div>
+                    <div className="text-base text-gray-800">No owner adjustments this month.</div>
                   )}
                 </div>
               </div>
