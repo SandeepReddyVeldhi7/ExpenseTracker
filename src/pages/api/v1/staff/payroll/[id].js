@@ -1,3 +1,4 @@
+// pages/api/v1/staff/payroll/[id].js
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import DailySummary from "@/models/DailySummary";
@@ -5,8 +6,17 @@ import SalaryPayment from "@/models/SalaryPayment";
 import Staff from "@/models/Staff";
 import ConfirmedAdvance from "@/models/ConfirmedAdvance";
 
-// helpers identical to your current file
-function prevMonthYear(month, year) { if (month === 1) return { pm: 12, py: year - 1 }; return { pm: month - 1, py: year }; }
+// helpers
+function parseLocalYMD(ymd) {
+  if (!ymd) return null;
+  const m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const y = Number(m[1]), mm = Number(m[2]) - 1, d = Number(m[3]);
+    return new Date(y, mm, d, 0, 0, 0, 0);
+  }
+  const parsed = new Date(ymd);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 function startOfDayLocal(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
 function endOfDayLocal(d)   { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
 function addDaysLocal(d, days) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, 0,0,0,0); }
@@ -30,9 +40,10 @@ export default async function handler(req, res) {
     const month = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1;
     const year  = req.query.year  ? Number(req.query.year)  : new Date().getFullYear();
 
-    const attendanceStartParam = req.query.start ? new Date(req.query.start) : null;
-    const attendanceEndParam   = req.query.end   ? new Date(req.query.end)   : null;
-    const untilParam           = req.query.advanceUntil ? new Date(req.query.advanceUntil) : null;
+    // parse query params (local YMD)
+    const attendanceStartParam = req.query.start ? parseLocalYMD(req.query.start) : null;
+    const attendanceEndParam   = req.query.end   ? parseLocalYMD(req.query.end)   : null;
+    const untilParam           = req.query.advanceUntil ? parseLocalYMD(req.query.advanceUntil) : null;
 
     const m0 = month - 1, y0 = year;
     const salaryMonthStart = new Date(y0, m0, 1, 0,0,0,0);
@@ -47,16 +58,16 @@ export default async function handler(req, res) {
       ? startOfDayLocal(attendanceStartParam)
       : (advancesCutoff <= salaryMonthEnd ? new Date(salaryMonthStart) : addDaysLocal(salaryMonthEnd, 1));
 
+    // last payment earlier than this payroll month (used to compute advancesStart)
     const lastPayment = await SalaryPayment.findOne({
-  staff: id,
-  $or: [{ year: { $lt: year } }, { year, month: { $lt: month } }],
-}).sort({ year: -1, month: -1 }).lean();
+      staff: id,
+      $or: [{ year: { $lt: year } }, { year, month: { $lt: month } }],
+    }).sort({ year: -1, month: -1 }).lean();
 
-if (lastPayment?.advanceUntil) {
-  const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
-  if (nextDay > advancesStart) advancesStart = nextDay;
-}
-
+    if (lastPayment?.advanceUntil) {
+      const nextDay = addDaysLocal(new Date(lastPayment.advanceUntil), 1);
+      if (nextDay > advancesStart) advancesStart = nextDay;
+    }
 
     const advancesEnd = endOfDayLocal(advancesCutoff);
     if (advancesEnd < advancesStart) return res.status(400).json({ message: "Advances end date is before start date." });
@@ -91,7 +102,6 @@ if (lastPayment?.advanceUntil) {
     const confirmed = await ConfirmedAdvance.findOne({ staff: id, month, year }).lean();
     const ownerAdjustment = Number(confirmed?.ownerAdjustment) || 0;
 
-    // NEW: owner adjustment history (sorted)
     const ownerAdjustmentHistory = Array.isArray(confirmed?.ownerAdjustmentHistory)
       ? [...confirmed.ownerAdjustmentHistory]
           .map(h => ({
@@ -112,6 +122,74 @@ if (lastPayment?.advanceUntil) {
 
     const savedPayment = await SalaryPayment.findOne({ staff: id, month, year: y0 }).lean();
 
+    // --- IMPORTANT: prefer request's attendance window when provided (do not override with savedPayment) ---
+    const attendanceStartStr = req.query.start ? ymd(attendanceStart) : (savedPayment?.attendanceStart ?? ymd(attendanceStart));
+    const attendanceEndStr   = req.query.end   ? ymd(attendanceEnd)   : (savedPayment?.attendanceEnd   ?? ymd(attendanceEnd));
+    // -----------------------------------------------------------------------------------------------
+
+    // ----------------- Find last payment up to this payroll month/year only -----------------
+    const lastPaymentOverall = await SalaryPayment.findOne({
+      staff: id,
+      $or: [
+        { year: { $lt: year } },
+        { year, month: { $lte: month } },
+      ],
+    })
+      .sort({ year: -1, month: -1, advanceUntil: -1 })
+      .lean();
+    // ---------------------------------------------------------------------------------------------
+
+    let canonicalAdvanceUntilStr = null;
+    if (savedPayment?.advanceUntilDate) {
+      canonicalAdvanceUntilStr = savedPayment.advanceUntilDate;
+    } else if (lastPaymentOverall?.advanceUntilDate) {
+      canonicalAdvanceUntilStr = lastPaymentOverall.advanceUntilDate;
+    } else if (lastPaymentOverall?.advanceUntil) {
+      canonicalAdvanceUntilStr = lastPaymentOverall.advanceUntil ? new Date(lastPaymentOverall.advanceUntil).toISOString().slice(0,10) : null;
+    } else {
+      canonicalAdvanceUntilStr = null;
+    }
+
+    // --- Determine whether the saved payment actually covers the *requested* range/cutoff ---
+    // requested cutoff string in YYYY-MM-DD (derived from advancesEnd)
+    const requestedCutoffStr = ymd(advancesEnd); // e.g. "2025-09-15"
+    let paidForRequestedRange = false;
+    let paidAmountForSavedPayment = 0;
+
+    if (savedPayment && Number(savedPayment.paidAmount || 0) > 0) {
+      paidAmountForSavedPayment = Number(savedPayment.paidAmount || 0);
+
+      // if client provided an advanceUntil (i.e. they asked to "include advances up to X")
+      if (req.query.advanceUntil) {
+        // use savedPayment.advanceUntilDate if present, else format savedPayment.advanceUntil
+        const savedCutoffStr = savedPayment.advanceUntilDate
+          ? String(savedPayment.advanceUntilDate)
+          : (savedPayment.advanceUntil ? new Date(savedPayment.advanceUntil).toISOString().slice(0,10) : null);
+
+        if (savedCutoffStr && requestedCutoffStr) {
+          if (savedCutoffStr >= requestedCutoffStr) paidForRequestedRange = true;
+        }
+      } else {
+        // No explicit advanceUntil requested: match attendance window exactly
+        // Consider it paid for the requested attendance if saved payment's attendanceStart/End equal requested
+        const savedAttStart = savedPayment?.attendanceStart ?? null;
+        const savedAttEnd = savedPayment?.attendanceEnd ?? null;
+        if (savedAttStart && savedAttEnd && savedAttStart === attendanceStartStr && savedAttEnd === attendanceEndStr) {
+          paidForRequestedRange = true;
+        } else {
+          // fallback: if savedPayment.advanceUntilDate covers entire month requested (rare), mark paid
+          const savedCutoffStr = savedPayment.advanceUntilDate
+            ? String(savedPayment.advanceUntilDate)
+            : (savedPayment.advanceUntil ? new Date(savedPayment.advanceUntil).toISOString().slice(0,10) : null);
+          if (savedCutoffStr) {
+            // if saved cutoff >= requestedCutoffStr (which is end of attendance computed), treat as covering
+            if (savedCutoffStr >= requestedCutoffStr) paidForRequestedRange = true;
+          }
+        }
+      }
+    }
+
+    // Format the advancesStart/advancesEnd for response
     const fmt = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
     res.json({
@@ -122,10 +200,10 @@ if (lastPayment?.advanceUntil) {
       presentDays,
       earnedSalary,
 
-      advances: advancesList,            // system itemized
+      advances: advancesList,
       systemAdvance,
-      ownerAdjustment,                   // cumulative total
-      ownerAdjustmentHistory,            // NEW: details
+      ownerAdjustment,
+      ownerAdjustmentHistory,
       advancesFinal,
       totalAdvanceDue,
       payable,
@@ -134,17 +212,25 @@ if (lastPayment?.advanceUntil) {
       month,
       year: y0,
 
-      finalPaid: savedPayment?.paidAmount || 0,
+      // savedPayment details (if any)
+      finalPaid: savedPayment?.paidAmount || 0,            // amount on saved payment (audit)
+      paidForRequestedRange,                               // NEW bool: does saved payment actually cover this request?
+      paidAmountForSavedPayment,                           // amount (number)
       advanceDeducted: savedPayment
         ? (Number(savedPayment.advances) || 0) + (Number(savedPayment.previousCarryForward) || 0)
         : 0,
       carryForwardSaved: savedPayment?.newCarryForward ?? previousCarryForward,
 
-      attendanceStart: fmt(attendanceStart),
-      attendanceEnd: fmt(attendanceEnd),
+      attendanceStart: attendanceStartStr,
+      attendanceEnd: attendanceEndStr,
       advancesStart: fmt(advancesStart),
       advancesEnd: fmt(advancesEnd),
-      advanceUntil: advancesEnd,
+
+      advanceCoveredUntil: canonicalAdvanceUntilStr,
+      advanceUntil: canonicalAdvanceUntilStr, // backward compatibility
+
+      // debug info
+      savedPaymentId: savedPayment?._id ?? null,
     });
   } catch (err) {
     console.error(err);

@@ -1,3 +1,4 @@
+// pages/api/v1/staff/advances/confirmed/save.js
 import { connectDB } from "@/lib/db";
 import ConfirmedAdvance from "@/models/ConfirmedAdvance";
 
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
     const now = new Date();
     const query = { staff: staffId, month: m, year: y };
 
-    // ── One-time baseline backfill for legacy totals (docs created before history existed)
+    // Optional one-time baseline backfill for legacy docs — preserve existing behavior
     const existing = await ConfirmedAdvance.findOne(query).lean();
     if (existing) {
       const hasHistory =
@@ -52,14 +53,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── Build update document (avoid operator conflicts)
+    // Build update doc
     const update = {
-      $inc: { ownerAdjustment: delta },                 // only $inc touches ownerAdjustment
+      $inc: { ownerAdjustment: delta },
       $set: { systemCalculatedAdvance: sys, confirmedAt: now },
-      $setOnInsert: { staff: staffId, month: m, year: y }, // identifiers only here
+      $setOnInsert: { staff: staffId, month: m, year: y },
     };
 
-    // Push to history only if a real delta or a note was provided
     if (delta !== 0 || (typeof note === "string" && note.trim() !== "")) {
       update.$push = {
         ownerAdjustmentHistory: {
@@ -70,26 +70,29 @@ export default async function handler(req, res) {
       };
     }
 
-    // Upsert + return the updated doc
-    const doc = await ConfirmedAdvance.findOneAndUpdate(query, update, {
+    // Upsert and return the updated document (populated)
+    let doc = await ConfirmedAdvance.findOneAndUpdate(query, update, {
       upsert: true,
       new: true,
       setDefaultsOnInsert: true,
     }).populate("staff", "name designation");
 
-    // Recompute confirmedAdvance (no 1.5×; clamp >= 0)
+    // Ensure confirmedAdvance is recomputed and saved if needed
     const currentSys = Number(doc.systemCalculatedAdvance) || 0;
     const currentAdj = Number(doc.ownerAdjustment) || 0;
     const newConfirmed = Math.max(0, currentSys + currentAdj);
 
-    if (doc.confirmedAdvance !== newConfirmed) {
+    if (Number(doc.confirmedAdvance) !== newConfirmed) {
       doc.confirmedAdvance = newConfirmed;
       await doc.save();
+      // repopulate in case save changed doc shape
+      doc = await ConfirmedAdvance.findById(doc._id).populate("staff", "name designation");
     }
 
+    // Return populated record for optimistic UI updates
     return res.status(200).json({ success: true, record: doc });
   } catch (error) {
-    console.error(error);
+    console.error("POST /staff/advances/confirmed/save error:", error);
     return res.status(500).json({ message: "Server error", error: error?.message || String(error) });
   }
 }
