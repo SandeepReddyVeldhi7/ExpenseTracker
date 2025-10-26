@@ -1,103 +1,53 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
+/* -------------------------------
+   ✅ Universal UUID helper
+--------------------------------*/
+const uuid = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+/* -------------------------------
+   ✅ UploadProofPage Component
+--------------------------------*/
 export default function UploadProofPage() {
   const { date } = useParams();
   const router = useRouter();
-  const inputRef = useRef(null);
+
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
 
-  // --- Camera state (getUserMedia) ---
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState("environment"); // or "user"
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-
-  // Start / stop camera
-  const openCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: cameraFacing },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setShowCamera(true);
-    } catch (err) {
-      console.error(err);
-      toast.error("Camera not available. Check permissions.");
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setShowCamera(false);
-  };
-
-  const flipCamera = async () => {
-    // toggle facing and restart stream
-    const next = cameraFacing === "environment" ? "user" : "environment";
-    setCameraFacing(next);
-    if (streamRef.current) {
-      stopCamera();
-      // small delay to let state settle
-      setTimeout(openCamera, 100);
-    }
-  };
-
-  const capturePhoto = () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    if (!w || !h) {
-      toast.error("Camera not ready yet");
-      return;
-    }
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, w, h);
-
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const file = new File([blob], `photo-${Date.now()}.jpg`, {
-          type: "image/jpeg",
-        });
-        const objUrl = URL.createObjectURL(file);
-        setImages((prev) => [
-          ...prev,
-          { id: crypto.randomUUID(), file, url: objUrl },
-        ]);
-        toast.success("Photo added");
-      },
-      "image/jpeg",
-      0.92
-    );
-  };
-
-  // Handle file selection
+  // Handle file selection (both gallery + camera)
   const handleFileChange = (files) => {
+    if (!files || !files.length) return;
     const newFiles = Array.from(files).map((f) => ({
-      id: crypto.randomUUID(),
+      id: uuid(),
       file: f,
       url: URL.createObjectURL(f),
     }));
     setImages((prev) => [...prev, ...newFiles]);
+
+    // reset file inputs so same file can be reselected
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   // Remove a preview
@@ -109,7 +59,7 @@ export default function UploadProofPage() {
     });
   };
 
-  // Upload files
+  // Upload files to backend
   const handleSubmit = async () => {
     if (!images.length) {
       toast.error("Please select at least one image.");
@@ -132,10 +82,9 @@ export default function UploadProofPage() {
       }
 
       toast.success("Images uploaded successfully!");
-      // cleanup object URLs
+      // Cleanup URLs
       images.forEach((i) => URL.revokeObjectURL(i.url));
       setImages([]);
-      router.push("/admin/proofs");
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(err.message || "Upload failed");
@@ -144,58 +93,68 @@ export default function UploadProofPage() {
     }
   };
 
-  // Cleanup camera if user navigates away
-  useEffect(() => {
-    return () => stopCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className="min-h-[90vh] bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4">
       <Toaster />
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl">
         <h1 className="text-xl font-bold mb-3">Upload Proof — {date}</h1>
 
+        {/* Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <button
-            onClick={() => inputRef.current?.click()}
+            onClick={() => galleryInputRef.current?.click()}
             className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
           >
             Choose from Photos
           </button>
           <button
-            onClick={openCamera}
+            onClick={() => cameraInputRef.current?.click()}
             className="w-full py-3 rounded-xl bg-lime-600 text-white font-semibold hover:bg-lime-700"
           >
             Take Photo
           </button>
         </div>
 
-        {/* Hidden input: native camera prompt on many mobiles via capture attr */}
+        {/* Hidden inputs */}
+        {/* Gallery — opens photo library */}
         <input
-          ref={inputRef}
+          ref={galleryInputRef}
           type="file"
           multiple
           accept="image/*"
-          capture="environment"       // <- hints to open rear camera on mobile
           className="hidden"
           onChange={(e) => handleFileChange(e.target.files)}
         />
 
-        {/* Drag area (optional: still clickable to open picker) */}
+        {/* Camera — opens native camera */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => handleFileChange(e.target.files)}
+        />
+
+        {/* Drag area (optional) */}
         <div
-          onClick={() => inputRef.current?.click()}
+          onClick={() => galleryInputRef.current?.click()}
           className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer"
         >
           <p className="mb-2">Click or drag to select images</p>
           <p className="text-xs text-gray-500">JPG/PNG up to ~5MB each</p>
         </div>
 
+        {/* Previews */}
         {images.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             {images.map((img) => (
               <div key={img.id} className="relative border rounded overflow-hidden">
-                <img src={img.url} alt="preview" className="w-full h-28 object-cover" />
+                <img
+                  src={img.url}
+                  alt="preview"
+                  className="w-full h-28 object-cover"
+                />
                 <button
                   onClick={() => removeImage(img.id)}
                   className="absolute top-1 right-1 bg-red-600 text-white rounded px-2 py-0.5 text-xs"
@@ -207,65 +166,19 @@ export default function UploadProofPage() {
           </div>
         )}
 
+        {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={uploading || !images.length}
-          className={`mt-5 w-full py-3 rounded-xl text-white font-semibold transition
-            ${images.length ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"}`}
+          className={`mt-5 w-full py-3 rounded-xl text-white font-semibold transition ${
+            images.length
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
         >
           {uploading ? "Uploading..." : "Submit"}
         </button>
       </div>
-
-      {/* Camera overlay */}
-      {showCamera && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
-          <div className="flex items-center justify-between p-3 text-white">
-            <span className="opacity-80 text-sm">Camera — {cameraFacing}</span>
-            <div className="flex gap-2">
-              <button
-                onClick={flipCamera}
-                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20"
-              >
-                Flip
-              </button>
-              <button
-                onClick={stopCamera}
-                className="px-3 py-1 rounded bg-white/20 hover:bg-white/30"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 flex items-center justify-center">
-            <video
-              ref={videoRef}
-              playsInline
-              className="max-h-[70vh] max-w-full rounded-lg"
-              muted
-            />
-          </div>
-
-          <div className="p-4 flex items-center justify-center gap-3">
-            <button
-              onClick={capturePhoto}
-              className="px-6 py-3 rounded-full bg-lime-600 text-white font-bold hover:bg-lime-700"
-            >
-              Capture
-            </button>
-            <button
-              onClick={stopCamera}
-              className="px-6 py-3 rounded-full bg-gray-700 text-white hover:bg-gray-600"
-            >
-              Done
-            </button>
-          </div>
-
-          {/* hidden canvas for capturing frames */}
-          <canvas ref={canvasRef} className="hidden" />
-        </div>
-      )}
     </div>
   );
 }
