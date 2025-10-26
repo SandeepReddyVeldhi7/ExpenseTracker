@@ -15,23 +15,37 @@ import {
   FiDollarSign,
   FiBarChart2,
   FiLogOut,
+  FiImage,
 } from "react-icons/fi";
-
 
 export default function ResponsiveNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
-  const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
-  const [showMobileSheet, setShowMobileSheet] = useState(false);
-  const { data: session,status } = useSession();
-  console.log("session:::::::", session);
-const avatarSrc = session?.user?.image 
-  ? session.user.image 
-  : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  const avatarSrc =
+    session?.user?.image || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
+  // ✅ FIX: track which dropdown is open by index
+  const [openDropdown, setOpenDropdown] = useState(null); // number | null
 
-      console.log("avatar",avatarSrc)
-  //  Define nav items with icons
+  // ✅ Mobile: track which group sheet is open by index
+  const [mobileSheetFor, setMobileSheetFor] = useState(null); // number | null
+
+  // role detection (session first, fallback to localStorage)
+  let role =
+    session?.user?.role ||
+    (typeof window !== "undefined" ? localStorage.getItem("userRole") : "");
+
+  useEffect(() => {
+    if (session?.user?.role) {
+      localStorage.setItem("userRole", session.user.role);
+    }
+  }, [session]);
+
+  // =========================
+  // NAV DEFINITIONS
+  // =========================
+
   const ownerNavItems = [
     {
       label: "Staff",
@@ -40,48 +54,47 @@ const avatarSrc = session?.user?.image
         { href: "/staff", label: "Add Staff Members " },
         { href: "/staff-list", label: "Staff Members" },
         { href: "/staffAdvancesPage", label: "Staff Advances" },
-
         { href: "/staffAttendance", label: "Staff Attendence List" },
         { href: "/staff-registation", label: "Staff login Creation" },
         { href: "/dashboard-users", label: "login Staff List" },
-
         { href: "/sign-up", label: "Admin user creation" },
         { href: "/admin-users", label: "Admin users" },
         { href: "/analytics", label: "Analytics" },
-
       ],
     },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
     { href: "/paydetails", label: "Pay Details", icon: <FiDollarSign /> },
     { href: "/reports", label: "Reports", icon: <FiBarChart2 /> },
+
+
+    {
+      label: "upload",
+      icon: <FiImage />,
+      children: [
+        { href: "/proof", label: "Upload Proof" },
+        { href: "/images", label: "View Proofs (Table)" },
+      ],
+    },
   ];
 
   const staffNavItems = [
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
+    { href: "/proof", label: "Upload Proof", icon: <FiImage /> },
   ];
 
-// Determine role
-let role = session?.user?.role || localStorage.getItem("userRole");
+  const navItems =
+    role === "staff" || role === "staff123" ? staffNavItems : ownerNavItems;
 
-// Store it for future refreshes
-useEffect(() => {
-  if (session?.user?.role) {
-    localStorage.setItem("userRole", session.user.role);
-  }
-}, [session]);
-
-// Choose nav items immediately
-const navItems = (role === "staff" || role === "staff123")
-  ? staffNavItems
-  : ownerNavItems;
-
-;
+  // helper: is any child active?
+  const isGroupActive = (item) =>
+    Array.isArray(item.children) &&
+    item.children.some((c) => pathname.startsWith(c.href));
 
   return (
     <>
-      {/*  Desktop Nav */}
+      {/* Desktop Nav */}
       <nav className="hidden md:flex justify-between items-center bg-white px-6 py-4 shadow fixed top-0 left-0 right-0 z-50">
         <div className="text-xl font-bold text-blue-600"></div>
         <div className="flex space-x-8 items-center">
@@ -90,14 +103,12 @@ const navItems = (role === "staff" || role === "staff123")
               <div
                 key={idx}
                 className="relative"
-                onMouseEnter={() => setShowDesktopDropdown(true)}
-                onMouseLeave={() => setShowDesktopDropdown(false)}
+                onMouseEnter={() => setOpenDropdown(idx)}
+                onMouseLeave={() => setOpenDropdown(null)}
               >
                 <button
                   className={`flex items-center gap-1 ${
-                    pathname.startsWith("/staff")
-                      ? "text-blue-600"
-                      : "text-gray-600"
+                    isGroupActive(item) ? "text-blue-600" : "text-gray-600"
                   }`}
                 >
                   {item.icon}
@@ -106,7 +117,7 @@ const navItems = (role === "staff" || role === "staff123")
                 </button>
 
                 <AnimatePresence>
-                  {showDesktopDropdown && (
+                  {openDropdown === idx && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -117,7 +128,9 @@ const navItems = (role === "staff" || role === "staff123")
                         <Link
                           key={child.href}
                           href={child.href}
-                          className="block px-4 py-2 hover:bg-gray-100 whitespace-nowrap"
+                          className={`block px-4 py-2 hover:bg-gray-100 whitespace-nowrap ${
+                            pathname.startsWith(child.href) ? "text-blue-600" : ""
+                          }`}
                         >
                           {child.label}
                         </Link>
@@ -139,28 +152,40 @@ const navItems = (role === "staff" || role === "staff123")
               </Link>
             )
           )}
-          <button
-            onClick={() => signOut({ callbackUrl: "/sign-in" })}
-            className="flex items-center text-red-500 gap-1"
-          >
-            <FiLogOut />
-            <span>Logout</span>
-          </button>
+
+          {/* Avatar + Logout */}
+          <div className="flex items-center gap-3">
+            <img
+              src={avatarSrc}
+              alt="User Avatar"
+              width={36}
+              height={36}
+              className="rounded-full object-cover border border-gray-300"
+            />
+            <button
+              onClick={() => signOut({ callbackUrl: "/sign-in" })}
+              className="flex items-center text-red-500 gap-1"
+            >
+              <FiLogOut />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* ✅ Mobile Bottom Nav */}
+      {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 text-sm z-50 md:hidden">
         {navItems.map((item, idx) =>
           item.children ? (
             <button
               key={idx}
-              onClick={() => setShowMobileSheet(true)}
+              onClick={() => setMobileSheetFor(idx)}
               className={`flex flex-col items-center ${
-                pathname.startsWith("/staff") ? "text-blue-600" : "text-black"
+                isGroupActive(item) ? "text-blue-600" : "text-black"
               }`}
             >
-              <FiUsers className="text-lg" />
+              {/* use the item's own icon */}
+              <span className="text-lg">{item.icon}</span>
               <span className="text-xs">{item.label}</span>
             </button>
           ) : (
@@ -176,27 +201,28 @@ const navItems = (role === "staff" || role === "staff123")
             </Link>
           )
         )}
+
+        {/* Avatar + Logout */}
         <button
           onClick={() => signOut({ callbackUrl: "/sign-in" })}
           className={`flex flex-col items-center ${
             pathname === "/sign-in" ? "text-blue-600" : "text-black"
           }`}
         >
-  <img
-  src={avatarSrc}
-  alt="User Avatar"
-  width={40}
-  height={40}
-  className="rounded-full object-cover border border-gray-300"
-/>
-
+          <img
+            src={avatarSrc}
+            alt="User Avatar"
+            width={40}
+            height={40}
+            className="rounded-full object-cover border border-gray-300"
+          />
           <span className="text-xs">Logout</span>
         </button>
       </nav>
 
-      {/* ✅ Mobile Slide-Up Sheet */}
+      {/* Mobile Slide-Up Sheet — only for the tapped group */}
       <AnimatePresence>
-        {showMobileSheet && (
+        {mobileSheetFor !== null && (
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -204,20 +230,21 @@ const navItems = (role === "staff" || role === "staff123")
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 bg-white text-black border-t shadow-lg z-50 rounded-t-lg"
           >
-            {navItems
-              .find((i) => i.children)
-              ?.children.map((child) => (
-                <Link
-                  key={child.href}
-                  href={child.href}
-                  onClick={() => setShowMobileSheet(false)}
-                  className="block px-4 py-4 border-b hover:bg-gray-100"
-                >
-                  {child.label}
-                </Link>
-              ))}
+            {navItems[mobileSheetFor]?.children?.map((child) => (
+              <Link
+                key={child.href}
+                href={child.href}
+                onClick={() => setMobileSheetFor(null)}
+                className={`block px-4 py-4 border-b hover:bg-gray-100 ${
+                  pathname.startsWith(child.href) ? "text-blue-600" : ""
+                }`}
+              >
+                {child.label}
+              </Link>
+            ))}
+
             <button
-              onClick={() => setShowMobileSheet(false)}
+              onClick={() => setMobileSheetFor(null)}
               className="block w-full px-4 py-4 text-center text-red-500 font-semibold"
             >
               Close
