@@ -5,7 +5,7 @@ import ProofSubmission from "@/models/ProofSubmission";
 
 export const config = { api: { bodyParser: false } };
 
-const upload = multer({ storage: multer.memoryStorage() })
+const upload = multer({ storage: multer.memoryStorage() });
 
 function runMiddleware(req, res, fn) {
   return new Promise((resolve, reject) => {
