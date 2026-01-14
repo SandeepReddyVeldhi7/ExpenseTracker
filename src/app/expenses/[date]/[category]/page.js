@@ -141,7 +141,7 @@ const [ocrLoading, setOcrLoading] = useState(false);
           const raw = localStorage.getItem(localKey);
           if (raw) {
             const data = JSON.parse(raw);
-            console.log("data", data);
+        
             const items = data.items || [];
             const addons = (data.dropdownInputs || []).map((a) => ({
               name: a.value,
@@ -245,26 +245,24 @@ const [ocrLoading, setOcrLoading] = useState(false);
           (s, c) => s + (c.totalCashersAmount || 0),
           0
         );
-        console.log("totalCashersAmount", totalCashersAmount);
+       
         const tea = drinks.find((d) => d.drinkType === "tea");
         const juice = drinks.find((d) => d.drinkType === "juice");
 
         const totalDrinksAmount =
           (tea?.finalNetAmount || 0) + (juice?.finalNetAmount || 0);
 
-          console.log("totalDrinks:::::::::::::",totalDrinksAmount)
         const totalCashersSale = cashers.reduce(
           (s, c) => s + (c.
 totalSealAmount || 0),
           0
         );
-        console.log("totalCashersSale", totalCashersSale);
-        console.log("totalCashersAmount", totalCashersAmount);
+       
         const totalShot = cashers.reduce(
           (sum, c) => sum + (parseFloat(c.shot) || 0),
           0
         );
-        console.log("totalShot", totalShot);
+        
         //  Add totalOnlineSale here
         const totalOnlineSale = cashers.reduce((sum, c) => {
           const onlineTotal = c.addons
@@ -279,7 +277,7 @@ totalSealAmount || 0),
           return s + teaJuice;
         }, 0);
 
-        console.log("totalTeaJuiceInCashers", totalTeaJuiceInCashers);
+      
         const totalCashersExpensesExclTeaJuice = cashers.reduce((s, c) => {
           const items = c.items.reduce(
             (sum, i) => sum + (parseFloat(i.price) || 0),
@@ -296,10 +294,7 @@ totalSealAmount || 0),
             : 0;
           return s + items + otherAddons + advances;
         }, 0);
-        console.log(
-          "totalCashersExpensesExclTeaJuice",
-          totalCashersExpensesExclTeaJuice
-        );
+       
 
         const totalBusiness = totalCashersSale + totalDrinksAmount;
         const payout = parseFloat(
@@ -311,7 +306,6 @@ totalSealAmount || 0),
           ).toFixed(2)
         );
 
-        console.log("payout", payout);
         // ✅ 5) Save all to state
         setTotalDetails({
           date,
@@ -345,7 +339,7 @@ totalSealAmount || 0),
     const saved = localStorage.getItem(localKey);
     if (saved) {
       const parsed = JSON.parse(saved);
-      console.log("parsed", parsed);
+    
       setCasherName(parsed.casherName || "");
       setItems(parsed.items || [{ id: 1, name: "", price: "" }]);
       setDropdownInputs(parsed.dropdownInputs || []);
@@ -356,56 +350,7 @@ totalSealAmount || 0),
       setCommission(parsed.commission || "");
     }
   }, [localKey, router.asPath]);
-const handleRunOCR = async () => {
-  if (!ocrImage) {
-    toast.error("Please select an image first");
-    return;
-  }
 
-  try {
-    setOcrLoading(true);
-
-    const formData = new FormData();
-    formData.append("image", ocrImage);
-
-    const res = await fetch("/api/ocr/azure/azure", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const { error } = await res.json();
-      throw new Error(error || "Server error");
-    }
-
-    const data = await res.json();
-    console.log("OCR lines:", data.lines);
-    const parsed = parseOcrLines(data.lines);
-
-  // 🟢 Update states
-  setItems(parsed.items);
-  setDropdownInputs(parsed.dropdownInputs);
-  setStaffAdvances(parsed.staffAdvances);
-  setTotalSale(parsed.totalSale);
-  setMoneyLift(parsed.moneyLift);
-
-  // 🟢 Save to local storage
-  saveToLocalStorage({
-    items: parsed.items,
-    dropdownInputs: parsed.dropdownInputs,
-    staffAdvances: parsed.staffAdvances,
-    totalSale: parsed.totalSale,
-    moneyLift: parsed.moneyLift
-  });
-
-  toast.success("OCR extraction and auto-fill complete!");
-  } catch (err) {
-    console.error(err);
-    toast.error(err.message);
-  } finally {
-    setOcrLoading(false);
-  }
-};
 
 
 
@@ -850,12 +795,12 @@ const handleFinalSubmit = async () => {
 
   return (
     <div
-      className={` bg-cover bg-center bg-no-repeat ${poppins.className}`}
+      className={`bg-cover bg-center bg-no-repeat ${poppins.className}`}
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
       <Toaster />
       <div className=" min-h-screen  overflow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
-        <div className="w-full relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
+        <div className="w-full   relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
           <button
             onClick={() => router.back()}
             className="text-black absolute  mt-2 mb-3 hover:bg-black/50 px-2 py-1 text-2xl  -top-2 -left-1 rounded "
@@ -918,7 +863,7 @@ const handleFinalSubmit = async () => {
               >
                 ➕ Add Item
               </button>
-<div className="flex flex-col mb-6 gap-4">
+{/* <div className="flex flex-col mb-6 gap-4">
 <button
     onClick={() => setShowUploadGuide(true)}
     className="bg-yellow-500 text-black py-3 rounded-lg font-semibold hover:bg-yellow-600 transition w-full"
@@ -973,7 +918,7 @@ const handleFinalSubmit = async () => {
       </button>
     </div>
   )}
-</div>
+</div> */}
 
 
               <button

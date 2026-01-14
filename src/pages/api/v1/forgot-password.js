@@ -35,8 +35,6 @@ export default async function handler(req, res) {
 
 await connectDB();
   const { email } = req.body;
-console.log("trigering...................")
-  console.log("email:::::::",email)
   let user = await User.findOne({ email });
   let userType = "owner";
 

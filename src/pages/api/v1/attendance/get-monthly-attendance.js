@@ -25,8 +25,6 @@ export default async function handler(req, res) {
   try {
     // 🔹 Only active staff are fetched
     const staffList = await Staff.find({ active: true });
-console.log("Active staff count:", staffList.length);
-console.log("staffList:", staffList);
     const attendance = await Attendance.find({
       date: { $gte: startDate, $lte: endDate },
       // (optional) if you want to ignore any stray records for inactive people:

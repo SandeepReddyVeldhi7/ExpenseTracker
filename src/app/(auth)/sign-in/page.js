@@ -40,11 +40,11 @@ const [isGoogleLoading, setIsGoogleLoading] = useState(false);
         callbackUrl: "/",
       });
 
-      console.log("response:::::::::::::::::::::::::::",response)
+     
       if (response.ok) {
         const sessionRes = await fetch("/api/auth/session");
         const session = await sessionRes.json();
-        console.log(" session:::::::::::::::::::::::", session)
+      
 
         if (session?.user?.role) {
           localStorage.setItem("userRole", session.user.role);

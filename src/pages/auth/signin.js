@@ -18,12 +18,11 @@ export default function SignIn() {
       email,
       password
     })
-console.log("result ",result);
+
     if (result.error) {
       console.log("error ",result.error);
       setError(result.error)
     } else {
-      console.log("result ",result);
       router.replace(result.url ?? '/');
       
     }

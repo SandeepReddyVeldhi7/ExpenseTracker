@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       console.log("✨ Handling endpoint.url_validation");
 
       const plainToken = req.body?.payload?.plainToken;
-      console.log("✅ Extracted plainToken:", plainToken);
+     
 
       if (!plainToken) {
         console.error("❌ Missing plainToken in payload!");
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       hmac.update(plainToken);
       const encryptedToken = hmac.digest("hex");
 
-      console.log("✅ Computed encryptedToken:", encryptedToken);
+      
 
       const response = {
         plainToken,

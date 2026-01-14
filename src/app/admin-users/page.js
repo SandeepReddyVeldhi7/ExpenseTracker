@@ -44,7 +44,7 @@ export default function DashboardUsersList() {
     try {
       const res = await fetch("/api/v1/users/user");
       const data = await res.json();
-      console.log("data", data);
+     
       setUsers(data);
     } catch (error) {
       toast.error("Failed to fetch users");

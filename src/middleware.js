@@ -9,8 +9,7 @@ export async function middleware(req) {
     return NextResponse.next();
   }
   const token = await getToken({ req, secret });
-  console.log("token::::::::", token);
-  console.log("checking::::::::", req.nextUrl.pathname);
+
 
   // ⛔️ Block all protected routes if not authenticated
   if (!token) {

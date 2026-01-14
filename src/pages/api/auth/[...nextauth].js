@@ -21,7 +21,7 @@ async function findUserByEmailOrUsername(emailOrUsername) {
   user = await DashboardUsers.findOne({
     $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
   });
-  console.log("user:::::::",user)
+
   if (user) return { ...user.toObject(), role: user.role || "staff" }
 
   return null;
@@ -82,7 +82,7 @@ export default NextAuth({
      */
   async signIn({ user, account, profile }) {
   if (account.provider === "google") {
-    console.log("Google Sign-In attempt for:", user.email);
+    
     const dbUser = await findUserByEmailOrUsername(user.email);
     if (!dbUser || !dbUser.role) {
       console.log(`❌ Google SignIn blocked. Email not found or role missing in DB: ${user.email}`);

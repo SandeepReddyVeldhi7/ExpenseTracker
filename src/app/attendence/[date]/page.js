@@ -8,9 +8,9 @@ export default function AttendanceForDate({params}) {
   const router = useRouter();
     const { date } = use(params);
 
-    console.log("date",date)
+  
   const [staffList, setStaffList] = useState([]);
-  console.log("staffList",staffList)
+  
   const [attendance, setAttendance] = useState({});
 const [loading, setLoading] = useState(true);
 
@@ -27,7 +27,7 @@ useEffect(() => {
       }
 
       const data= await res.json();
-      console.log("data",data)
+    
       setStaffList(data?.filter((staff) => staff.active===true));
 
       const initial = {};
@@ -71,7 +71,7 @@ if (loading) {
 
 
   const handleToggle = (id) => {
-    console.log("id",id)
+ 
     setAttendance({
       ...attendance,
       [id]: !attendance[id],
