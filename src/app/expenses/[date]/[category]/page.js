@@ -6,18 +6,17 @@ import { FaArrowLeft } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import dayjs from "dayjs";
 
-// ✅ Google Font
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
 
-// ✅ Utility functions
+
 const isCasher = (cat) => ["casher1", "casher2", "casher3"].includes(cat);
 const isDrink = (cat) => cat === "tea" || cat === "juice";
 const isTotalDetails = (cat) => cat === "totalDetails";
 
-// ✅ Wrapper with forced remount
+
 export default function CategoryPage() {
   const router = useRouter();
   const { date, category } = useParams();
@@ -55,7 +54,7 @@ const [ocrImage, setOcrImage] = useState(null);
 const [ocrLines, setOcrLines] = useState([]);
 const [ocrLoading, setOcrLoading] = useState(false);
 
-  // ✅ Helper: save all data
+
   const saveToLocalStorage = (newFields = {}) => {
     // Always merge possible new changes
     const localCasherName = newFields.casherName ?? casherName;
@@ -106,7 +105,7 @@ const [ocrLoading, setOcrLoading] = useState(false);
     if (!isDrink(category) || !hasMounted) return;
     handleSaveDrink();
   }, [soldAmount, commission, drinkTotal, previousCarryLoss, hasMounted]);
-  // ✅ Fetch staff list once
+
   useEffect(() => {
     const fetchStaffList = async () => {
       try {
@@ -128,14 +127,14 @@ const [ocrLoading, setOcrLoading] = useState(false);
     const buildLiveSummary = async () => {
       setLoading(true);
       try {
-        // ✅ 1) Backend fallback
+      
         const res = await fetch(`/api/v1/expense/get-by-date?date=${date}`);
         const backend = res.ok ? await res.json() : { cashers: [], drinks: [] };
 
         let cashers = backend.cashers || [];
         let drinks = backend.drinks || [];
 
-        // ✅ 2) Merge local storage cashers
+        //  Merge local storage cashers
         ["casher1", "casher2", "casher3"].forEach((key) => {
           const localKey = `expense-form-${date}-${key}`;
           const raw = localStorage.getItem(localKey);
