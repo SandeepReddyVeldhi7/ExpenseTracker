@@ -5,6 +5,8 @@ import DataTable from "react-data-table-component";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Tooltip } from "react-tooltip";
+
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -15,21 +17,50 @@ export default function ReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // States
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
-  console.log("selectedExpense", selectedExpense);
-  // Effect: redirect non-owner users
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
       router.push("/no-permission");
     }
   }, [status, session, router]);
 
-  // Effect: fetch reports for owners
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      let url = `/api/v1/expense/get-expense?`;
+      if (startDate) url += `startDate=${startDate}&`;
+      if (endDate) url += `endDate=${endDate}`;
+
+      const res = await fetch(url);
+
+if (!res.ok) {
+  throw new Error(`Server error: ${res.status}`);
+}
+
+const text = await res.text();
+
+if (!text) {
+  throw new Error("Empty response from server");
+}
+
+const data = JSON.parse(text);
+
+setExpenses(data.expenses || []);
+
+      setExpenses(data.expenses || []);
+      
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load reports");
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role === "owner") {
       fetchReports();
@@ -96,7 +127,7 @@ export default function ReportsPage() {
     return selectedExpense.cashers.reduce((sum, casher) => {
       const matchingAddons =
         casher.addons?.filter(
-          (addon) => addon.name?.toLowerCase() === drinkType.toLowerCase()
+          (addon) => addon.name?.toLowerCase() === drinkType.toLowerCase(),
         ) || [];
       return (
         sum + matchingAddons.reduce((a, b) => a + (parseFloat(b.price) || 0), 0)
@@ -124,23 +155,6 @@ export default function ReportsPage() {
   };
 
   // Fetch
-  const fetchReports = async () => {
-    setLoading(true);
-    try {
-      let url = `/api/v1/expense/get-expense?`;
-      if (startDate) url += `startDate=${startDate}&`;
-      if (endDate) url += `endDate=${endDate}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-      setExpenses(data.expenses || []);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load reports");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Table columns
   const columns = [
@@ -168,6 +182,72 @@ export default function ReportsPage() {
       cell: (row) => `${formatINR(row.payout?.toFixed(2))}`,
     },
     {
+  name: "Online Amount",
+  sortable: true,
+  cell: (row) => {
+    const onlineDetails = row.cashers?.map((c) => {
+      const onlineAddon = c.addons?.find(
+        (a) => a.name?.toLowerCase() === "online"
+      );
+      return {
+        name: c.casherName,
+        amount: parseFloat(onlineAddon?.price) || 0,
+      };
+    }) || [];
+
+    const totalOnline = onlineDetails.reduce(
+      (sum, c) => sum + c.amount,
+      0
+    );
+
+    const tooltipText = onlineDetails
+      .map((c) => `${c.name}: ₹${c.amount}`)
+      .join(" | ");
+
+    return (
+      <div
+  data-tooltip-id="global-tooltip"
+  data-tooltip-content={tooltipText}
+>
+
+        {totalOnline ? formatINR(totalOnline) : "—"}
+      </div>
+    );
+  },
+}
+,
+   {
+  name: "Total Shot",
+  sortable: true,
+  cell: (row) => {
+    const shotDetails = row.cashers?.map((c) => ({
+      name: c.casherName,
+      shot: parseFloat(c.shot) || 0,
+    })) || [];
+
+    const totalShot = shotDetails.reduce(
+      (sum, c) => sum + c.shot,
+      0
+    );
+
+    const tooltipText = shotDetails
+      .map((c) => `${c.name}: ${c.shot}`)
+      .join(" | ");
+
+    return (
+<div
+  data-tooltip-id="global-tooltip"
+  data-tooltip-content={tooltipText}
+>
+
+        {totalShot || "—"}
+      </div>
+    );
+  },
+}
+,
+
+    {
       name: "Actions",
       cell: (row) => (
         <button
@@ -180,10 +260,11 @@ export default function ReportsPage() {
     },
   ];
 
+
   // Totals for modal
   const totalCashersAmount = selectedExpense?.cashers?.reduce(
     (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
-    0
+    0,
   );
   const totalTeaExpensive = selectedExpense?.cashers?.reduce(
     (sum, c) =>
@@ -192,21 +273,21 @@ export default function ReportsPage() {
         (innerSum, a) =>
           innerSum +
           (a.name?.toLowerCase() === "tea" ? parseFloat(a.price) || 0 : 0),
-        0
+        0,
       ) || 0),
-    0
+    0,
   );
 
   const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
     const onlineAddon = c.addons?.find(
-      (a) => a.name?.toLowerCase() === "online"
+      (a) => a.name?.toLowerCase() === "online",
     );
     return sum + (parseFloat(onlineAddon?.price) || 0);
   }, 0);
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4 ${poppins.className}`}
+      className={`min-h-screen bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center lg:mt-10 justify-center p-4 ${poppins.className}`}
     >
       <div className="w-full max-w-6xl mb-4 bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl">
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
@@ -247,32 +328,37 @@ export default function ReportsPage() {
 
         {/* DataTable */}
         {expenses.length > 0 ? (
-          <DataTable
-            columns={columns}
-            data={expenses}
-            pagination
-            highlightOnHover
-            striped
-            paginationPerPage={30}
-            defaultSortAsc={false}
-            responsive
-            theme="dark"
-            customStyles={{
-              headRow: {
-                style: { backgroundColor: "rgba(255,255,255,0.1)" },
-              },
-              rows: {
-                style: { backgroundColor: "transparent", color: "white" },
-                stripedStyle: { backgroundColor: "rgba(255,255,255,0.05)" },
-              },
-              headCells: {
-                style: { color: "white" },
-              },
-              pagination: {
-                style: { backgroundColor: "transparent", color: "white" },
-              },
-            }}
-          />
+          <>
+            <DataTable
+              columns={columns}
+              data={expenses}
+              pagination
+              highlightOnHover
+              striped
+              paginationPerPage={30}
+              defaultSortAsc={false}
+              responsive
+              theme="dark"
+              customStyles={{
+                headRow: {
+                  style: { backgroundColor: "rgba(255,255,255,0.1)" },
+                },
+                rows: {
+                  style: { backgroundColor: "transparent", color: "white" },
+                  stripedStyle: { backgroundColor: "rgba(255,255,255,0.05)" },
+                },
+                headCells: {
+                  style: { color: "white" },
+                },
+                pagination: {
+                  style: { backgroundColor: "transparent", color: "white" },
+                },
+              }}
+            />
+<Tooltip id="global-tooltip" place="top" />
+
+
+          </>
         ) : (
           <p className="text-center text-white/70">
             {loading ? "" : "No records found. Please search!"}
@@ -336,7 +422,7 @@ export default function ReportsPage() {
                     <ul className="list-disc ml-5 space-y-1">
                       {selectedExpense.cashers.map((c, idx) => {
                         const onlineAddon = c.addons?.find(
-                          (a) => a.name?.toLowerCase() === "online"
+                          (a) => a.name?.toLowerCase() === "online",
                         );
                         return (
                           <li key={idx}>

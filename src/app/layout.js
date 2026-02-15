@@ -49,12 +49,15 @@ function RootContent({ children }) {
 
   return (
     <>
-      {children}
-      
-      {session?.user && <ResponsiveNav />}
-      <div className="fixed bottom-4 right-0 z-50">
-        <UpdateBanner manifestVersion={manifestVersion} />
-      </div>
-    </>
+  <div className="pb-24">
+    {children}
+  </div>
+
+  {session?.user && <ResponsiveNav />}
+  <div className="fixed bottom-4 right-0 z-50">
+    <UpdateBanner manifestVersion={manifestVersion} />
+  </div>
+</>
+
   );
 }

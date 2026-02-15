@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     await connectDB();
 
     const { name, designation, salary } = req.body;
-    console.log("body", req.body);
+    
 
     if (!name || !designation || typeof salary !== "number") {
       return new Response(JSON.stringify({ error: "Missing fields" }), {
