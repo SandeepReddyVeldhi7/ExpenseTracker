@@ -11,7 +11,7 @@ export default function AttendanceHome() {
   const [selectedDate, setSelectedDate] = useState(null);
   const router = useRouter();
   const [submittedDates, setSubmittedDates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchSubmittedDates = async () => {
@@ -22,19 +22,22 @@ export default function AttendanceHome() {
         setSubmittedDates(dates);
       } catch (err) {
         console.error("Error fetching submitted dates:", err);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchSubmittedDates();
   }, []);
-  const handleNext = () => {
-    if (selectedDate) {
-      const formatted = selectedDate.toLocaleDateString("en-CA"); // yyyy-MM-dd
-      router.push(`/attendence/${formatted}`);
-    }
-  };
+const handleNext = () => {
+  if (!selectedDate || loading) return;
+
+  setLoading(true);
+
+  const formatted = selectedDate.toLocaleDateString("en-CA");
+  router.push(`/attendence/${formatted}`);
+};
+
+
+
 
   return (
     <div className="min-h-[90vh] bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4">
@@ -57,17 +60,18 @@ export default function AttendanceHome() {
         </div>
 
         <button
-          onClick={handleNext}
-          disabled={!selectedDate}
-          className={`w-full py-3 rounded-xl text-white font-semibold transition 
-            ${
-              selectedDate
-                ? "bg-blue-600 hover:bg-blue-700"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
-        >
-          Continue
-        </button>
+  onClick={handleNext}
+  disabled={!selectedDate || loading}
+  className={`w-full py-3 rounded-xl text-white font-semibold transition 
+    ${
+      selectedDate && !loading
+        ? "bg-blue-600 hover:bg-blue-700"
+        : "bg-gray-400 cursor-not-allowed"
+    }`}
+>
+  {loading ? "Loading..." : "Continue"}
+</button>
+
       </div>
     </div>
   );

@@ -14,7 +14,7 @@
       // Destructure the request body
       const { username, email, password, confirmPassword, role } = req.body;
 
-      console.log("req.body", req.body);
+   
 
 
       // Input validation

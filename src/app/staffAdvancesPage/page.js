@@ -1,418 +1,342 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
-export default function StaffWithAdvancesPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+export default function SalaryPage() {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+  const [payConfirmRow, setPayConfirmRow] = useState(null);
 
-  const [staffData, setStaffData] = useState([]);
-  const [month, setMonth] = useState(new Date().getMonth() + 1); // NUMBER
-  const [year, setYear] = useState(new Date().getFullYear()); // NUMBER
+  const [startDate, setStartDate] = useState(firstDay);
+  const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Per-staff adjustment: { [staffId]: { type: "add" | "sub", amount: string, note: string } }
-  const [adjustRows, setAdjustRows] = useState({});
-  // Map of confirmed docs keyed by staffId (strings)
-  const [confirmedData, setConfirmedData] = useState({});
+  const [adjustRow, setAdjustRow] = useState(null);
+  const [adjustValue, setAdjustValue] = useState("");
 
-  // Redirect if not owner
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.role !== "owner") {
-      router.push("/no-permission");
-    }
-  }, [status, session, router]);
+  const [advancePopup, setAdvancePopup] = useState(null);
 
-  // Load on mount
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.role === "owner") {
-      loadStaffWithAdvances(month, year);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session]);
+  const loadData = async () => {
+    if (!startDate || !endDate) return toast.error("Select dates");
 
-  // Loader
-  const loadStaffWithAdvances = async (m, y) => {
     setLoading(true);
-    try {
-      const mm = Number(m);
-      const yy = Number(y);
+    const res = await fetch(
+      `/api/v1/salary/prepare-range?start=${startDate}&end=${endDate}`,
+    );
+    const result = await res.json();
 
-      // 1) system advances
-      let url = "/api/v1/staff/with-advances";
-      if (mm && yy) url += `?month=${mm}&year=${yy}`;
-      const res = await fetch(url, { cache: "no-store" });
-      const data = await res.json();
-      const rows = Array.isArray(data) ? data : [];
-      setStaffData(rows);
+    setData(result.map((r) => ({ ...r, ownerAdjust: 0, paid: false })));
+    setLoading(false);
+  };
 
-      // 2) confirmed advances (to show badges and current totals)
-      const confirmedRes = await fetch(`/api/v1/staff/advances/confirmed?month=${mm}&year=${yy}`, {
-        cache: "no-store",
-      });
-      const confirmedList = (await confirmedRes.json()) || [];
-
-      // Build map robustly: handle doc.staff being populated object OR raw id
-      const cMap = {};
-      confirmedList.forEach((doc) => {
-        const rawStaff = doc?.staff;
-        const staffId = rawStaff && typeof rawStaff === "object" ? rawStaff._id : rawStaff;
-        if (staffId) {
-          cMap[String(staffId)] = doc;
-        }
-      });
-      setConfirmedData(cMap);
-
-      // 3) init adjust rows from existing confirms (set type by sign; keep amount/note blank for DELTA input)
-      const initAdjust = {};
-      confirmedList.forEach((doc) => {
-        const rawStaff = doc?.staff;
-        const staffId = rawStaff && typeof rawStaff === "object" ? rawStaff._id : rawStaff;
-        if (!staffId) return;
-        const adj = Number(doc.ownerAdjustment) || 0;
-        initAdjust[String(staffId)] = {
-          type: adj < 0 ? "sub" : "add",
-          amount: "",
-          note: "",
-        };
-      });
-      setAdjustRows((prev) => ({ ...prev, ...initAdjust }));
-    } catch (err) {
-      console.error(err);
-      toast.error("Error loading data");
-    } finally {
-      setLoading(false);
+  const getDates = () => {
+    const list = [];
+    let d = new Date(startDate);
+    const end = new Date(endDate);
+    while (d <= end) {
+      list.push(d.toISOString().split("T")[0]);
+      d.setDate(d.getDate() + 1);
     }
+    return list;
   };
 
-  // Helpers
-  const getAdjFor = (staffId) => {
-    const key = String(staffId);
-    const row = adjustRows[key] || { type: "add", amount: "" };
-    const abs = Math.max(0, Number(row.amount) || 0);
-    return row.type === "sub" ? -abs : abs; // signed DELTA
+  const dates = getDates();
+
+  const earned = (r) => Math.round((r.salary / 30) * r.presentDays * 100) / 100;
+
+  const payable = (r) =>
+    Math.round(
+      (earned(r) - r.totalAdvance + r.ownerAdjust - r.previousCarryForward) *
+        100,
+    ) / 100;
+
+  const handlePay = async (row) => {
+    const pay = payable(row);
+
+    await fetch("/api/v1/salary/pay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        staff: row._id,
+        startDate,
+        endDate,
+        presentDays: row.presentDays,
+        earnedSalary: earned(row),
+        advances: row.totalAdvance,
+        ownerAdjust: row.ownerAdjust,
+        paidAmount: pay,
+      }),
+    });
+
+    toast.success(`${row.name} paid`);
+
+    setData((prev) =>
+      prev.map((r) => (r._id === row._id ? { ...r, paid: true } : r)),
+    );
   };
-
-  const previewConfirmed = (sys, signedAdj) => {
-    const base = Math.max(0, (Number(sys) || 0) + (Number(signedAdj) || 0));
-    return base;
-  };
-
-  // Confirm handler with optimistic update
-  const handleConfirm = async (staffId, systemAdvance) => {
-    const key = String(staffId);
-    const signedAdj = getAdjFor(key);
-    const sys = Number(systemAdvance) || 0;
-    const note = (adjustRows[key]?.note || "").trim();
-    const confirmed = previewConfirmed(sys, signedAdj);
-
-    const msg =
-      `Confirm this advance?\n\n` +
-      `System Advance:           ₹${sys.toLocaleString("en-IN")}\n` +
-      `Owner Adjustment (delta): ${signedAdj >= 0 ? "+" : ""}₹${Math.abs(signedAdj).toLocaleString("en-IN")}` +
-      (note ? `\nNote: ${note}` : "") +
-      `\n\nFinal:                    ₹${confirmed.toLocaleString("en-IN")}`;
-    if (!window.confirm(msg)) return;
-
-    const toastId = toast.loading("Saving confirmation...");
-    try {
-      const res = await fetch("/api/v1/staff/advances/confirmed/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          staffId,
-          month: Number(month),
-          year: Number(year),
-          systemCalculatedAdvance: sys,
-          ownerAdjustment: signedAdj, // DELTA; API does $inc
-          note,
-        }),
-      });
-      const result = await res.json();
-
-      if (res.ok && result.success) {
-        toast.success("Confirmed advance saved!", { id: toastId });
-
-        // Optimistic update: if backend returned the upserted record, use it
-        const rec = result.record || null;
-        if (rec) {
-          const rawStaff = rec?.staff;
-          const staffKey = rawStaff && typeof rawStaff === "object" ? rawStaff._id : rawStaff || staffId;
-          setConfirmedData((prev) => ({ ...prev, [String(staffKey)]: rec }));
-        } else {
-          // If backend didn't return record, refresh that staff entry by reloading data for accuracy
-          loadStaffWithAdvances(month, year);
-        }
-
-        // Clear delta & note inputs, keep type
-        setAdjustRows((prev) => ({
-          ...prev,
-          [key]: { ...(prev[key] || { type: "add" }), amount: "", note: "" },
-        }));
-      } else {
-        toast.error(result.message || "Failed to save", { id: toastId });
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error saving confirmation", { id: toastId });
-    }
-  };
-
-  // Filters
-  const handleFilter = () => {
-    if (!month || !year) {
-      toast.error("Please select both month and year");
-      return;
-    }
-    loadStaffWithAdvances(Number(month), Number(year));
-  };
-
-  const handleClear = () => {
-    const now = new Date();
-    const thisMonth = now.getMonth() + 1;
-    const thisYear = now.getFullYear();
-    setMonth(thisMonth);
-    setYear(thisYear);
-    loadStaffWithAdvances(thisMonth, thisYear);
-    toast.success("Reset to current month");
-  };
-
-  // Guards
-  if (status === "unauthenticated") {
-    return <p className="text-center mt-10">You must be logged in.</p>;
+  {
+    loading && (
+      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div className="bg-white px-6 py-4 rounded shadow text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
+          <p className="text-sm font-semibold text-black">
+            Loading salary data...
+          </p>
+        </div>
+      </div>
+    );
   }
-  if (status === "authenticated" && session?.user?.role !== "owner") {
-    return null;
-  }
+const money = (value) =>
+  Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
-    <div className="min-h-screen max-w-6xl mx-auto sm:mt-12 flex flex-col p-2 sm:p-4 border rounded overflow-y-auto pb-24">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4">👥 Staff Advances Summary</h1>
+    <div className="min-h-screen  lg:mt-20 h-auto p-2 bg-gray-100">
       <Toaster />
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div>
-          <label className="text-sm">Month:</label>
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            className="border p-1 rounded ml-2"
-          >
-            <option value="">--Select--</option>
-            {[...Array(12)].map((_, i) => (
-              <option key={i + 1} value={i + 1}>
-                {new Date(0, i).toLocaleString("default", { month: "long" })}
-              </option>
-            ))}
-          </select>
-        </div>
+      <h1 className="text-center text-black text-lg font-bold mb-2">
+        💰 Salary Settlement
+      </h1>
 
-        <div>
-          <label className="text-sm">Year:</label>
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            placeholder="e.g. 2025"
-            className="border p-1 rounded ml-2"
-          />
-        </div>
-
+      {/* FILTER */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-2">
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border text-black p-2 rounded w-full"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border text-black p-2 rounded w-full"
+        />
         <button
-          onClick={handleFilter}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          onClick={loadData}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
-          Apply Filter
-        </button>
-
-        <button
-          onClick={handleClear}
-          className="px-4 py-2 bg-gray-400 text-black rounded hover:bg-gray-500 text-sm"
-        >
-          Clear Filter
+          {loading ? "Loading..." : "Load Salary Data"}
         </button>
       </div>
 
-      {/* Info */}
-      <h2 className="text-lg mb-4 font-semibold">
-        Showing advances for:{" "}
-        {month && year ? `${new Date(year, month - 1).toLocaleString("default", { month: "long" })} ${year}` : "All time"}
-      </h2>
-
-      {/* Table */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full border border-collapse border-black text-xs sm:text-sm">
-          <thead className="bg-gray-400 text-black">
+      {/* TABLE */}
+      <div className="overflow-x-auto rounded shadow border  bg-white">
+        <table className="w-full text-xs border-collapse overflow-y-auto h-auto">
+          <thead className="bg-gray-900 text-white sticky top-0">
             <tr>
-              <th className="p-2 border">S.no</th>
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Designation</th>
-              <th className="p-2 border">System Advances</th>
-              <th className="p-2 border">Owner Adjustment (Delta)</th>
-              <th className="p-2 border">Confirmed Advance (Preview)</th>
-              <th className="p-2 border">Action</th>
+              <th className="border px-2 py-1 sticky left-0 bg-gray-900 z-20">
+                Name
+              </th>
+
+              {dates.map((d) => (
+                <th key={d} className="border px-2 py-1">
+                  {new Date(d).getDate()}
+                </th>
+              ))}
+              <th className="border px-2 py-1 ">Present</th>
+              <th className="border px-2 py-1">Adjust</th>
+              <th className="border px-2 py-1">Payable</th>
+              <th className="border px-2 py-1">Status</th>
             </tr>
           </thead>
+
           <tbody>
             {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="animate-pulse">
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} className="p-2 border">
-                      <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : staffData.length > 0 ? (
-              staffData.map((s, idx) => {
-                const key = String(s._id);
-                const existing = confirmedData[key];
-                const sys = Number(s.totalAdvance) || 0;
-
-                const row = adjustRows[key] || { type: "add", amount: "", note: "" };
-                const signedAdj = getAdjFor(key);
-                const preview = previewConfirmed(sys, signedAdj);
-                const currentOwnerAdj = Number(existing?.ownerAdjustment) || 0;
-                const confirmedAdvanceVal = Number(existing?.confirmedAdvance) || 0;
-
-                return (
-                  <tr key={key}>
-                    <td className="p-2 border text-center">{idx + 1}</td>
-                    <td className="p-2 border">{s.name}</td>
-                    <td className="p-2 border">{s.designation}</td>
-
-                    <td className="p-2 border text-right">₹ {sys.toLocaleString("en-IN")}</td>
-
-                    {/* Adjustment controls (DELTA + optional note) */}
-                    <td className="p-2 border">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="inline-flex rounded overflow-hidden border">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setAdjustRows((prev) => ({
-                                ...prev,
-                                [key]: { ...prev[key], type: "add", amount: prev[key]?.amount ?? "" },
-                              }))
-                            }
-                            className={`px-2 py-1 text-xs ${row.type === "add" ? "bg-green-600 text-white" : "bg-gray-200 text-black"}`}
-                          >
-                            + Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setAdjustRows((prev) => ({
-                                ...prev,
-                                [key]: { ...prev[key], type: "sub", amount: prev[key]?.amount ?? "" },
-                              }))
-                            }
-                            className={`px-2 py-1 text-xs ${row.type === "sub" ? "bg-red-600 text-white" : "bg-gray-200 text-black"}`}
-                          >
-                            − Reduce
-                          </button>
-                        </div>
-
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={row.amount}
-                          onChange={(e) =>
-                            setAdjustRows((prev) => ({
-                              ...prev,
-                              [key]: { ...prev[key], amount: e.target.value },
-                            }))
-                          }
-                          placeholder="e.g. 500"
-                          className="border p-1 w-24 rounded text-xs text-right"
-                        />
-
-                        <input
-                          type="text"
-                          value={row.note || ""}
-                          onChange={(e) =>
-                            setAdjustRows((prev) => ({
-                              ...prev,
-                              [key]: { ...prev[key], note: e.target.value },
-                            }))
-                          }
-                          placeholder="note (optional)"
-                          className="border p-1 w-28 rounded text-xs"
-                        />
-                      </div>
-
-                      <div className="text-[11px] text-gray-600 mt-1">
-                        Delta for this month (adds or reduces cumulatively).
-                        {!!existing && (
-                          <span className="ml-1">
-                            Current total: {currentOwnerAdj >= 0 ? "+" : "−"}₹{Math.abs(currentOwnerAdj).toLocaleString("en-IN")}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Confirmed value (prefer server canonical if present), plus preview for clarity */}
-                    <td className="p-2 border text-right">
-                      {existing ? (
-                        (() => {
-                          const canonical = Number(existing.confirmedAdvance) || 0;
-                          const previewNow = preview;
-                          if (canonical !== previewNow) {
-                            return (
-                              <div className="flex items-center justify-end gap-3">
-                                <div className="text-sm text-right">
-                                  <div>₹ {canonical.toLocaleString("en-IN")}</div>
-                                  <div className="text-xs text-gray-600">({`System: ₹${sys.toLocaleString("en-IN")}`})</div>
-                                </div>
-                                <span className="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">✅ Confirmed</span>
-                              </div>
-                            );
-                          } else {
-                            return (
-                              <div className="flex items-center justify-end gap-2">
-                                <div>₹ {canonical.toLocaleString("en-IN")}</div>
-                                <span className="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">✅ Confirmed</span>
-                              </div>
-                            );
-                          }
-                        })()
-                      ) : (
-                        <div>
-                          ₹ {preview.toLocaleString("en-IN")}
-                          {preview !== sys && (
-                            <div className="text-xs text-gray-600">({`System: ₹${sys.toLocaleString("en-IN")}`})</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="p-2 border text-center">
-                      <button
-                        onClick={() => handleConfirm(s._id, sys)}
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
-                      >
-                        {existing ? "Add/Update (Delta)" : "Confirm (Delta)"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
               <tr>
-                <td colSpan="7" className="text-center p-4 text-gray-500">
-                  No staff data.
+                <td colSpan={dates.length + 6} className="text-center p-4">
+                  Loading...
                 </td>
               </tr>
+            ) : (
+              data.map((row) => (
+                <tr key={row._id} className="hover:bg-gray-100">
+                  <td className="border px-2 py-1 text-black font-medium text-left sticky left-0 bg-white z-10 max-w-[120px] truncate">
+                    {row.name}
+                  </td>
+
+                  {dates.map((d) => {
+                    const list = row.advancesByDate[d] || [];
+                    const total = list.reduce((s, v) => s + v, 0);
+                    return (
+                      <td
+                        key={d}
+                        className="border px-2 py-1 text-center text-black cursor-pointer"
+                        onClick={() =>
+                          list.length && setAdvancePopup({ date: d, list })
+                        }
+                      >
+                        {total ? `₹${total}` : "-"}
+                      </td>
+                    );
+                  })}
+
+                  <td className="border px-2 text-black py-1 text-center">
+                    {row.presentDays}
+                  </td>
+
+                  <td className="border px-2 py-1 text-center">
+                    <button
+                      disabled={row.paid}
+                      onClick={() => {
+                        setAdjustRow(row);
+                        setAdjustValue(row.ownerAdjust);
+                      }}
+                      className="bg-yellow-500 text-black px-2 py-1 rounded text-xs"
+                    >
+                      Adjust
+                    </button>
+                  </td>
+
+                  <td
+                    className={`border px-2 py-1 text-center font-bold ${
+                      payable(row) >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    ₹{payable(row).toFixed(0)}
+                  </td>
+
+                  <td className="border px-2 py-1 text-center">
+                    {row.paid ? (
+                      <span className="text-green-700 font-bold">PAID</span>
+                    ) : (
+                      <button
+                        onClick={() => setPayConfirmRow(row)}
+                        className="bg-green-600 text-white px-3 py-1 rounded text-xs"
+                      >
+                        PAY
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* ADJUST POPUP */}
+     {adjustRow && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-white p-5 rounded-xl w-80 shadow-2xl text-black">
+      <h2 className="font-bold text-lg mb-2">Owner Adjustment</h2>
+
+      <p className="text-xs text-gray-600 mb-3">
+        Payable = Earned - Advance + Adjust - CarryForward
+      </p>
+
+      <input
+        type="number"
+        value={adjustValue}
+        onChange={(e) => setAdjustValue(e.target.value)}
+        className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+        autoFocus
+      />
+
+      <div className="flex justify-between mt-4">
+        <button
+          onClick={() => setAdjustRow(null)}
+          className="px-4 py-1 border rounded-md hover:bg-gray-100"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => {
+            setData((prev) =>
+              prev.map((r) =>
+                r._id === adjustRow._id
+                  ? { ...r, ownerAdjust: Number(adjustValue) || 0 }
+                  : r
+              )
+            );
+            setAdjustRow(null);
+          }}
+          className="bg-green-600 text-white px-4 py-1 rounded-md hover:bg-green-700"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+      {/* ADVANCE POPUP */}
+      {advancePopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white p-4 rounded w-72 shadow">
+            <h2 className="font-bold mb-2">Advances on {advancePopup.date}</h2>
+            {advancePopup.list.map((a, i) => (
+              <div key={i}>₹{a}</div>
+            ))}
+            <button
+              onClick={() => setAdvancePopup(null)}
+              className="mt-3 bg-blue-600 text-white px-3 py-1 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PAY CONFIRM POPUP */}
+      {payConfirmRow && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded w-80 shadow text-black">
+            <h2 className="font-bold text-lg mb-2">Confirm Payment</h2>
+
+            <div className="text-sm space-y-1">
+              <div>Earned Salary: ₹{earned(payConfirmRow).toFixed(0)}</div>
+              <div>Total Advance: ₹{payConfirmRow.totalAdvance}</div>
+              <div>Owner Adjust: ₹{payConfirmRow.ownerAdjust}</div>
+              <div>Carry Forward: ₹{money(payConfirmRow.previousCarryForward)}</div>
+              <hr />
+              <div className="font-bold text-green-600">
+                Payable: ₹{payable(payConfirmRow).toFixed(0)}
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setPayConfirmRow(null)}
+                className="border px-3 py-1 rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={async () => {
+                  await handlePay(payConfirmRow);
+                  setPayConfirmRow(null);
+                }}
+                className="bg-green-600 text-white px-4 py-1 rounded"
+              >
+                Confirm Pay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {loading && (
+  <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+    <div className="bg-white px-6 py-4 rounded shadow text-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
+      <p className="text-sm font-semibold text-black">
+        Loading salary data...
+      </p>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

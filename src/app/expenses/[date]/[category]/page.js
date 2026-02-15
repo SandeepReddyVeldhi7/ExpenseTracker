@@ -29,7 +29,7 @@ export default function CategoryPage() {
   );
 }
 
-// ✅ Actual page logic here
+//  Actual page logic here
 function CategoryPageContent({ date, category }) {
   const router = useRouter();
   const [previousCarryLoss, setPreviousCarryLoss] = useState(0);
@@ -140,7 +140,7 @@ const [ocrLoading, setOcrLoading] = useState(false);
           const raw = localStorage.getItem(localKey);
           if (raw) {
             const data = JSON.parse(raw);
-        
+      
             const items = data.items || [];
             const addons = (data.dropdownInputs || []).map((a) => ({
               name: a.value,
@@ -246,10 +246,13 @@ const [ocrLoading, setOcrLoading] = useState(false);
         );
        
         const tea = drinks.find((d) => d.drinkType === "tea");
+       
         const juice = drinks.find((d) => d.drinkType === "juice");
-
+  
         const totalDrinksAmount =
-          (tea?.finalNetAmount || 0) + (juice?.finalNetAmount || 0);
+  Math.max(0, tea?.finalNetAmount || 0) +
+  Math.max(0, juice?.finalNetAmount || 0);
+
 
         const totalCashersSale = cashers.reduce(
           (s, c) => s + (c.

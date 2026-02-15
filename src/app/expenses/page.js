@@ -7,16 +7,18 @@ import { FaRegCalendarAlt } from "react-icons/fa";
 import "react-datepicker/dist/react-datepicker.css";
 
 export default function ExpensesHome() {
+
   const [selectedDate, setSelectedDate] = useState(null);
   const router = useRouter();
   const [submittedDates, setSubmittedDates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const handleNext = () => {
-    if (selectedDate) {
+     if (!selectedDate || submitLoading) return;
+     setSubmitLoading(true);
       const formatted = selectedDate.toLocaleDateString("en-CA");
-
       router.push(`/expenses/${formatted}`);
-    }
+    
   };
   useEffect(() => {
     const fetchSubmittedDates = async () => {
@@ -58,15 +60,15 @@ export default function ExpensesHome() {
 
         <button
           onClick={handleNext}
-          disabled={!selectedDate}
+          disabled={!selectedDate || submitLoading}
           className={`w-full py-3 rounded-xl text-white font-semibold transition 
             ${
-              selectedDate
+              selectedDate && !submitLoading
                 ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-gray-400 cursor-not-allowed"
             }`}
         >
-          Continue
+      {submitLoading ? "Loading..." : "Next"}
         </button>
       </div>
     </div>
