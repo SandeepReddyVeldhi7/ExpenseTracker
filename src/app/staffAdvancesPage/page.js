@@ -51,10 +51,10 @@ export default function SalaryPage() {
     return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
   };
 
-  const earned = (r) => {
-    const daysInMonth = getDaysInMonth(startDate);
-    return Math.round((r.salary / daysInMonth) * r.presentDays * 100) / 100;
-  };
+ const earned = (r) => {
+  const perDaySalary = r.salary / 30;
+  return Math.round(perDaySalary * r.presentDays * 100) / 100;
+};
 
   const payable = (r) =>
     Math.round(
