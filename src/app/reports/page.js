@@ -273,6 +273,18 @@ export default function ReportsPage() {
     0,
   );
 
+  const totalJuiceExpensive = selectedExpense?.cashers?.reduce(
+    (sum, c) =>
+      sum +
+      (c.addons?.reduce(
+        (innerSum, a) =>
+          innerSum +
+          (a.name?.toLowerCase() === "juice" ? parseFloat(a.price) || 0 : 0),
+        0,
+      ) || 0),
+    0,
+  );
+
   const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
     const onlineAddon = c.addons?.find(
       (a) => a.name?.toLowerCase() === "online",
@@ -498,7 +510,7 @@ export default function ReportsPage() {
                     </>
                   )}
 
-                  <div className="mt-2 text-sm">
+                  <div className="mt-2 font-bold  p-2   text-sm">
                     <p>
                       Total Cashers(expenses) Amount:{" "}
                       {formatINR(c.totalCashersAmount)}
@@ -549,6 +561,9 @@ export default function ReportsPage() {
                     <p>Total Tea Expensive: ₹{totalTeaExpensive}</p>
                   )}
 
+                  {d.drinkType.toLowerCase() === "juice" && (
+                    <p>Total Juice Expensive: ₹{totalJuiceExpensive}</p>
+                  )}
                   <p>
                     Final Net (as saved): {formatINR(d.finalNetAmount || 0)}
                   </p>
