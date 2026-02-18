@@ -46,8 +46,15 @@ export default function SalaryPage() {
   };
 
   const dates = getDates();
+  const getDaysInMonth = (dateStr) => {
+    const d = new Date(dateStr);
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  };
 
-  const earned = (r) => Math.round((r.salary / 30) * r.presentDays * 100) / 100;
+  const earned = (r) => {
+    const daysInMonth = getDaysInMonth(startDate);
+    return Math.round((r.salary / daysInMonth) * r.presentDays * 100) / 100;
+  };
 
   const payable = (r) =>
     Math.round(
@@ -91,11 +98,11 @@ export default function SalaryPage() {
       </div>
     );
   }
-const money = (value) =>
-  Number(value || 0).toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const money = (value) =>
+    Number(value || 0).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   return (
     <div className="min-h-screen  lg:mt-20 h-auto p-2 bg-gray-100">
@@ -142,7 +149,10 @@ const money = (value) =>
                   {new Date(d).getDate()}
                 </th>
               ))}
+
               <th className="border px-2 py-1 ">Present</th>
+              <th className="border px-2 py-1">Total Advance</th>
+              <th className="border px-2 py-1">Earned Salary</th>
               <th className="border px-2 py-1">Adjust</th>
               <th className="border px-2 py-1">Payable</th>
               <th className="border px-2 py-1">Status</th>
@@ -182,7 +192,13 @@ const money = (value) =>
                   <td className="border px-2 text-black py-1 text-center">
                     {row.presentDays}
                   </td>
-
+                  <td className="border px-2 py-1 text-center text-red-600 font-semibold">
+                    ₹{row.totalAdvance || 0}
+                  </td>
+                  {/* EARNED SALARY = presentDays * salary */}
+                  <td className="border px-2 py-1 text-center text-blue-700 font-semibold">
+                    ₹{earned(row).toFixed(0)}
+                  </td>
                   <td className="border px-2 py-1 text-center">
                     <button
                       disabled={row.paid}
@@ -224,51 +240,50 @@ const money = (value) =>
       </div>
 
       {/* ADJUST POPUP */}
-     {adjustRow && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-white p-5 rounded-xl w-80 shadow-2xl text-black">
-      <h2 className="font-bold text-lg mb-2">Owner Adjustment</h2>
+      {adjustRow && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-5 rounded-xl w-80 shadow-2xl text-black">
+            <h2 className="font-bold text-lg mb-2">Owner Adjustment</h2>
 
-      <p className="text-xs text-gray-600 mb-3">
-        Payable = Earned - Advance + Adjust - CarryForward
-      </p>
+            <p className="text-xs text-gray-600 mb-3">
+              Payable = Earned - Advance + Adjust - CarryForward
+            </p>
 
-      <input
-        type="number"
-        value={adjustValue}
-        onChange={(e) => setAdjustValue(e.target.value)}
-        className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        autoFocus
-      />
+            <input
+              type="number"
+              value={adjustValue}
+              onChange={(e) => setAdjustValue(e.target.value)}
+              className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+              autoFocus
+            />
 
-      <div className="flex justify-between mt-4">
-        <button
-          onClick={() => setAdjustRow(null)}
-          className="px-4 py-1 border rounded-md hover:bg-gray-100"
-        >
-          Cancel
-        </button>
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setAdjustRow(null)}
+                className="px-4 py-1 border rounded-md hover:bg-gray-100"
+              >
+                Cancel
+              </button>
 
-        <button
-          onClick={() => {
-            setData((prev) =>
-              prev.map((r) =>
-                r._id === adjustRow._id
-                  ? { ...r, ownerAdjust: Number(adjustValue) || 0 }
-                  : r
-              )
-            );
-            setAdjustRow(null);
-          }}
-          className="bg-green-600 text-white px-4 py-1 rounded-md hover:bg-green-700"
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+              <button
+                onClick={() => {
+                  setData((prev) =>
+                    prev.map((r) =>
+                      r._id === adjustRow._id
+                        ? { ...r, ownerAdjust: Number(adjustValue) || 0 }
+                        : r,
+                    ),
+                  );
+                  setAdjustRow(null);
+                }}
+                className="bg-green-600 text-white px-4 py-1 rounded-md hover:bg-green-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ADVANCE POPUP */}
       {advancePopup && (
@@ -298,7 +313,9 @@ const money = (value) =>
               <div>Earned Salary: ₹{earned(payConfirmRow).toFixed(0)}</div>
               <div>Total Advance: ₹{payConfirmRow.totalAdvance}</div>
               <div>Owner Adjust: ₹{payConfirmRow.ownerAdjust}</div>
-              <div>Carry Forward: ₹{money(payConfirmRow.previousCarryForward)}</div>
+              <div>
+                Carry Forward: ₹{money(payConfirmRow.previousCarryForward)}
+              </div>
               <hr />
               <div className="font-bold text-green-600">
                 Payable: ₹{payable(payConfirmRow).toFixed(0)}
@@ -327,16 +344,15 @@ const money = (value) =>
         </div>
       )}
       {loading && (
-  <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-    <div className="bg-white px-6 py-4 rounded shadow text-center">
-      <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
-      <p className="text-sm font-semibold text-black">
-        Loading salary data...
-      </p>
-    </div>
-  </div>
-)}
-
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white px-6 py-4 rounded shadow text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
+            <p className="text-sm font-semibold text-black">
+              Loading salary data...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

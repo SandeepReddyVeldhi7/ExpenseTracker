@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Tooltip } from "react-tooltip";
 
-
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
@@ -16,12 +15,14 @@ const poppins = Poppins({
 export default function ReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [totalRemaining, setTotalRemaining] = useState(0);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
+  const [showTotal, setShowTotal] = useState(false);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
@@ -38,22 +39,25 @@ export default function ReportsPage() {
 
       const res = await fetch(url);
 
-if (!res.ok) {
-  throw new Error(`Server error: ${res.status}`);
-}
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
 
-const text = await res.text();
+      const text = await res.text();
 
-if (!text) {
-  throw new Error("Empty response from server");
-}
+      if (!text) {
+        throw new Error("Empty response from server");
+      }
 
-const data = JSON.parse(text);
-
-setExpenses(data.expenses || []);
+      const data = JSON.parse(text);
 
       setExpenses(data.expenses || []);
-      
+
+      const total = (data.expenses || []).reduce(
+        (sum, item) => sum + (parseFloat(item.payout) || 0),
+        0,
+      );
+      setTotalRemaining(total);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load reports");
@@ -182,70 +186,62 @@ setExpenses(data.expenses || []);
       cell: (row) => `${formatINR(row.payout?.toFixed(2))}`,
     },
     {
-  name: "Online Amount",
-  sortable: true,
-  cell: (row) => {
-    const onlineDetails = row.cashers?.map((c) => {
-      const onlineAddon = c.addons?.find(
-        (a) => a.name?.toLowerCase() === "online"
-      );
-      return {
-        name: c.casherName,
-        amount: parseFloat(onlineAddon?.price) || 0,
-      };
-    }) || [];
+      name: "Online Amount",
+      sortable: true,
+      cell: (row) => {
+        const onlineDetails =
+          row.cashers?.map((c) => {
+            const onlineAddon = c.addons?.find(
+              (a) => a.name?.toLowerCase() === "online",
+            );
+            return {
+              name: c.casherName,
+              amount: parseFloat(onlineAddon?.price) || 0,
+            };
+          }) || [];
 
-    const totalOnline = onlineDetails.reduce(
-      (sum, c) => sum + c.amount,
-      0
-    );
+        const totalOnline = onlineDetails.reduce((sum, c) => sum + c.amount, 0);
 
-    const tooltipText = onlineDetails
-      .map((c) => `${c.name}: ₹${c.amount}`)
-      .join(" | ");
+        const tooltipText = onlineDetails
+          .map((c) => `${c.name}: ₹${c.amount}`)
+          .join(" | ");
 
-    return (
-      <div
-  data-tooltip-id="global-tooltip"
-  data-tooltip-content={tooltipText}
->
+        return (
+          <div
+            data-tooltip-id="global-tooltip"
+            data-tooltip-content={tooltipText}
+          >
+            {totalOnline ? formatINR(totalOnline) : "—"}
+          </div>
+        );
+      },
+    },
+    {
+      name: "Total Shot",
+      sortable: true,
+      cell: (row) => {
+        const shotDetails =
+          row.cashers?.map((c) => ({
+            name: c.casherName,
+            shot: parseFloat(c.shot) || 0,
+          })) || [];
 
-        {totalOnline ? formatINR(totalOnline) : "—"}
-      </div>
-    );
-  },
-}
-,
-   {
-  name: "Total Shot",
-  sortable: true,
-  cell: (row) => {
-    const shotDetails = row.cashers?.map((c) => ({
-      name: c.casherName,
-      shot: parseFloat(c.shot) || 0,
-    })) || [];
+        const totalShot = shotDetails.reduce((sum, c) => sum + c.shot, 0);
 
-    const totalShot = shotDetails.reduce(
-      (sum, c) => sum + c.shot,
-      0
-    );
+        const tooltipText = shotDetails
+          .map((c) => `${c.name}: ${c.shot}`)
+          .join(" | ");
 
-    const tooltipText = shotDetails
-      .map((c) => `${c.name}: ${c.shot}`)
-      .join(" | ");
-
-    return (
-<div
-  data-tooltip-id="global-tooltip"
-  data-tooltip-content={tooltipText}
->
-
-        {totalShot || "—"}
-      </div>
-    );
-  },
-}
-,
+        return (
+          <div
+            data-tooltip-id="global-tooltip"
+            data-tooltip-content={tooltipText}
+          >
+            {totalShot || "—"}
+          </div>
+        );
+      },
+    },
 
     {
       name: "Actions",
@@ -259,7 +255,6 @@ setExpenses(data.expenses || []);
       ),
     },
   ];
-
 
   // Totals for modal
   const totalCashersAmount = selectedExpense?.cashers?.reduce(
@@ -326,6 +321,32 @@ setExpenses(data.expenses || []);
           {loading ? "Loading..." : "🔍 Get Reports"}
         </button>
 
+        {startDate && endDate && (
+          <button
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+              fetchReports();
+            }}
+            className="w-full bg-red-500 text-white p-3 rounded font-bold hover:opacity-90 mb-4 transition"
+          >
+            ❌ Clear Filters
+          </button>
+        )}
+
+        <button
+          onClick={() => setShowTotal(!showTotal)}
+          className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded font-semibold hover:opacity-90 w-full transition"
+        >
+          {showTotal ? "🙈 Hide Total" : "👀 Show Total"}
+        </button>
+
+        {showTotal && (
+          <div className="mb-4 text-center text-white text-lg font-bold bg-white/10 p-3 rounded">
+            💰 Total Remaining / Payout: {formatINR(totalRemaining)}
+          </div>
+        )}
+
         {/* DataTable */}
         {expenses.length > 0 ? (
           <>
@@ -355,9 +376,7 @@ setExpenses(data.expenses || []);
                 },
               }}
             />
-<Tooltip id="global-tooltip" place="top" />
-
-
+            <Tooltip id="global-tooltip" place="top" />
           </>
         ) : (
           <p className="text-center text-white/70">
@@ -408,7 +427,7 @@ setExpenses(data.expenses || []);
                 {formatINR(totalCashersAmount?.toFixed(2))}
               </p>
 
-              <p className="bg-gray-200 p-2 rounded">
+              <p className="bg-red-500 p-2 rounded">
                 <strong>Remaining / Payout:</strong>{" "}
                 {formatINR(selectedExpense?.payout?.toFixed(2))}
               </p>
@@ -512,7 +531,7 @@ setExpenses(data.expenses || []);
               selectedExpense.drinks.map((d, idx) => (
                 <div
                   key={idx}
-                  className="mb-4 p-3 border border-gray-300 rounded"
+                  className="mb-4 p-3 border border-gray-300 bg-[gray] rounded"
                 >
                   <p className="font-semibold text-lg">
                     {d.drinkType.toUpperCase()}

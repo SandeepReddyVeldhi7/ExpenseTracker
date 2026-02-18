@@ -24,7 +24,7 @@ const[submitLoading, setSubmitLoading] = useState(false);
 }, [status, session, router]);
 
    
-     // ⏳ Loading skeleton
+     //  Loading skeleton
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
@@ -41,7 +41,7 @@ const[submitLoading, setSubmitLoading] = useState(false);
     );
   }
    
-     if (status === "unauthenticated") {
+    if (status === "unauthenticated") {
        return <p className="text-center mt-10">You must be logged in.</p>;
      }
    
@@ -49,9 +49,6 @@ const[submitLoading, setSubmitLoading] = useState(false);
   return null;
 }
 
-  
-
-  
   const designationOptions = [
     { value: 'Waiter', label: 'Waiter' },
     { value: 'Cook', label: 'Cook' },
@@ -231,5 +228,4 @@ setSubmitLoading(true);
     </div>
   </div>
 )
-
 }

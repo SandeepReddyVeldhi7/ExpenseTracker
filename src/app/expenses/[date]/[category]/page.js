@@ -801,7 +801,7 @@ const handleFinalSubmit = async () => {
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
       <Toaster />
-      <div className=" min-h-screen  overflow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
+      <div className=" min-h-screen lg:mt-14  overflow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
         <div className="w-full   relative max-w-2xl bg-white/30 backdrop-blur-md rounded-xl p-6 shadow-lg">
           <button
             onClick={() => router.back()}
@@ -922,15 +922,7 @@ const handleFinalSubmit = async () => {
   )}
 </div> */}
 
-
-              <button
-                onClick={addDropdownInput}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mb-4"
-              >
-                ➕ Add Tea, Juice, Other
-              </button>
-
-              {dropdownInputs.map((input) => (
+  {dropdownInputs.map((input) => (
                 <div key={input.id} className="flex items-center gap-2 mb-4">
                   <select
                     value={input.value}
@@ -963,15 +955,14 @@ const handleFinalSubmit = async () => {
                 </div>
               ))}
 
-              {/* Staff Advance */}
               <button
-                onClick={addStaffAdvance}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mb-4"
+                onClick={addDropdownInput}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mb-4"
               >
-                ➕ Add Staff Advance
+                ➕ Add Tea, Juice, Other
               </button>
 
-              {staffAdvances.map((entry) => (
+                {staffAdvances.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-2 mb-4">
                   <select
                     value={entry.staffId}
@@ -1004,6 +995,16 @@ const handleFinalSubmit = async () => {
                   </button>
                 </div>
               ))}
+
+              {/* Staff Advance */}
+              <button
+                onClick={addStaffAdvance}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:opacity-90 font-semibold transition w-full mb-4"
+              >
+                ➕ Add Staff Advance
+              </button>
+
+          
 
               <label className="block mb-1 text-white">Total Sale</label>
               <input
@@ -1146,7 +1147,7 @@ const handleFinalSubmit = async () => {
                       </strong>{" "}
                       {formatINR(totalDetails?.totalCashersAmount?.toFixed(2))}
                     </p>
-                    <p className="bg-[white] text-black">
+                    <p className="bg-[red] text-center w-full text-black">
                       <strong>Remaining / Payout:</strong>
                       {formatINR((totalDetails?.payout || 0).toFixed(2))}
                     </p>
@@ -1172,7 +1173,7 @@ const handleFinalSubmit = async () => {
                           {/* Main items */}
                           {c.items.length > 0 && (
                             <>
-                              <p className="underline text-sm">Main Items:</p>
+                              <p className="underline font-bold  mb-2 text-sm">Main Items:</p>
                               <ul className="ml-4 list-disc">
                                 {c.items.map((item, i) => (
                                   <li key={i}>
@@ -1186,7 +1187,7 @@ const handleFinalSubmit = async () => {
                           {/* Addons */}
                           {c.addons.length > 0 && (
                             <>
-                              <p className="underline text-sm mt-2">
+                              <p className="underline font-bold  text-sm mt-2">
                                 Addons (Tea/Juice/Other):
                               </p>
                               <ul className="ml-4 list-disc">
@@ -1200,18 +1201,18 @@ const handleFinalSubmit = async () => {
                           )}
 
                           {/* Cashier totals */}
-                          <div className="mt-2 text-sm">
-                            <p>
+                          <div className="mt-2 ">
+                            <p className="font-bold ">
                               Total Cashers (expenses) Amount:
                               {formatINR(c.totalCashersAmount)}
                             </p>
-                            <p>Total Sale: {formatINR(c.totalSealAmount)}</p>
-                            <p>Money Lift: {formatINR(c.totalMoneyLift)}</p>
-                            <p>Shot: {formatINR(c.shot)}</p>
+                            <p className="font-bold ">Total Sale: {formatINR(c.totalSealAmount)}</p>
+                            <p className="font-bold ">Money Lift: {formatINR(c.totalMoneyLift)}</p>
+                            <p className="font-bold ">Shot: {formatINR(c.shot)}</p>
                           </div>
                           {c.staffAdvances && c.staffAdvances.length > 0 && (
                             <>
-                              <p className="underline text-sm mt-2">
+                              <p className="underline font-bold text-sm mt-3">
                                 Staff Advances:
                               </p>
                               <ul className="ml-4 list-disc">
@@ -1238,7 +1239,7 @@ const handleFinalSubmit = async () => {
                       totalDetails.drinks.map((d, idx) => (
                        
 
-                        <div className="bg-black/40 p-4 rounded text-white space-y-2">
+                        <div className="bg-[gray] mb-2 p-4 rounded text-white space-y-2">
                           <p className="font-medium text-lg">
                             {d.drinkType.toUpperCase()}
                           </p>

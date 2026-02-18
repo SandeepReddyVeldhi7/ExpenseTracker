@@ -25,13 +25,11 @@ export default function ResponsiveNav() {
   const avatarSrc =
     session?.user?.image || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-  // ✅ FIX: track which dropdown is open by index
-  const [openDropdown, setOpenDropdown] = useState(null); // number | null
+  const [openDropdown, setOpenDropdown] = useState(null); 
 
-  // ✅ Mobile: track which group sheet is open by index
-  const [mobileSheetFor, setMobileSheetFor] = useState(null); // number | null
+  const [mobileSheetFor, setMobileSheetFor] = useState(null); 
 
-  // role detection (session first, fallback to localStorage)
+
   let role =
     session?.user?.role ||
     (typeof window !== "undefined" ? localStorage.getItem("userRole") : "");
@@ -42,9 +40,7 @@ export default function ResponsiveNav() {
     }
   }, [session]);
 
-  // =========================
-  // NAV DEFINITIONS
-  // =========================
+ 
 
   const ownerNavItems = [
     {
@@ -95,7 +91,7 @@ export default function ResponsiveNav() {
   return (
     <>
       {/* Desktop Nav */}
-      <nav className="hidden md:flex justify-between items-center bg-white px-6 py-4 shadow fixed top-0 left-0 right-0 z-50">
+      <nav className="hidden md:flex justify-between items-center bg-white text-black px-6 py-4 shadow fixed top-0 left-0 right-0 z-50">
         <div className="text-xl font-bold text-blue-600"></div>
         <div className="flex space-x-8 items-center">
           {navItems.map((item, idx) =>
