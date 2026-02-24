@@ -69,10 +69,10 @@ export default async function handler(req, res) {
       0
     );
 
-    const totalDrinksAmount = updatedDrinks.reduce(
-      (sum, d) => sum + (d.finalNetAmount || 0),
-      0
-    );
+   const totalDrinksAmount = updatedDrinks.reduce(
+  (sum, d) => sum + Math.max(0, d.finalNetAmount || 0),
+  0
+);
 
     const totalCashersSale = data.cashers.reduce(
       (sum, c) => sum + (parseFloat(c.totalSealAmount) || 0),

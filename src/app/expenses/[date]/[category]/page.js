@@ -11,11 +11,9 @@ const poppins = Poppins({
   weight: ["400", "500", "600"],
 });
 
-
 const isCasher = (cat) => ["casher1", "casher2", "casher3"].includes(cat);
 const isDrink = (cat) => cat === "tea" || cat === "juice";
 const isTotalDetails = (cat) => cat === "totalDetails";
-
 
 export default function CategoryPage() {
   const router = useRouter();
@@ -41,7 +39,7 @@ function CategoryPageContent({ date, category }) {
   const [savedFinalNetAmount, setSavedFinalNetAmount] = useState(0);
   const [dropdownInputs, setDropdownInputs] = useState([]);
   const [showUploadGuide, setShowUploadGuide] = useState(false);
-const fileInputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [staffAdvances, setStaffAdvances] = useState([]);
   const [drinkTotal, setDrinkTotal] = useState(0);
   const [commission, setCommission] = useState("");
@@ -50,10 +48,9 @@ const fileInputRef = useRef(null);
   const [moneyLift, setMoneyLift] = useState("");
   const [loading, setLoading] = useState(true);
   const localKey = `expense-form-${date}-${category}`;
-const [ocrImage, setOcrImage] = useState(null);
-const [ocrLines, setOcrLines] = useState([]);
-const [ocrLoading, setOcrLoading] = useState(false);
-
+  const [ocrImage, setOcrImage] = useState(null);
+  const [ocrLines, setOcrLines] = useState([]);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   const saveToLocalStorage = (newFields = {}) => {
     // Always merge possible new changes
@@ -66,15 +63,15 @@ const [ocrLoading, setOcrLoading] = useState(false);
 
     const itemsTotal = localItems.reduce(
       (sum, i) => sum + (parseFloat(i.price) || 0),
-      0
+      0,
     );
     const dropdownTotal = localDropdownInputs.reduce(
       (sum, d) => sum + (parseFloat(d.price) || 0),
-      0
+      0,
     );
     const staffAdvanceTotal = localStaffAdvances.reduce(
       (sum, s) => sum + (parseFloat(s.amount) || 0),
-      0
+      0,
     );
     const total = itemsTotal + dropdownTotal + staffAdvanceTotal;
 
@@ -127,7 +124,6 @@ const [ocrLoading, setOcrLoading] = useState(false);
     const buildLiveSummary = async () => {
       setLoading(true);
       try {
-      
         const res = await fetch(`/api/v1/expense/get-by-date?date=${date}`);
         const backend = res.ok ? await res.json() : { cashers: [], drinks: [] };
 
@@ -140,7 +136,7 @@ const [ocrLoading, setOcrLoading] = useState(false);
           const raw = localStorage.getItem(localKey);
           if (raw) {
             const data = JSON.parse(raw);
-      
+
             const items = data.items || [];
             const addons = (data.dropdownInputs || []).map((a) => ({
               name: a.value,
@@ -150,15 +146,15 @@ const [ocrLoading, setOcrLoading] = useState(false);
 
             const totalItems = items.reduce(
               (sum, i) => sum + (parseFloat(i.price) || 0),
-              0
+              0,
             );
             const totalAddons = addons.reduce(
               (sum, i) => sum + (parseFloat(i.price) || 0),
-              0
+              0,
             );
             const totalAdvances = advances.reduce(
               (sum, i) => sum + (parseFloat(i.amount) || 0),
-              0
+              0,
             );
             const totalExpenses = totalItems + totalAddons + totalAdvances;
 
@@ -178,7 +174,7 @@ const [ocrLoading, setOcrLoading] = useState(false);
             };
 
             const index = cashers.findIndex(
-              (c) => c.casherName === casherData.casherName
+              (c) => c.casherName === casherData.casherName,
             );
             if (index >= 0) {
               cashers[index] = casherData;
@@ -188,7 +184,6 @@ const [ocrLoading, setOcrLoading] = useState(false);
           }
         });
 
-      
         // ✅ Step 3) Calculate drinkTotals from cashers
         const drinkTotals = { tea: 0, juice: 0 };
         cashers.forEach((c) => {
@@ -242,29 +237,27 @@ const [ocrLoading, setOcrLoading] = useState(false);
         // ✅ 4) Totals
         const totalCashersAmount = cashers.reduce(
           (s, c) => s + (c.totalCashersAmount || 0),
-          0
+          0,
         );
-       
+
         const tea = drinks.find((d) => d.drinkType === "tea");
-       
+
         const juice = drinks.find((d) => d.drinkType === "juice");
-  
+
         const totalDrinksAmount =
-  Math.max(0, tea?.finalNetAmount || 0) +
-  Math.max(0, juice?.finalNetAmount || 0);
-
-
+          Math.max(0, tea?.finalNetAmount || 0) +
+          Math.max(0, juice?.finalNetAmount || 0);
+console.log("totalDrinksAmount", totalDrinksAmount, tea, juice);
         const totalCashersSale = cashers.reduce(
-          (s, c) => s + (c.
-totalSealAmount || 0),
-          0
+          (s, c) => s + (c.totalSealAmount || 0),
+          0,
         );
-       
+
         const totalShot = cashers.reduce(
           (sum, c) => sum + (parseFloat(c.shot) || 0),
-          0
+          0,
         );
-        
+
         //  Add totalOnlineSale here
         const totalOnlineSale = cashers.reduce((sum, c) => {
           const onlineTotal = c.addons
@@ -279,11 +272,10 @@ totalSealAmount || 0),
           return s + teaJuice;
         }, 0);
 
-      
         const totalCashersExpensesExclTeaJuice = cashers.reduce((s, c) => {
           const items = c.items.reduce(
             (sum, i) => sum + (parseFloat(i.price) || 0),
-            0
+            0,
           );
           const otherAddons = c.addons
             .filter((a) => a.name !== "tea" && a.name !== "juice")
@@ -291,12 +283,11 @@ totalSealAmount || 0),
           const advances = c.staffAdvances
             ? c.staffAdvances.reduce(
                 (sum, a) => sum + (parseFloat(a.amount) || 0),
-                0
+                0,
               )
             : 0;
           return s + items + otherAddons + advances;
         }, 0);
-       
 
         const totalBusiness = totalCashersSale + totalDrinksAmount;
         const payout = parseFloat(
@@ -305,7 +296,7 @@ totalSealAmount || 0),
             Math.max(0, totalDrinksAmount) -
             totalCashersAmount -
             totalShot
-          ).toFixed(2)
+          ).toFixed(2),
         );
 
         // ✅ 5) Save all to state
@@ -341,7 +332,7 @@ totalSealAmount || 0),
     const saved = localStorage.getItem(localKey);
     if (saved) {
       const parsed = JSON.parse(saved);
-    
+
       setCasherName(parsed.casherName || "");
       setItems(parsed.items || [{ id: 1, name: "", price: "" }]);
       setDropdownInputs(parsed.dropdownInputs || []);
@@ -353,126 +344,116 @@ totalSealAmount || 0),
     }
   }, [localKey, router.asPath]);
 
+  // ✅ Flexible line parser for OCR
+  function parseAmountLine(line) {
+    // Normalize separators like = /- ₹ :
+    line = line
+      .replace(/[₹=:/-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
+    if (!line) return null;
 
+    const parts = line.split(" ");
+    if (parts.length < 2) return null;
 
- // ✅ Flexible line parser for OCR
-function parseAmountLine(line) {
-  // Normalize separators like = /- ₹ :
-  line = line
-    .replace(/[₹=:/-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    const amount = parseFloat(parts[parts.length - 1]);
+    if (isNaN(amount)) return null;
 
-  if (!line) return null;
+    const name = parts.slice(0, -1).join(" ").trim();
+    if (!name) return null;
 
-  const parts = line.split(" ");
-  if (parts.length < 2) return null;
+    return { name, amount };
+  }
 
-  const amount = parseFloat(parts[parts.length - 1]);
-  if (isNaN(amount)) return null;
+  // ✅ OCR lines parser using above
+  function parseOcrLines(lines) {
+    let mode = "";
+    let items = [];
+    let dropdownInputs = [];
+    let staffAdvances = [];
+    let totalSale = "";
+    let moneyLift = "";
 
-  const name = parts.slice(0, -1).join(" ").trim();
-  if (!name) return null;
+    lines.forEach((line) => {
+      line = line.trim();
+      if (!line) return;
 
-  return { name, amount };
-}
+      const normalized = line.toLowerCase().replace(/\s+/g, "");
 
-// ✅ OCR lines parser using above
-function parseOcrLines(lines) {
-  let mode = "";
-  let items = [];
-  let dropdownInputs = [];
-  let staffAdvances = [];
-  let totalSale = "";
-  let moneyLift = "";
-
-  lines.forEach((line) => {
-    line = line.trim();
-    if (!line) return;
-
-    const normalized = line.toLowerCase().replace(/\s+/g, "");
-
-    if (normalized.startsWith("items")) {
-      mode = "items";
-      return;
-    } 
-    if (normalized.startsWith("dropdown")) {
-      mode = "dropdown";
-      return;
-    } 
-    if (normalized.startsWith("staffadvances")) {
-      mode = "staff";
-      return;
-    } 
-    if (normalized.startsWith("totalsale") || normalized.startsWith("total")) {
-      mode = "totalSale";
-      return;
-    } 
-    if (normalized.startsWith("moneylift")) {
-      mode = "moneyLift";
-      return;
-    } 
-
-    // Normalize for numeric parsing
-    const cleanNumberText = line.replace(/[₹=:/-]/g, " ").trim();
-    const numberPart = parseFloat(cleanNumberText);
-
-    if (!isNaN(numberPart)) {
-      if (mode === "totalSale") {
-        totalSale = `${numberPart}`;
-      } else if (mode === "moneyLift") {
-        moneyLift = `${numberPart}`;
+      if (normalized.startsWith("items")) {
+        mode = "items";
+        return;
       }
-      return;
-    }
+      if (normalized.startsWith("dropdown")) {
+        mode = "dropdown";
+        return;
+      }
+      if (normalized.startsWith("staffadvances")) {
+        mode = "staff";
+        return;
+      }
+      if (
+        normalized.startsWith("totalsale") ||
+        normalized.startsWith("total")
+      ) {
+        mode = "totalSale";
+        return;
+      }
+      if (normalized.startsWith("moneylift")) {
+        mode = "moneyLift";
+        return;
+      }
 
-    // Fallback for name + amount lines
-    const parsed = parseAmountLine(line);
-    if (!parsed) return;
+      // Normalize for numeric parsing
+      const cleanNumberText = line.replace(/[₹=:/-]/g, " ").trim();
+      const numberPart = parseFloat(cleanNumberText);
 
-    const { name, amount } = parsed;
+      if (!isNaN(numberPart)) {
+        if (mode === "totalSale") {
+          totalSale = `${numberPart}`;
+        } else if (mode === "moneyLift") {
+          moneyLift = `${numberPart}`;
+        }
+        return;
+      }
 
-    if (mode === "items") {
-      items.push({ id: Date.now() + Math.random(), name, price: amount });
-    } 
-    else if (mode === "dropdown") {
-      dropdownInputs.push({ id: Date.now() + Math.random(), value: name.toLowerCase(), price: amount });
-    } 
-    else if (mode === "staff") {
-      staffAdvances.push({ id: Date.now() + Math.random(), staffName: name, staffId: "", amount });
-    } 
-    else if (mode === "totalSale") {
-      totalSale = `${amount}`;
-    } 
-    else if (mode === "moneyLift") {
-      moneyLift = `${amount}`;
-    }
-  });
+      // Fallback for name + amount lines
+      const parsed = parseAmountLine(line);
+      if (!parsed) return;
 
-  return {
-    items,
-    dropdownInputs,
-    staffAdvances,
-    totalSale,
-    moneyLift
-  };
-}
+      const { name, amount } = parsed;
 
+      if (mode === "items") {
+        items.push({ id: Date.now() + Math.random(), name, price: amount });
+      } else if (mode === "dropdown") {
+        dropdownInputs.push({
+          id: Date.now() + Math.random(),
+          value: name.toLowerCase(),
+          price: amount,
+        });
+      } else if (mode === "staff") {
+        staffAdvances.push({
+          id: Date.now() + Math.random(),
+          staffName: name,
+          staffId: "",
+          amount,
+        });
+      } else if (mode === "totalSale") {
+        totalSale = `${amount}`;
+      } else if (mode === "moneyLift") {
+        moneyLift = `${amount}`;
+      }
+    });
 
-
-
-
-
-
-
-
-
-
- 
-
- 
-
+    return {
+      items,
+      dropdownInputs,
+      staffAdvances,
+      totalSale,
+      moneyLift,
+    };
+  }
 
   //   const needed=["tea","juice"]
   // const filter= dropdownInputs.filter(e =>needed.includes(e.value)).reduce((sum,item)=>sum+item.price)
@@ -482,15 +463,15 @@ function parseOcrLines(lines) {
   //  Calculate totals
   const itemsTotal = items.reduce(
     (sum, item) => sum + (parseFloat(item.price) || 0),
-    0
+    0,
   );
   const dropdownTotal = dropdownInputs.reduce(
     (sum, d) => sum + (parseFloat(d.price) || 0),
-    0
+    0,
   );
   const staffAdvanceTotal = staffAdvances.reduce(
     (sum, s) => sum + (parseFloat(s.amount) || 0),
-    0
+    0,
   );
   const total = itemsTotal + dropdownTotal + staffAdvanceTotal;
 
@@ -568,7 +549,7 @@ function parseOcrLines(lines) {
           .subtract(1, "day")
           .format("YYYY-MM-DD");
         const res = await fetch(
-          `/api/v1/expense/daily-carryLoss-check?date=${yesterdayDate}`
+          `/api/v1/expense/daily-carryLoss-check?date=${yesterdayDate}`,
         );
         if (!res.ok) {
           setPreviousCarryLoss(0);
@@ -612,7 +593,7 @@ function parseOcrLines(lines) {
 
   const handleChange = (id, field, value) => {
     const updated = items.map((item) =>
-      item.id === id ? { ...item, [field]: value } : item
+      item.id === id ? { ...item, [field]: value } : item,
     );
     setItems(updated);
     saveToLocalStorage({ items: updated });
@@ -629,7 +610,7 @@ function parseOcrLines(lines) {
 
   const updateDropdownInput = (id, field, value) => {
     const updated = dropdownInputs.map((d) =>
-      d.id === id ? { ...d, [field]: value } : d
+      d.id === id ? { ...d, [field]: value } : d,
     );
     setDropdownInputs(updated);
     saveToLocalStorage({ dropdownInputs: updated });
@@ -649,7 +630,6 @@ function parseOcrLines(lines) {
     setStaffAdvances(updated);
     saveToLocalStorage({ staffAdvances: updated });
   };
-
 
   const updateStaffAdvance = (id, field, value) => {
     const updated = staffAdvances.map((entry) => {
@@ -693,71 +673,41 @@ function parseOcrLines(lines) {
     saveToLocalStorage({ commission: value });
   };
 
-//   const handleFinalSubmit = async () => {
-//     const toastId = toast.loading("Submitting all data...");
+ 
 
-//     try {
-//       await fetch("/api/v1/expense/add-expense", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//        body: JSON.stringify({
-//   ...totalDetails,
-//   drinks: totalDetails.drinks.map((d) => ({
-//     drinkType: d.drinkType,
-//     soldAmount: d.soldAmount,
-//     commissionPercent: d.commissionPercent,
-//     commissionValue: d.commissionValue
-//   }))
-// }),
-//       });
+  const handleFinalSubmit = async () => {
+    const toastId = toast.loading("Submitting all data...");
 
-//       // clear localStorage
-//       ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
-//         localStorage.removeItem(`expense-form-${date}-${key}`);
-//       });
+    try {
+      // Remove computed/carry fields from drinks before submitting
+      const filteredData = {
+        ...totalDetails,
+        drinks: totalDetails.drinks.map((d) => ({
+          drinkType: d.drinkType,
+          soldAmount: d.soldAmount,
+          commissionPercent: d.commissionPercent,
+          commissionValue: d.commissionValue,
+        })),
+      };
 
-//       toast.success("All expenses submitted!", { id: toastId });
-//       router.push("/expenses");
-//     } catch (error) {
-//       console.error(error);
-//       toast.error("Error submitting expenses", { id: toastId });
-//     }
-//   };
+      await fetch("/api/v1/expense/add-expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filteredData),
+      });
 
+      // clear localStorage
+      ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
+        localStorage.removeItem(`expense-form-${date}-${key}`);
+      });
 
-const handleFinalSubmit = async () => {
-  const toastId = toast.loading("Submitting all data...");
-
-  try {
-    // Remove computed/carry fields from drinks before submitting
-    const filteredData = {
-      ...totalDetails,
-      drinks: totalDetails.drinks.map((d) => ({
-        drinkType: d.drinkType,
-        soldAmount: d.soldAmount,
-        commissionPercent: d.commissionPercent,
-        commissionValue: d.commissionValue,
-      })),
-    };
-
-    await fetch("/api/v1/expense/add-expense", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(filteredData),
-    });
-
-    // clear localStorage
-    ["casher1", "casher2", "casher3", "tea", "juice"].forEach((key) => {
-      localStorage.removeItem(`expense-form-${date}-${key}`);
-    });
-
-    toast.success("All expenses submitted!", { id: toastId });
-    router.push("/expenses");
-  } catch (error) {
-    console.error(error);
-    toast.error("Error submitting expenses", { id: toastId });
-  }
-};
+      toast.success("All expenses submitted!", { id: toastId });
+      router.push("/expenses");
+    } catch (error) {
+      console.error(error);
+      toast.error("Error submitting expenses", { id: toastId });
+    }
+  };
 
   const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -865,7 +815,7 @@ const handleFinalSubmit = async () => {
               >
                 ➕ Add Item
               </button>
-{/* <div className="flex flex-col mb-6 gap-4">
+              {/* <div className="flex flex-col mb-6 gap-4">
 <button
     onClick={() => setShowUploadGuide(true)}
     className="bg-yellow-500 text-black py-3 rounded-lg font-semibold hover:bg-yellow-600 transition w-full"
@@ -922,7 +872,7 @@ const handleFinalSubmit = async () => {
   )}
 </div> */}
 
-  {dropdownInputs.map((input) => (
+              {dropdownInputs.map((input) => (
                 <div key={input.id} className="flex items-center gap-2 mb-4">
                   <select
                     value={input.value}
@@ -962,7 +912,7 @@ const handleFinalSubmit = async () => {
                 ➕ Add Tea, Juice, Other
               </button>
 
-                {staffAdvances.map((entry) => (
+              {staffAdvances.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-2 mb-4">
                   <select
                     value={entry.staffId}
@@ -1003,8 +953,6 @@ const handleFinalSubmit = async () => {
               >
                 ➕ Add Staff Advance
               </button>
-
-          
 
               <label className="block mb-1 text-white">Total Sale</label>
               <input
@@ -1108,7 +1056,6 @@ const handleFinalSubmit = async () => {
                     <p>Raw Total from Cashers: {drinkTotal.toFixed(2)}</p>
                     <hr className="border-white/20 my-2" />
 
-                    
                     <p className="font-bold text-lg">
                       Final Net = {savedFinalNetAmount.toFixed(2)}
                     </p>
@@ -1155,8 +1102,6 @@ const handleFinalSubmit = async () => {
                       <strong>5) Total Online Sale:</strong>
                       {formatINR(totalDetails?.totalOnlineSale?.toFixed(2))}
                     </p>
-
-                 
                   </div>
 
                   {/* CASHERS DETAIL */}
@@ -1173,7 +1118,9 @@ const handleFinalSubmit = async () => {
                           {/* Main items */}
                           {c.items.length > 0 && (
                             <>
-                              <p className="underline font-bold  mb-2 text-sm">Main Items:</p>
+                              <p className="underline font-bold  mb-2 text-sm">
+                                Main Items:
+                              </p>
                               <ul className="ml-4 list-disc">
                                 {c.items.map((item, i) => (
                                   <li key={i}>
@@ -1206,9 +1153,15 @@ const handleFinalSubmit = async () => {
                               Total Cashers (expenses) Amount:
                               {formatINR(c.totalCashersAmount)}
                             </p>
-                            <p className="font-bold ">Total Sale: {formatINR(c.totalSealAmount)}</p>
-                            <p className="font-bold ">Money Lift: {formatINR(c.totalMoneyLift)}</p>
-                            <p className="font-bold ">Shot: {formatINR(c.shot)}</p>
+                            <p className="font-bold ">
+                              Total Sale: {formatINR(c.totalSealAmount)}
+                            </p>
+                            <p className="font-bold ">
+                              Money Lift: {formatINR(c.totalMoneyLift)}
+                            </p>
+                            <p className="font-bold ">
+                              Shot: {formatINR(c.shot)}
+                            </p>
                           </div>
                           {c.staffAdvances && c.staffAdvances.length > 0 && (
                             <>
@@ -1237,8 +1190,6 @@ const handleFinalSubmit = async () => {
                     <h3 className="text-lg font-bold mb-2">Drinks</h3>
                     {totalDetails.drinks.length > 0 ? (
                       totalDetails.drinks.map((d, idx) => (
-                       
-
                         <div className="bg-[gray] mb-2 p-4 rounded text-white space-y-2">
                           <p className="font-medium text-lg">
                             {d.drinkType.toUpperCase()}
@@ -1292,41 +1243,40 @@ const handleFinalSubmit = async () => {
             </div>
           )}
 
+          {showUploadGuide && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg relative">
+                <button
+                  onClick={() => setShowUploadGuide(false)}
+                  className="absolute top-2 right-2 text-gray-500 hover:text-red-700 text-3xl"
+                >
+                  &times;
+                </button>
 
-{showUploadGuide && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg relative">
-      <button
-        onClick={() => setShowUploadGuide(false)}
-        className="absolute top-2 right-2 text-gray-500 hover:text-red-700 text-3xl"
-      >
-        &times;
-      </button>
+                <h2 className="text-lg text-black font-semibold mb-4">
+                  📸 Before uploading your photo, please check:
+                </h2>
 
-      <h2 className="text-lg text-black font-semibold mb-4">
-        📸 Before uploading your photo, please check:
-      </h2>
+                <ul className="list-disc pl-5 space-y-2 text-gray-800 text-sm">
+                  <li>✅ Write clearly in plain handwriting</li>
+                  <li>✅ One item per line only</li>
+                  <li>✅ Prices can use = /- : ₹ (all accepted!)</li>
+                  <li>✅ Use these exact headings (case-insensitive):</li>
+                  <div className="ml-4 mt-2 space-y-1">
+                    <p className="font-bold">• Items</p>
+                    <p className="font-bold">• Dropdown</p>
+                    <p className="font-bold">• Staff Advances</p>
+                    <p className="font-bold">• Total Sale</p>
+                    <p className="font-bold">• Money Lift</p>
+                  </div>
+                </ul>
 
-      <ul className="list-disc pl-5 space-y-2 text-gray-800 text-sm">
-        <li>✅ Write clearly in plain handwriting</li>
-        <li>✅ One item per line only</li>
-        <li>✅ Prices can use = /- : ₹ (all accepted!)</li>
-        <li>✅ Use these exact headings (case-insensitive):</li>
-        <div className="ml-4 mt-2 space-y-1">
-          <p className="font-bold">• Items</p>
-          <p className="font-bold">• Dropdown</p>
-          <p className="font-bold">• Staff Advances</p>
-          <p className="font-bold">• Total Sale</p>
-          <p className="font-bold">• Money Lift</p>
-        </div>
-      </ul>
+                <p className="mt-4 text-sm font-medium text-gray-700">
+                  ✅ Best to write like this example:
+                </p>
 
-      <p className="mt-4 text-sm font-medium text-gray-700">
-        ✅ Best to write like this example:
-      </p>
-
-      <pre className="bg-gray-100 text-black p-3 rounded text-sm mt-2 overflow-x-auto">
-{`Items
+                <pre className="bg-gray-100 text-black p-3 rounded text-sm mt-2 overflow-x-auto">
+                  {`Items
 Pen = 10 /-
 Pencil : 5 /-
 Eraser ₹ 3
@@ -1338,28 +1288,25 @@ John 200
 Jane 300
 Total Sale 3000
 Money Lift 2000`}
-      </pre>
+                </pre>
 
-      <p className="text-xs text-gray-500 mt-3">
-        Once ready, choose your image below.
-      </p>
+                <p className="text-xs text-gray-500 mt-3">
+                  Once ready, choose your image below.
+                </p>
 
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => {
-          setOcrImage(e.target.files[0]);
-          setShowUploadGuide(false);
-        }}
-        className="mt-4 p-2 rounded w-full border text-black"
-      />
-    </div>
-  </div>
-)}
-
-
-
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    setOcrImage(e.target.files[0]);
+                    setShowUploadGuide(false);
+                  }}
+                  className="mt-4 p-2 rounded w-full border text-black"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

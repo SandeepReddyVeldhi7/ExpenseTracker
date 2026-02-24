@@ -23,7 +23,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [showTotal, setShowTotal] = useState(false);
-
+  const [shotBreakdown, setShotBreakdown] = useState({});
+  const [totalShotSum, setTotalShotSum] = useState(0);
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
       router.push("/no-permission");
@@ -50,14 +51,36 @@ export default function ReportsPage() {
       }
 
       const data = JSON.parse(text);
-
       setExpenses(data.expenses || []);
 
-      const total = (data.expenses || []).reduce(
+      // const total = (data.expenses || []).reduce(
+      //   (sum, item) => sum + (parseFloat(item.payout) || 0),
+      //   0,
+      // );
+      // setTotalRemaining(total);
+      // TOTAL PAYOUT
+      const totalPayout = (data.expenses || []).reduce(
         (sum, item) => sum + (parseFloat(item.payout) || 0),
         0,
       );
-      setTotalRemaining(total);
+
+     const shotMap = {};
+let totalShot = 0;
+
+data.expenses.forEach(day => {
+  day.cashers?.forEach(c => {
+    const name = c.casherName?.trim(); // UNIQUE key
+    const shot = Number(c.shot) || 0;
+
+    shotMap[name] = (shotMap[name] || 0) + shot;
+    totalShot += shot;
+  });
+});
+
+// setShotBreakdown(shotMap);
+setTotalShotSum(totalShot);
+      setTotalRemaining(totalPayout);
+     
     } catch (error) {
       console.error(error);
       toast.error("Failed to load reports");
@@ -354,8 +377,17 @@ export default function ReportsPage() {
         </button>
 
         {showTotal && (
-          <div className="mb-4 text-center text-white text-lg font-bold bg-white/10 p-3 rounded">
-            💰 Total Remaining / Payout: {formatINR(totalRemaining)}
+          <div className="mb-4 text-center text-white text-lg font-bold bg-white/10 p-3 rounded space-y-2">
+            <div>💰 Total Remaining / Payout: {formatINR(totalRemaining)}</div>
+            <div>🥤 Total Shot: {totalShotSum}</div>
+
+            {/* <div className="mt-2 text-sm text-white/90">
+              {Object.entries(shotBreakdown).map(([name, shot]) => (
+                <div key={name}>
+                  {name}: {shot}
+                </div>
+              ))}
+            </div> */}
           </div>
         )}
 
