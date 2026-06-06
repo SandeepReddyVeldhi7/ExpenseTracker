@@ -6,6 +6,10 @@ const DashboardUsersSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, default: "staff" },
+  image: { type: String, default: null },
+  forgotPasswordToken: { type: String, index: true },
 }, { timestamps: true });
+
+DashboardUsersSchema.index({ createdAt: -1 });
 
 export default mongoose.models.DashboardUser || mongoose.model("DashboardUser", DashboardUsersSchema);

@@ -29,5 +29,11 @@ attendanceEnd:   { type: String },
   { timestamps: true }
 );
 
+salaryPaymentSchema.index({ staff: 1, createdAt: -1 });
+salaryPaymentSchema.index({ staff: 1, year: -1, month: -1 });
+salaryPaymentSchema.index({ month: 1, year: 1 });
+salaryPaymentSchema.index({ paidAt: 1 });
+salaryPaymentSchema.index({ attendanceStart: 1, attendanceEnd: 1 });
+
 export default mongoose.models.SalaryPayment ||
   mongoose.model("SalaryPayment", salaryPaymentSchema);

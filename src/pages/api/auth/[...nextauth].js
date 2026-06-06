@@ -63,6 +63,7 @@ export default NextAuth({
           email: user.email,
           username: user.username,
           role: user.role,
+          image: user.image || null,
         };
       },
     }),
@@ -111,6 +112,7 @@ async jwt({ token, user }) {
       token.id = dbUser._id.toString();
       token.username = dbUser.username || dbUser.email.split("@")[0];
       token.role = dbUser.role;
+      token.image = dbUser.image || null;
     } else {
       // Fallback role for safety
       token.role = "staff";

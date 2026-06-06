@@ -22,4 +22,7 @@ const attendanceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+attendanceSchema.index({ staff: 1, date: 1 });
+attendanceSchema.index({ date: 1 });
+
 export default mongoose.models.Attendance || mongoose.model('Attendance', attendanceSchema);

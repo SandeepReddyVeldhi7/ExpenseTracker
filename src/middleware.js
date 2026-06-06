@@ -27,6 +27,7 @@ export async function middleware(req) {
     "/staff-registation",
     "/StaffAdvancesPage",
     "/reports",
+    "/monthly-reports",
     "/staff-list",
        "/attendence", 
         "/sign-up" ,
@@ -58,7 +59,9 @@ export const config = {
     "/staff-registation",
     "/StaffAdvancesPage",
     "/reports",
+    "/monthly-reports",
+    "/extra-expenses",
+    "/extra-expenses/:path*",
     "/sign-up"
   ],
 };
- 

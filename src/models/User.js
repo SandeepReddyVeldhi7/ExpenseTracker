@@ -21,7 +21,8 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true }, //  Use bcrypt to hash passwords
       role: { type: String,  default: "staff" },
-    forgotPasswordToken: { type: String }, // For password reset token
+    image: { type: String, default: null },
+    forgotPasswordToken: { type: String, index: true }, // For password reset token
     isActive: { type: Boolean, default: true }, // For user activation status
     
   },
@@ -31,8 +32,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-
-
+userSchema.index({ createdAt: -1 });
 
 // User schema model
 const User = mongoose.models.User || mongoose.model("User", userSchema);

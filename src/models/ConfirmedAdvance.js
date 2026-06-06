@@ -26,6 +26,8 @@ const ConfirmedAdvanceSchema = new mongoose.Schema(
 );
 
 ConfirmedAdvanceSchema.index({ staff: 1, month: 1, year: 1 }, { unique: true });
+ConfirmedAdvanceSchema.index({ month: 1, year: 1 });
+ConfirmedAdvanceSchema.index({ staff: 1, date: 1 });
 
 export default mongoose.models.ConfirmedAdvance ||
   mongoose.model("ConfirmedAdvance", ConfirmedAdvanceSchema);

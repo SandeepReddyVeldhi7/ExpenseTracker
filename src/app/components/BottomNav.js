@@ -16,18 +16,79 @@ import {
   FiBarChart2,
   FiLogOut,
   FiImage,
+  FiCamera,
+  FiTrash2,
 } from "react-icons/fi";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function ResponsiveNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
 
   const avatarSrc =
     session?.user?.image || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
   const [openDropdown, setOpenDropdown] = useState(null); 
-
   const [mobileSheetFor, setMobileSheetFor] = useState(null); 
+
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [updatingPhoto, setUpdatingPhoto] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(false);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUpdatingPhoto(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const toastId = toast.loading("Updating profile photo...");
+
+    try {
+      const res = await fetch("/api/v1/profile/upload-photo", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      toast.success("Profile photo updated!", { id: toastId });
+      
+      // Re-fetch NextAuth session to load the updated image path
+      await update();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to upload photo", { id: toastId });
+    } finally {
+      setUpdatingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!confirm("Are you sure you want to remove your profile photo?")) return;
+
+    setDeletingPhoto(true);
+    const toastId = toast.loading("Removing profile photo...");
+
+    try {
+      const res = await fetch("/api/v1/profile/delete-photo", {
+        method: "POST",
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
+      toast.success("Profile photo removed!", { id: toastId });
+      
+      // Re-fetch NextAuth session to load the default image
+      await update();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to remove photo", { id: toastId });
+    } finally {
+      setDeletingPhoto(false);
+    }
+  }; 
 
 
   let role =
@@ -60,8 +121,8 @@ export default function ResponsiveNav() {
     },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
-    { href: "/paydetails", label: "Pay Details", icon: <FiDollarSign /> },
     { href: "/reports", label: "Reports", icon: <FiBarChart2 /> },
+    { href: "/monthly-reports", label: "View Month Report", icon: <FiBarChart2 /> },
 
 
     {
@@ -77,6 +138,7 @@ export default function ResponsiveNav() {
   const staffNavItems = [
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
+    { href: "/extra-expenses", label: "Extra Monthly Expenses", icon: <FiDollarSign /> },
     { href: "/proof", label: "Upload Proof", icon: <FiImage /> },
   ];
 
@@ -149,14 +211,15 @@ export default function ResponsiveNav() {
             )
           )}
 
-          {/* Avatar + Logout */}
+          {/* Avatar + Profile Modal Trigger */}
           <div className="flex items-center gap-3">
             <img
               src={avatarSrc}
               alt="User Avatar"
               width={36}
               height={36}
-              className="rounded-full object-cover border border-gray-300"
+              className="rounded-full object-cover border border-gray-300 cursor-pointer hover:opacity-85 transition"
+              onClick={() => setShowProfileModal(true)}
             />
             <button
               onClick={() => signOut({ callbackUrl: "/sign-in" })}
@@ -198,12 +261,10 @@ export default function ResponsiveNav() {
           )
         )}
 
-        {/* Avatar + Logout */}
+        {/* Avatar + Profile Modal Trigger */}
         <button
-          onClick={() => signOut({ callbackUrl: "/sign-in" })}
-          className={`flex flex-col items-center ${
-            pathname === "/sign-in" ? "text-blue-600" : "text-black"
-          }`}
+          onClick={() => setShowProfileModal(true)}
+          className={`flex flex-col items-center text-black`}
         >
           <img
             src={avatarSrc}
@@ -212,7 +273,7 @@ export default function ResponsiveNav() {
             height={40}
             className="rounded-full object-cover border border-gray-300"
           />
-          <span className="text-xs">Logout</span>
+          <span className="text-xs">Profile</span>
         </button>
       </nav>
 
@@ -246,6 +307,84 @@ export default function ResponsiveNav() {
               Close
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Profile Modal */}
+      <Toaster />
+      <AnimatePresence>
+        {showProfileModal && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4"
+            onClick={() => setShowProfileModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm border border-gray-150 shadow-2xl text-gray-800 relative"
+            >
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+
+              <h2 className="text-xl font-bold text-center text-gray-800 mb-6">User Profile</h2>
+
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative group">
+                  <img
+                    src={avatarSrc}
+                    alt="Profile Picture"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                  />
+                  <label className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-md transition duration-150">
+                    <FiCamera size={14} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                      disabled={updatingPhoto || deletingPhoto}
+                    />
+                  </label>
+                </div>
+                
+                <p className="mt-4 font-bold text-lg text-gray-900 capitalize">
+                  {session?.user?.username || session?.user?.name || "User"}
+                </p>
+                <p className="text-xs text-gray-500">{session?.user?.email}</p>
+                <span className="mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full capitalize">
+                  Role: {role || "staff"}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {session?.user?.image && session.user.image.includes("public.blob.vercel-storage.com") && (
+                  <button
+                    onClick={handleDeletePhoto}
+                    disabled={updatingPhoto || deletingPhoto}
+                    className="w-full py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    <FiTrash2 size={14} /> Remove Photo
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setShowProfileModal(false);
+                    signOut({ callbackUrl: "/sign-in" });
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center justify-center gap-2 transition"
+                >
+                  <FiLogOut size={14} /> Logout
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>
