@@ -28,8 +28,8 @@ export default function ResponsiveNav() {
   const avatarSrc =
     session?.user?.image || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-  const [openDropdown, setOpenDropdown] = useState(null); 
-  const [mobileSheetFor, setMobileSheetFor] = useState(null); 
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [mobileSheetFor, setMobileSheetFor] = useState(null);
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
@@ -54,7 +54,7 @@ export default function ResponsiveNav() {
       if (!res.ok) throw new Error("Upload failed");
 
       toast.success("Profile photo updated!", { id: toastId });
-      
+
       // Re-fetch NextAuth session to load the updated image path
       await update();
     } catch (err) {
@@ -79,7 +79,7 @@ export default function ResponsiveNav() {
       if (!res.ok) throw new Error("Delete failed");
 
       toast.success("Profile photo removed!", { id: toastId });
-      
+
       // Re-fetch NextAuth session to load the default image
       await update();
     } catch (err) {
@@ -88,7 +88,7 @@ export default function ResponsiveNav() {
     } finally {
       setDeletingPhoto(false);
     }
-  }; 
+  };
 
 
   let role =
@@ -101,7 +101,7 @@ export default function ResponsiveNav() {
     }
   }, [session]);
 
- 
+
 
   const ownerNavItems = [
     {
@@ -122,7 +122,7 @@ export default function ResponsiveNav() {
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
     { href: "/reports", label: "Reports", icon: <FiBarChart2 /> },
-    { href: "/monthly-reports", label: "View Month Report", icon: <FiBarChart2 /> },
+    { href: "/monthly-reports", label: "Month Report", icon: <FiBarChart2 /> },
 
 
     {
@@ -138,7 +138,7 @@ export default function ResponsiveNav() {
   const staffNavItems = [
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
-    { href: "/extra-expenses", label: "Extra Monthly Expenses", icon: <FiDollarSign /> },
+    { href: "/extra-expenses", label: " Monthly Expenses", icon: <FiDollarSign /> },
     { href: "/proof", label: "Upload Proof", icon: <FiImage /> },
   ];
 
@@ -165,9 +165,8 @@ export default function ResponsiveNav() {
                 onMouseLeave={() => setOpenDropdown(null)}
               >
                 <button
-                  className={`flex items-center gap-1 ${
-                    isGroupActive(item) ? "text-blue-600" : "text-gray-600"
-                  }`}
+                  className={`flex items-center gap-1 ${isGroupActive(item) ? "text-blue-600" : "text-gray-600"
+                    }`}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -186,9 +185,8 @@ export default function ResponsiveNav() {
                         <Link
                           key={child.href}
                           href={child.href}
-                          className={`block px-4 py-2 hover:bg-gray-100 whitespace-nowrap ${
-                            pathname.startsWith(child.href) ? "text-blue-600" : ""
-                          }`}
+                          className={`block px-4 py-2 hover:bg-gray-100 whitespace-nowrap ${pathname.startsWith(child.href) ? "text-blue-600" : ""
+                            }`}
                         >
                           {child.label}
                         </Link>
@@ -201,9 +199,8 @@ export default function ResponsiveNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-1 ${
-                  pathname === item.href ? "text-blue-600" : "text-gray-600"
-                }`}
+                className={`flex items-center gap-1 ${pathname === item.href ? "text-blue-600" : "text-gray-600"
+                  }`}
               >
                 {item.icon}
                 <span>{item.label}</span>
@@ -239,9 +236,8 @@ export default function ResponsiveNav() {
             <button
               key={idx}
               onClick={() => setMobileSheetFor(idx)}
-              className={`flex flex-col items-center ${
-                isGroupActive(item) ? "text-blue-600" : "text-black"
-              }`}
+              className={`flex flex-col items-center ${isGroupActive(item) ? "text-blue-600" : "text-black"
+                }`}
             >
               {/* use the item's own icon */}
               <span className="text-lg">{item.icon}</span>
@@ -251,9 +247,8 @@ export default function ResponsiveNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center ${
-                pathname === item.href ? "text-blue-600" : "text-black"
-              }`}
+              className={`flex flex-col items-center ${pathname === item.href ? "text-blue-600" : "text-black"
+                }`}
             >
               {item.icon}
               <span className="text-xs">{item.label}</span>
@@ -292,9 +287,8 @@ export default function ResponsiveNav() {
                 key={child.href}
                 href={child.href}
                 onClick={() => setMobileSheetFor(null)}
-                className={`block px-4 py-4 border-b hover:bg-gray-100 ${
-                  pathname.startsWith(child.href) ? "text-blue-600" : ""
-                }`}
+                className={`block px-4 py-4 border-b hover:bg-gray-100 ${pathname.startsWith(child.href) ? "text-blue-600" : ""
+                  }`}
               >
                 {child.label}
               </Link>
@@ -352,7 +346,7 @@ export default function ResponsiveNav() {
                     />
                   </label>
                 </div>
-                
+
                 <p className="mt-4 font-bold text-lg text-gray-900 capitalize">
                   {session?.user?.username || session?.user?.name || "User"}
                 </p>

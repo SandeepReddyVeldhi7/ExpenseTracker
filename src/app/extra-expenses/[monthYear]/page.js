@@ -155,7 +155,7 @@ export default function ExtraExpensesCategoryPage() {
       // Clear localStorage
       localStorage.removeItem(localKey);
       toast.success("Monthly expenses submitted successfully!", { id: toastId });
-      
+
       // Redirect
       router.push("/extra-expenses");
     } catch (err) {
@@ -172,9 +172,9 @@ export default function ExtraExpensesCategoryPage() {
       style={{ backgroundImage: "url('/image1.jpg')" }}
     >
       <Toaster />
-      <div className="min-h-screen lg:mt-14 overflow-y-auto bg-black/40 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
-        <div className="w-full relative max-w-2xl bg-white/30 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-white/20">
-          
+      <div className="min-h-screen lg:mt-14 overflow-y-auto bg-black/45 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
+        <div className="w-full relative max-w-2xl bg-slate-900/80 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border border-white/10">
+
           {/* Back button */}
           <button
             onClick={() => {
@@ -202,18 +202,18 @@ export default function ExtraExpensesCategoryPage() {
           ) : step === "edit" ? (
             /* --- STEP 1: EDIT ITEMS --- */
             <div>
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                <div className="flex justify-between">
-                  <span>📈 Prefilled Total Sales:</span>
-                  <span className="font-bold">{formatINR(totalSales)}</span>
+              <div className="mb-6 p-4 rounded-xl bg-slate-950/40 border border-white/10 text-white space-y-3 text-xs sm:text-sm shadow-inner">
+                <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                  <span className="text-white/80 font-medium">📈 Prefilled Total Sales:</span>
+                  <span className="font-bold text-emerald-400 text-sm sm:text-base">{formatINR(totalSales)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>💰 Prefilled Total Payout:</span>
-                  <span className="font-bold">{formatINR(totalPayout)}</span>
+                <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                  <span className="text-white/80 font-medium">💰 Prefilled Total Payout:</span>
+                  <span className="font-bold text-amber-400 text-sm sm:text-base">{formatINR(totalPayout)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>💳 Prefilled Online Amount:</span>
-                  <span className="font-bold">{formatINR(totalOnline)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/80 font-medium">💳 Prefilled Online Amount:</span>
+                  <span className="font-bold text-cyan-400 text-sm sm:text-base">{formatINR(totalOnline)}</span>
                 </div>
               </div>
 
@@ -221,20 +221,20 @@ export default function ExtraExpensesCategoryPage() {
 
               <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 sm:gap-3 bg-white/5 p-2 rounded-xl border border-white/10 text-xs sm:text-sm">
+                  <div key={item.id} className="flex items-center gap-2 bg-slate-950/20 p-2 rounded-xl border border-white/5 text-xs sm:text-sm">
                     <input
                       type="text"
                       value={item.name}
                       onChange={(e) => handleItemChange(item.id, "name", e.target.value)}
                       placeholder="Expense Name (e.g. Electric Bill)"
-                      className="flex-1 p-2 sm:p-2.5 rounded-xl border border-white/20 bg-white/25 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-xs sm:text-sm"
+                      className="flex-1 p-2 sm:p-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium text-xs sm:text-sm"
                     />
                     <input
                       type="number"
                       value={item.price}
                       onChange={(e) => handleItemChange(item.id, "price", e.target.value)}
                       placeholder="Amount"
-                      className="w-1/3 p-2 sm:p-2.5 rounded-xl border border-white/20 bg-white/25 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm"
+                      className="w-1/3 p-2 sm:p-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm"
                     />
                     <button
                       onClick={() => handleRemoveItem(item.id)}
@@ -254,44 +254,45 @@ export default function ExtraExpensesCategoryPage() {
                 >
                   <FaPlus size={12} /> Add Item
                 </button>
-                <div className="text-white text-right">
-                  <p className="text-3xs sm:text-xs text-white/70">Total Added Items:</p>
-                  <p className="text-base sm:text-xl font-bold">{formatINR(itemsTotal)}</p>
+                <div className="text-right">
+                  <p className="text-2xs sm:text-xs text-white/60">Total Added Items</p>
+                  <p className="text-base sm:text-xl font-bold text-lime-400">{formatINR(itemsTotal)}</p>
                 </div>
               </div>
-
-              <button
-                onClick={handleContinue}
-                className="w-full mt-6 sm:mt-8 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-lg shadow-lg hover:shadow-xl transition duration-200"
-              >
-                Continue
-              </button>
+              <div className="flex justify-center">
+                <button
+                  onClick={handleContinue}
+                  className="w-[80%] mt-6 sm:mt-8 py-2.5 sm:py-3  rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-lg shadow-lg hover:shadow-xl transition duration-200"
+                >
+                  Continue
+                </button>
+              </div>
             </div>
           ) : (
             /* --- STEP 2: SUMMARY REVIEW --- */
             <div className="text-white">
               <h2 className="text-lg sm:text-xl font-bold text-center mb-6">Review Submission</h2>
 
-              <div className="space-y-3 sm:space-y-4 bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-white/10 mb-6 sm:mb-8 text-xs sm:text-sm">
-                <div className="flex justify-between border-b border-white/15 pb-2">
-                  <span className="text-white/80">📈 Prefilled Total Sales:</span>
-                  <span className="font-semibold">{formatINR(totalSales)}</span>
+              <div className="space-y-3.5 bg-slate-950/40 p-4 sm:p-6 rounded-2xl border border-white/10 mb-6 sm:mb-8 text-xs sm:text-sm shadow-inner">
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <span className="text-white/70 font-medium">📈 Prefilled Total Sales:</span>
+                  <span className="font-semibold text-white">{formatINR(totalSales)}</span>
                 </div>
-                <div className="flex justify-between border-b border-white/15 pb-2">
-                  <span className="text-white/80">💰 Prefilled Total Payout:</span>
-                  <span className="font-semibold">{formatINR(totalPayout)}</span>
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <span className="text-white/70 font-medium">💰 Prefilled Total Payout:</span>
+                  <span className="font-semibold text-white">{formatINR(totalPayout)}</span>
                 </div>
-                <div className="flex justify-between border-b border-white/15 pb-2">
-                  <span className="text-white/80">💳 Prefilled Online Amount:</span>
-                  <span className="font-semibold">{formatINR(totalOnline)}</span>
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <span className="text-white/70 font-medium">💳 Prefilled Online Amount:</span>
+                  <span className="font-semibold text-white">{formatINR(totalOnline)}</span>
                 </div>
-                <div className="flex justify-between border-b border-white/15 pb-2">
-                  <span className="text-white/80">💸 Total Added Expenses:</span>
-                  <span className="font-semibold text-yellow-300">-{formatINR(itemsTotal)}</span>
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <span className="text-white/70 font-medium">💸 Total Added Expenses:</span>
+                  <span className="font-semibold text-rose-400">-{formatINR(itemsTotal)}</span>
                 </div>
-                <div className="flex justify-between pt-2 text-base sm:text-lg font-bold">
-                  <span>Balance:</span>
-                  <span className={remainingBalance >= 0 ? "text-lime-300" : "text-red-300"}>
+                <div className="flex justify-between items-center pt-2 text-sm sm:text-base font-bold">
+                  <span className="text-white">Remaining Balance:</span>
+                  <span className={remainingBalance >= 0 ? "text-lime-400 text-base sm:text-lg" : "text-rose-400 text-base sm:text-lg"}>
                     {formatINR(remainingBalance)}
                   </span>
                 </div>
@@ -302,11 +303,11 @@ export default function ExtraExpensesCategoryPage() {
                 {items
                   .filter((i) => i.name.trim() !== "" && parseFloat(i.price) > 0)
                   .map((item, index) => (
-                    <div key={item.id} className="flex justify-between bg-white/5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border border-white/5 text-xs sm:text-sm">
+                    <div key={item.id} className="flex justify-between bg-slate-950/20 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border border-white/5 text-xs sm:text-sm">
                       <span className="font-medium text-white/90">
                         {index + 1}. {item.name}
                       </span>
-                      <span className="font-bold">{formatINR(parseFloat(item.price))}</span>
+                      <span className="font-bold text-white">{formatINR(parseFloat(item.price))}</span>
                     </div>
                   ))}
               </div>
