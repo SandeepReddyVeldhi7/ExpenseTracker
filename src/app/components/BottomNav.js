@@ -117,12 +117,13 @@ export default function ResponsiveNav() {
         { href: "/sign-up", label: "Admin user creation" },
         { href: "/admin-users", label: "Admin users" },
         { href: "/analytics", label: "Analytics" },
-        { href: "/monthly-reports", label: "Month Report" },
+        { href: "/extra-expenses", label: "Monthly Expenses" },
       ],
     },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
     { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
     { href: "/reports", label: "Reports", icon: <FiBarChart2 /> },
+    { href: "/monthly-reports", label: "Month Report", icon: <FiBarChart2 /> },
 
 
     {
