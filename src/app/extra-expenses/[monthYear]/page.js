@@ -17,6 +17,9 @@ export default function ExtraExpensesCategoryPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
+  const role = session?.user?.role || (typeof window !== "undefined" ? localStorage.getItem("userRole") : "");
+  const isStaff = role === "staff" || role === "staff123";
+
   const [items, setItems] = useState([{ id: Date.now(), name: "", price: "" }]);
   const [totalSales, setTotalSales] = useState(0);
   const [totalPayout, setTotalPayout] = useState(0);
@@ -203,18 +206,22 @@ export default function ExtraExpensesCategoryPage() {
             /* --- STEP 1: EDIT ITEMS --- */
             <div>
               <div className="mb-6 p-4 rounded-xl bg-slate-950/40 border border-white/10 text-white space-y-3 text-xs sm:text-sm shadow-inner">
-                <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                  <span className="text-white/80 font-medium">📈 Prefilled Total Sales:</span>
-                  <span className="font-bold text-emerald-400 text-sm sm:text-base">{formatINR(totalSales)}</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                {!isStaff && (
+                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                    <span className="text-white/80 font-medium">📈 Prefilled Total Sales:</span>
+                    <span className="font-bold text-emerald-400 text-sm sm:text-base">{formatINR(totalSales)}</span>
+                  </div>
+                )}
+                <div className={`flex justify-between items-center ${!isStaff ? "pb-2 border-b border-white/5" : ""}`}>
                   <span className="text-white/80 font-medium">💰 Prefilled Total Payout:</span>
                   <span className="font-bold text-amber-400 text-sm sm:text-base">{formatINR(totalPayout)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/80 font-medium">💳 Prefilled Online Amount:</span>
-                  <span className="font-bold text-cyan-400 text-sm sm:text-base">{formatINR(totalOnline)}</span>
-                </div>
+                {!isStaff && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/80 font-medium">💳 Prefilled Online Amount:</span>
+                    <span className="font-bold text-cyan-400 text-sm sm:text-base">{formatINR(totalOnline)}</span>
+                  </div>
+                )}
               </div>
 
               <h2 className="text-sm sm:text-lg font-semibold text-white mb-4">Add Extra Monthly Expenses</h2>
@@ -274,18 +281,22 @@ export default function ExtraExpensesCategoryPage() {
               <h2 className="text-lg sm:text-xl font-bold text-center mb-6">Review Submission</h2>
 
               <div className="space-y-3.5 bg-slate-950/40 p-4 sm:p-6 rounded-2xl border border-white/10 mb-6 sm:mb-8 text-xs sm:text-sm shadow-inner">
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <span className="text-white/70 font-medium">📈 Prefilled Total Sales:</span>
-                  <span className="font-semibold text-white">{formatINR(totalSales)}</span>
-                </div>
+                {!isStaff && (
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <span className="text-white/70 font-medium">📈 Prefilled Total Sales:</span>
+                    <span className="font-semibold text-white">{formatINR(totalSales)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center border-b border-white/5 pb-2">
                   <span className="text-white/70 font-medium">💰 Prefilled Total Payout:</span>
                   <span className="font-semibold text-white">{formatINR(totalPayout)}</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <span className="text-white/70 font-medium">💳 Prefilled Online Amount:</span>
-                  <span className="font-semibold text-white">{formatINR(totalOnline)}</span>
-                </div>
+                {!isStaff && (
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <span className="text-white/70 font-medium">💳 Prefilled Online Amount:</span>
+                    <span className="font-semibold text-white">{formatINR(totalOnline)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center border-b border-white/5 pb-2">
                   <span className="text-white/70 font-medium">💸 Total Added Expenses:</span>
                   <span className="font-semibold text-rose-400">-{formatINR(itemsTotal)}</span>
