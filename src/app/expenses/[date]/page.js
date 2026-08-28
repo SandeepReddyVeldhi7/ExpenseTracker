@@ -1,82 +1,86 @@
-'use client'
+"use client";
 
-import { useRouter, useParams } from 'next/navigation'
-import { Poppins } from 'next/font/google'
-import { FaArrowLeft, FaCashRegister, FaCoffee, FaGlassWhiskey, FaFileAlt } from 'react-icons/fa'
-import { motion } from 'framer-motion'
+import { useRouter, useParams } from "next/navigation";
+import { FiArrowLeft, FiCoffee, FiFileText, FiDroplet } from "react-icons/fi";
+import { MdPointOfSale } from "react-icons/md";
 
 const categories = [
-  { id: 'casher1', label: 'Casher 1', icon: <FaCashRegister /> },
-  { id: 'casher2', label: 'Casher 2', icon: <FaCashRegister /> },
-    { id: 'casher3', label: 'Casher 3', icon: <FaCashRegister /> },
-  { id: 'tea', label: 'Tea', icon: <FaCoffee /> },
-  { id: 'juice', label: 'Juice', icon: <FaGlassWhiskey /> },
-  { id: 'totalDetails', label: 'Total Report', icon: <FaFileAlt /> },
-]
+  { id: "casher1", label: "Casher 1", icon: <MdPointOfSale size={24} />, bg: "bg-[#D4FF00]" },
+  { id: "casher2", label: "Casher 2", icon: <MdPointOfSale size={24} />, bg: "bg-[#00F0FF]" },
+  { id: "casher3", label: "Casher 3", icon: <MdPointOfSale size={24} />, bg: "bg-[#FFDE59]" },
+  { id: "tea", label: "Tea Counter", icon: <FiCoffee size={24} />, bg: "bg-[#FF7043]" },
+  { id: "juice", label: "Juice Counter", icon: <FiDroplet size={24} />, bg: "bg-[#FF6B8B]" },
+  { id: "totalDetails", label: "Total Report & Payout", icon: <FiFileText size={24} />, bg: "bg-[#B794F4]" },
+];
 
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-})
 
 export default function ExpensesForDate() {
-  const router = useRouter()
-  const { date } = useParams()
+  const router = useRouter();
+  const { date } = useParams();
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className={`relative min-h-screen bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4 ${poppins.className}`}
-    >
-      {/* Background: Use either a gradient or an image */}
-      <div 
-        className="absolute inset-0 bg-center bg-cover"
-        style={{ 
-          // OPTION 1: High quality image
-          backgroundImage: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1950&q=80')",
-          // OPTION 2: Or comment above and use gradient below
-          // backgroundImage: 'linear-gradient(to bottom right, #000000, #1f4037, #99f2c8)',
-        }} 
-      />
-
-      {/* Overlay to darken & blur background for readability */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-      {/* Main content */}
-      <div className="relative  w-full max-w-2xl z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-xl bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl">
-          
-          {/* Back Button */}
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="neo-card p-6 sm:p-8 bg-white">
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-black">
           <button
             onClick={() => router.back()}
-            className="mb-6 flex  text-2xl items-center text-white hover:text-lime-400 transition"
+            className="neo-btn neo-btn-secondary px-3 py-2 text-xs flex items-center gap-1.5"
           >
-            <FaArrowLeft className="mr-2" /> 
+            <FiArrowLeft size={16} />
+            <span>Back</span>
           </button>
 
-          {/* Heading */}
-          <h1 className="text-xl md:text-3xl font-bold text-white mb-8 text-center tracking-wide drop-shadow">
-            Expenses for <span className="text-lime-400">{date}</span>
-          </h1>
-
-          {/* Categories */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => router.push(`/expenses/${date}/${cat.id}`)}
-                className="flex items-center justify-center gap-3 text-black bg-white/20 hover:bg-white/40 border border-white/40 backdrop-blur-lg transition-all duration-300 p-5 rounded-xl text-lg font-semibold  shadow-lg hover:scale-105"
-              >
-                {cat.icon}
-                {cat.label}
-              </button>
-            ))}
+          <div className="text-right">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
+              Entry Date
+            </span>
+            <span className="text-base sm:text-lg font-black text-black font-mono">
+              {date}
+            </span>
           </div>
+        </div>
 
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+            Select Counter / Category
+          </h1>
+          <p className="text-xs sm:text-sm font-bold text-gray-600 mt-1">
+            Fill cash registers & drink sales first, then review Total Report & submit
+          </p>
+        </div>
+
+        {/* Categories Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => router.push(`/expenses/${date}/${cat.id}`)}
+              className="neo-card neo-card-hover p-5 flex items-center justify-between group text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`w-11 h-11 rounded-xl border-2 border-black flex items-center justify-center ${cat.bg} shadow-[2px_2px_0px_0px_#000]`}
+                >
+                  {cat.icon}
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-black group-hover:text-blue-600 transition">
+                    {cat.label}
+                  </h3>
+                  <span className="text-[11px] font-bold text-gray-500">
+                    {cat.id === "totalDetails" ? "Final Calculation" : "Entry Module"}
+                  </span>
+                </div>
+              </div>
+
+              <span className="text-xs font-black px-2.5 py-1 rounded-md border-2 border-black bg-[#F4F4F0] group-hover:bg-[#D4FF00] transition">
+                →
+              </span>
+            </button>
+          ))}
         </div>
       </div>
-    </motion.div>
-  )
+    </div>
+  );
 }

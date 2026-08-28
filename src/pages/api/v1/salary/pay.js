@@ -1,7 +1,8 @@
 import { connectDB } from "@/lib/db";
 import SalaryPayment from "@/models/SalaryPayment";
+import { withAuth } from "@/lib/apiAuth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ message: "Method Not Allowed" });
 
   try {
@@ -22,11 +23,10 @@ export default async function handler(req, res) {
     const previousCarryForward = lastPay?.newCarryForward || 0;
 
     const totalAvailable =
-  Math.round((earnedSalary - advances + ownerAdjust - previousCarryForward) * 100) / 100;
+      Math.round((earnedSalary - advances + (Number(ownerAdjust) || 0) - previousCarryForward) * 100) / 100;
 
-const newCarryForward =
-  Math.round((totalAvailable - paidAmount) * 100) / 100;
-
+    const newCarryForward =
+      Math.round((totalAvailable - paidAmount) * 100) / 100;
 
     await SalaryPayment.create({
       staff,
@@ -43,9 +43,10 @@ const newCarryForward =
     });
 
     return res.status(200).json({ message: "Paid & saved" });
-
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+export default withAuth(handler, { roles: ["owner"] });

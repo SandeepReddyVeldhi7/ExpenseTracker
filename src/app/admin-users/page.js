@@ -4,16 +4,17 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { FaTrash, FaUserShield, FaEdit } from "react-icons/fa";
+import { FiTrash2, FiUserCheck, FiEdit2, FiArrowLeft, FiPlus, FiX, FiShield } from "react-icons/fi";
+import Link from "next/link";
 
-export default function DashboardUsersList() {
-     const { data: session, status } = useSession();
-    const router = useRouter();
-      const [users, setUsers] = useState([]);
+export default function AdminUsersList() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({ email: "", username: "", role: "" });
-      // ✅ All useEffect hooks declared FIRST
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
       router.push("/no-permission");
@@ -26,26 +27,11 @@ export default function DashboardUsersList() {
     }
   }, [status, session]);
 
-  // ✅ Guards *after* all hooks
-  if (status === "loading") {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
-
-  if (status === "unauthenticated") {
-    return <p className="text-center mt-10">You must be logged in.</p>;
-  }
-
-  if (status === "authenticated" && session?.user?.role !== "owner") {
-    return null;
-  }
-
-
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/v1/users/user");
       const data = await res.json();
-     
-      setUsers(data);
+      setUsers(data || []);
     } catch (error) {
       toast.error("Failed to fetch users");
       console.error(error);
@@ -54,16 +40,23 @@ export default function DashboardUsersList() {
     }
   };
 
+  if (status === "unauthenticated") {
+    return <p className="text-center mt-10 font-bold">You must be logged in.</p>;
+  }
 
+  if (status === "authenticated" && session?.user?.role !== "owner") {
+    return null;
+  }
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
+    if (!confirm("Are you sure you want to delete this admin account?")) return;
     try {
       const res = await fetch(`/api/v1/users/user?id=${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast.success("User deleted successfully");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to delete");
+      toast.success("Admin user deleted successfully");
       fetchUsers();
     } catch (err) {
       toast.error(err.message);
@@ -83,7 +76,8 @@ export default function DashboardUsersList() {
     if (!formData.email || !formData.username || !formData.role) {
       return toast.error("All fields are required");
     }
-const toastLoading=toast.loading("Updating user...");
+
+    const toastId = toast.loading("Updating admin account...");
     try {
       const res = await fetch(`/api/v1/users/user?id=${editUser._id}`, {
         method: "PUT",
@@ -92,204 +86,179 @@ const toastLoading=toast.loading("Updating user...");
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("User updated successfully",{id:toastLoading});
+      toast.success("User updated successfully", { id: toastId });
       setEditUser(null);
       fetchUsers();
     } catch (err) {
-      toast.error(err.message,{id:toastLoading});
+      toast.error(err.message, { id: toastId });
     }
   };
-  const MobileUserSkeleton = () => (
-  <div className="bg-gray-200/60 rounded-lg p-4 shadow animate-pulse">
-    <div className="flex justify-between mb-3">
-      <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-      <div className="h-4 bg-gray-300 rounded w-1/6"></div>
-    </div>
-    <div className="space-y-2">
-      <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-      <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-      <div className="h-3 bg-gray-300 rounded w-1/4"></div>
-    </div>
-  </div>
-);
-
 
   return (
-    <div className="min-h-screen sm:mt-8  bg-gradient-to-br from-indigo-800 to-purple-800 p-6">
-      <Toaster />
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 className="text-xl sm:text-3xl font-bold text-center text-gray-800 mb-4">
-          🛡️ Dashboard Admin Users
-        </h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <Toaster position="top-right" />
+
+      {/* Main Neo Card */}
+      <div className="neo-card p-6 sm:p-8 bg-white mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b-2 border-black">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/")}
+              className="neo-btn neo-btn-secondary px-3 py-1.5 text-xs flex items-center gap-1.5"
+            >
+              <FiArrowLeft size={15} />
+              <span>Home</span>
+            </button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+                Admin Accounts Management
+              </h1>
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">
+                System owners, managers & elevated privilege accounts
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/sign-up"
+            className="neo-btn neo-btn-primary px-4 py-2 text-xs font-black flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <FiPlus size={16} />
+            <span>Create Admin User</span>
+          </Link>
+        </div>
 
         {loading ? (
-  <div className="space-y-4 animate-pulse">
-    {[...Array(5)].map((_, i) => (
-      <div
-        key={i}
-        className="bg-gray-200/60 rounded-lg p-4 shadow-sm"
-      >
-        <div className="flex justify-between mb-4">
-          <div className="h-4 bg-gray-300 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-300 rounded w-1/4"></div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="h-4 bg-gray-300 rounded"></div>
-          <div className="h-4 bg-gray-300 rounded"></div>
-          <div className="h-4 bg-gray-300 rounded"></div>
-        </div>
-      </div>
-    ))}
-  </div>
-
+          <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="font-black text-xs uppercase tracking-wider text-black">Loading Admins...</p>
+          </div>
         ) : users.length === 0 ? (
-          <p className="text-center text-gray-500">No users found.</p>
+          <p className="text-center text-gray-500 font-bold py-12">No admin users found.</p>
         ) : (
-          <>
-            {/* Table View for Desktop */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full border border-gray-300 text-center">
-                <thead className="bg-black">
-                  <tr>
-                    <th className="p-3 border">Username</th>
-                    <th className="p-3 border">Email</th>
-                    <th className="p-3 border">Role</th>
-                    <th className="p-3 border">Created</th>
-                    <th className="p-3 border">Actions</th>
+          <div className="overflow-x-auto table-scrollbar border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000]">
+            <table className="w-full text-xs sm:text-sm text-left">
+              <thead className="bg-[#F4F4F0] border-b-2 border-black font-black uppercase text-black">
+                <tr>
+                  <th className="p-3.5">Username</th>
+                  <th className="p-3.5">Email</th>
+                  <th className="p-3.5">Role</th>
+                  <th className="p-3.5">Created Date</th>
+                  <th className="p-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 font-bold">
+                {users.map((user) => (
+                  <tr key={user._id} className="hover:bg-gray-50 transition">
+                    <td className="p-3.5 font-black text-black flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-[#D4FF00] border border-black flex items-center justify-center text-black font-black text-xs">
+                        <FiShield size={12} />
+                      </div>
+                      {user.username}
+                    </td>
+                    <td className="p-3.5 text-gray-700 font-mono text-xs">{user.email}</td>
+                    <td className="p-3.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black border border-black bg-[#D4FF00] text-black">
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-xs text-gray-500 font-mono">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="p-3.5 text-right space-x-2">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="px-2.5 py-1 text-xs neo-btn neo-btn-cyan font-black"
+                      >
+                        <FiEdit2 size={12} className="inline mr-1" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user._id)}
+                        className="px-2.5 py-1 text-xs neo-btn neo-btn-danger font-black"
+                      >
+                        <FiTrash2 size={12} className="inline mr-1" /> Delete
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user._id} className="hover:bg-gray-50">
-                      <td className="p-3 border text-black">
-                        <div className="flex items-center justify-center gap-2">
-                          <FaUserShield className="text-indigo-600" />
-                          {user.username}
-                        </div>
-                      </td>
-                      <td className="p-3 border text-black">{user.email}</td>
-                      <td className="p-3 border capitalize text-black">{user.role}</td>
-                      <td className="p-3 border text-sm text-black">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="p-3 border">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="text-blue-600 hover:text-blue-800 mr-3 flex items-center gap-1 text-sm"
-                        >
-                          <FaEdit /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user._id)}
-                          className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm"
-                        >
-                          <FaTrash /> Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-        
-            {/* Card View for Mobile */}
-<div className="block md:hidden space-y-4 mt-4">
-  {loading
-    ? [...Array(4)].map((_, i) => <MobileUserSkeleton key={i} />)
-    : users.map((user) => (
-        <div key={user._id} className="bg-gray-100 p-4 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-2 font-semibold text-gray-800">
-              <FaUserShield className="text-indigo-600" />
-              {user.username}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => openEditModal(user)}
-                className="text-blue-600"
-              >
-                <FaEdit />
-              </button>
-              <button
-                onClick={() => handleDelete(user._id)}
-                className="text-red-600"
-              >
-                <FaTrash />
-              </button>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div>
-            <div className="text-black">
-              <strong>Email:</strong> {user.email}
-            </div>
-            <div className="text-black">
-              <strong>Role:</strong>{" "}
-              <span className="capitalize">{user.role}</span>
-            </div>
-            <div className="text-xs text-black mt-1">
-              Created: {new Date(user.createdAt).toLocaleDateString()}
-            </div>
-          </div>
-        </div>
-      ))}
-</div>
-
-          </>
         )}
+      </div>
 
-        {/* Edit Modal */}
-        {editUser && (
-          <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-black">Edit User</h2>
-              <label className="block mb-2 text-black">
-                Username
+      {/* Edit Modal */}
+      {editUser && (
+        <div
+          className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => setEditUser(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-md border-[3px] border-black shadow-[8px_8px_0px_0px_#000] relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center border-b-2 border-black pb-3 mb-4">
+              <h2 className="text-xl font-black text-black">Edit Admin Account</h2>
+              <button
+                onClick={() => setEditUser(null)}
+                className="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center hover:bg-gray-100 font-black cursor-pointer"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-black uppercase text-black mb-1">Username</label>
                 <input
+                  type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full border p-2 text-black rounded mt-1"
+                  className="neo-input text-sm font-bold"
                 />
-              </label>
-              <label className="block mb-2 text-black">
-                Email
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-black mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full border p-2 text-black rounded mt-1"
+                  className="neo-input text-sm font-bold"
                 />
-              </label>
-              <label className="block mb-4 text-black">
-                Role
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-black mb-1">Role</label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full border p-2 text-black rounded mt-1"
+                  className="neo-input text-sm font-bold cursor-pointer"
                 >
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                  <option value="owner">Owner</option>
+                  <option value="owner">owner</option>
+                  <option value="admin">admin</option>
+                  <option value="manager">manager</option>
                 </select>
-              </label>
-              <div className="flex justify-end gap-3">
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t-2 border-black">
                 <button
                   onClick={() => setEditUser(null)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                  className="py-2 px-4 neo-btn neo-btn-secondary text-xs font-black"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdate}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  className="py-2 px-5 neo-btn neo-btn-primary text-xs font-black"
                 >
-                  Update
+                  Save Changes
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

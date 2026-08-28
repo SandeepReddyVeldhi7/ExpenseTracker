@@ -1,15 +1,14 @@
 import { connectDB } from "@/lib/db";
 import Attendance from "@/models/Attendance";
 import Staff from "@/models/Staff";
+import { withAuth } from "@/lib/apiAuth";
 
-
-
-export default async function handler(req, res) {
-  await connectDB();
-
+async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed" });
   }
+
+  await connectDB();
 
   const { month, year } = req.query;
   if (!month || !year) {
@@ -20,16 +19,13 @@ export default async function handler(req, res) {
   const y = parseInt(year);
 
   const startDate = new Date(y, m, 1);
-  const endDate = new Date(y, m + 1, 0);
+  const endDate = new Date(y, m + 1, 0, 23, 59, 59, 999);
 
   try {
-    // 🔹 Only active staff are fetched
-    const staffList = await Staff.find({ active: true });
+    const staffList = await Staff.find({ status: { $ne: "inactive" } }).lean();
     const attendance = await Attendance.find({
       date: { $gte: startDate, $lte: endDate },
-      // (optional) if you want to ignore any stray records for inactive people:
-      // staff: { $in: staffList.map(s => s._id) },
-    });
+    }).lean();
 
     // Map attendance by staffId (only Present)
     const attendanceMap = {};
@@ -48,9 +44,11 @@ export default async function handler(req, res) {
       presentDates: attendanceMap[staff._id.toString()] || [],
     }));
 
-    res.json(result);
+    return res.status(200).json(result);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Monthly attendance error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+export default withAuth(handler, { roles: ["owner", "staff", "staff123"] });

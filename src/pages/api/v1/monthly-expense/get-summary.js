@@ -1,7 +1,8 @@
 import { connectDB } from "@/lib/db";
 import DailySummary from "@/models/DailySummary";
+import { withAuth } from "@/lib/apiAuth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Only GET allowed" });
   }
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
     const [yearStr, monthStr] = monthYear.split("-");
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-    const totalDays = new Date(year, month, 0).getDate(); // standard JS formula for total days in month
+    const totalDays = new Date(year, month, 0).getDate();
 
     return res.status(200).json({
       monthYear,
@@ -58,3 +59,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+export default withAuth(handler, { roles: ["owner", "staff", "staff123"] });

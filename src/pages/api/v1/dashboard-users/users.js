@@ -1,18 +1,19 @@
 import { connectDB } from "@/lib/db";
 import dashboardUsers from "@/models/dashboardUsers";
+import { withAuth } from "@/lib/apiAuth";
 
-
-export default async function handler(req, res) {
+async function handler(req, res) {
   await connectDB();
 
   if (req.method === "GET") {
     try {
-      const users = await dashboardUsers.find().sort({ createdAt: -1 });
-      console.log("user", users);
-      res.status(200).json(users);
+      const users = await dashboardUsers.find()
+        .select("-password -forgotPasswordToken")
+        .sort({ createdAt: -1 });
+      return res.status(200).json(users);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to fetch users" });
+      return res.status(500).json({ error: "Failed to fetch dashboard users" });
     }
   } else if (req.method === "DELETE") {
     try {
@@ -20,13 +21,12 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ error: "Missing id" });
 
       await dashboardUsers.findByIdAndDelete(id);
-      res.status(200).json({ message: "User deleted" });
+      return res.status(200).json({ message: "User deleted" });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to delete user" });
+      return res.status(500).json({ error: "Failed to delete user" });
     }
-  } 
-  else if (req.method === "PUT") {
+  } else if (req.method === "PUT") {
     try {
       const { id } = req.query;
       const { email, username, role } = req.body;
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
       // Check for duplicates (excluding the user being updated)
       const duplicateUser = await dashboardUsers.findOne({
-        _id: { $ne: id }, // Exclude current user
+        _id: { $ne: id },
         $or: [{ email }, { username }],
       });
 
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         id,
         { email, username, role },
         { new: true, runValidators: true }
-      );
+      ).select("-password -forgotPasswordToken");
 
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
@@ -65,12 +65,10 @@ export default async function handler(req, res) {
       console.error("PUT error:", error);
       return res.status(500).json({ error: "Failed to update user" });
     }
-  }
-  
-  
-  
-  else {
-    res.setHeader("Allow", ["GET", "DELETE"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+  } else {
+    res.setHeader("Allow", ["GET", "DELETE", "PUT"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
+
+export default withAuth(handler, { roles: ["owner"] });

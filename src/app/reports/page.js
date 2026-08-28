@@ -1,35 +1,82 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { Poppins } from "next/font/google";
 import DataTable from "react-data-table-component";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Tooltip } from "react-tooltip";
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
+import {
+  FiCalendar,
+  FiSearch,
+  FiX,
+  FiEye,
+  FiDollarSign,
+  FiEyeOff,
+} from "react-icons/fi";
 
 export default function ReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [totalRemaining, setTotalRemaining] = useState(0);
 
+  const [totalRemaining, setTotalRemaining] = useState(0);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [showTotal, setShowTotal] = useState(false);
-  const [shotBreakdown, setShotBreakdown] = useState({});
-  const [totalShotSum, setTotalShotSum] = useState(0);
+  const [staffMap, setStaffMap] = useState({});
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "owner") {
-      router.push("/no-permission");
+      router.push("/");
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const res = await fetch("/api/v1/staff/get-staff");
+        const data = await res.json();
+        const map = {};
+        (data || []).forEach((s) => {
+          if (s && s._id) {
+            map[String(s._id)] = s.name;
+          }
+        });
+        setStaffMap(map);
+      } catch (err) {
+        console.error("Error fetching staff:", err);
+      }
+    };
+    fetchStaff();
+  }, []);
+
+  const renderName = (val) => {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "object") {
+      return val.name || val.username || val.title || (val._id ? staffMap[String(val._id)] || String(val._id) : "");
+    }
+    const str = String(val);
+    return staffMap[str] || str;
+  };
+
+  const renderPrice = (val) => {
+    if (val === null || val === undefined) return "0";
+    if (typeof val === "object") {
+      return String(val.price || val.amount || 0);
+    }
+    return String(val);
+  };
+
+  const formatINR = (num) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(num || 0);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -39,48 +86,24 @@ export default function ReportsPage() {
       if (endDate) url += `endDate=${endDate}`;
 
       const res = await fetch(url);
-
       if (!res.ok) {
         throw new Error(`Server error: ${res.status}`);
       }
 
       const text = await res.text();
-
       if (!text) {
         throw new Error("Empty response from server");
       }
 
       const data = JSON.parse(text);
-      setExpenses(data.expenses || []);
+      const list = data.expenses || [];
+      setExpenses(list);
 
-      // const total = (data.expenses || []).reduce(
-      //   (sum, item) => sum + (parseFloat(item.payout) || 0),
-      //   0,
-      // );
-      // setTotalRemaining(total);
-      // TOTAL PAYOUT
-      const totalPayout = (data.expenses || []).reduce(
+      const total = list.reduce(
         (sum, item) => sum + (parseFloat(item.payout) || 0),
-        0,
+        0
       );
-
-     const shotMap = {};
-let totalShot = 0;
-
-data.expenses.forEach(day => {
-  day.cashers?.forEach(c => {
-    const name = c.casherName?.trim(); // UNIQUE key
-    const shot = Number(c.shot) || 0;
-
-    shotMap[name] = (shotMap[name] || 0) + shot;
-    totalShot += shot;
-  });
-});
-
-// setShotBreakdown(shotMap);
-setTotalShotSum(totalShot);
-      setTotalRemaining(totalPayout);
-     
+      setTotalRemaining(total);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load reports");
@@ -88,125 +111,119 @@ setTotalShotSum(totalShot);
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role === "owner") {
       fetchReports();
     }
   }, [status, session]);
 
-  if (status === "loading" || loading) {
-    return (
-      <div
-        className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-800 to-lime-800 ${poppins.className}`}
-      >
-        <div className="max-w-6xl w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl space-y-6">
-          <div className="animate-pulse space-y-6">
-            {/* Title */}
-            <div className="h-8 w-1/3 bg-white/30 rounded mx-auto"></div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="h-12 bg-white/20 rounded"></div>
-              <div className="h-12 bg-white/20 rounded"></div>
-              <div className="h-12 bg-white/20 rounded"></div>
-            </div>
-
-            {/* Button */}
-            <div className="h-12 w-40 bg-white/20 rounded mx-auto"></div>
-
-            {/* Table Skeleton */}
-            <div className="border border-white/30 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-4 md:grid-cols-6 bg-white/10 border-b border-white/20">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="p-4">
-                    <div className="h-4 bg-white/20 rounded w-24 mx-auto"></div>
-                  </div>
-                ))}
-              </div>
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-4 md:grid-cols-6 border-b border-white/20"
-                >
-                  {[...Array(6)].map((_, j) => (
-                    <div key={j} className="p-4">
-                      <div className="h-4 bg-white/10 rounded w-16 mx-auto"></div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (status === "unauthenticated") {
-    return <p className="text-center mt-10">You must be logged in.</p>;
+    return <p className="text-center mt-10 font-bold">You must be logged in.</p>;
   }
 
-  if (session?.user?.role !== "owner") {
+  if (status === "authenticated" && session?.user?.role !== "owner") {
     return null;
   }
-  const getAddonSumForDrinkType = (drinkType) => {
-    if (!selectedExpense?.cashers) return 0;
-    return selectedExpense.cashers.reduce((sum, casher) => {
-      const matchingAddons =
-        casher.addons?.filter(
-          (addon) => addon.name?.toLowerCase() === drinkType.toLowerCase(),
-        ) || [];
-      return (
-        sum + matchingAddons.reduce((a, b) => a + (parseFloat(b.price) || 0), 0)
-      );
-    }, 0);
-  };
 
-  // Helpers
-  const formatINR = (num) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-    }).format(num || 0);
+  // Totals for modal
+  const totalCashersAmount = selectedExpense?.cashers?.reduce(
+    (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
+    0
+  );
 
-  const renderName = (val) => {
-    if (!val) return "—";
-    if (typeof val === "string") return val;
-    if (typeof val === "object" && val !== null) {
-      if (typeof val.name === "string") return val.name;
-      if ("_id" in val && "name" in val) return val.name;
-      return JSON.stringify(val);
-    }
-    return String(val);
-  };
+  const totalJuiceExpensive = selectedExpense?.cashers?.reduce(
+    (sum, c) =>
+      sum +
+      (c.addons?.reduce(
+        (innerSum, a) =>
+          innerSum + (a.name?.toLowerCase() === "juice" ? parseFloat(a.price) || 0 : 0),
+        0
+      ) || 0),
+    0
+  );
 
-  // Fetch
+  const totalTeaExpensive = selectedExpense?.cashers?.reduce(
+    (sum, c) =>
+      sum +
+      (c.addons?.reduce(
+        (innerSum, a) =>
+          innerSum + (a.name?.toLowerCase() === "tea" ? parseFloat(a.price) || 0 : 0),
+        0
+      ) || 0),
+    0
+  );
 
-  // Table columns
+  const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
+    const onlineAddon = c.addons?.find(
+      (a) => (typeof a.name === "string" ? a.name : a.name?.name)?.toLowerCase() === "online"
+    );
+    return sum + (onlineAddon ? parseFloat(onlineAddon.price) || 0 : 0);
+  }, 0);
+
+  // DataTable columns (exact matching original)
   const columns = [
     {
       name: "Date",
       selector: (row) => row.date,
       sortable: true,
-      cell: (row) =>
-        new Date(row.date).toLocaleDateString("en-GB", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        }),
+      cell: (row) => (
+        <span className="font-mono font-bold text-xs sm:text-sm text-black">
+          {new Date(row.date).toLocaleDateString("en-GB")}
+        </span>
+      ),
     },
     {
-      name: "Total Sale Amount",
-      selector: (row) => row.totalAmount,
+      name: "Total Cashers Sale",
+      selector: (row) => row.totalCashersSale,
       sortable: true,
-      cell: (row) => `${formatINR(row.totalCashersSale?.toFixed(2))}`,
+      cell: (row) => (
+        <span className="font-mono text-black font-semibold text-xs sm:text-sm">
+          {formatINR(row.totalCashersSale?.toFixed(2))}
+        </span>
+      ),
     },
     {
-      name: "Remaining / Payout",
-      selector: (row) => row.remainingAmount || 0,
+      name: "Total Drinks Amount",
+      selector: (row) => row.totalDrinksAmount,
       sortable: true,
-      cell: (row) => `${formatINR(row.payout?.toFixed(2))}`,
+      cell: (row) => (
+        <span className="font-mono text-black font-semibold text-xs sm:text-sm">
+          {formatINR(row.totalDrinksAmount?.toFixed(2))}
+        </span>
+      ),
+    },
+    {
+      name: "Total Expenses",
+      selector: (row) => {
+        const total = row.cashers?.reduce(
+          (sum, c) => sum + (parseFloat(c.totalCashersAmount) || 0),
+          0
+        );
+        return total || 0;
+      },
+      sortable: true,
+      cell: (row) => {
+        const total = row.cashers?.reduce(
+          (sum, c) => sum + (parseFloat(c.totalCashersAmount) || 0),
+          0
+        );
+        return (
+          <span className="font-mono text-black font-semibold text-xs sm:text-sm">
+            {formatINR(total?.toFixed(2))}
+          </span>
+        );
+      },
+    },
+    {
+      name: "Payout",
+      selector: (row) => row.payout,
+      sortable: true,
+      cell: (row) => (
+        <span className="font-mono font-bold text-emerald-800 text-xs sm:text-sm">
+          {formatINR(row.payout?.toFixed(2))}
+        </span>
+      ),
     },
     {
       name: "Online Amount",
@@ -215,7 +232,7 @@ setTotalShotSum(totalShot);
         const onlineDetails =
           row.cashers?.map((c) => {
             const onlineAddon = c.addons?.find(
-              (a) => a.name?.toLowerCase() === "online",
+              (a) => (typeof a.name === "string" ? a.name : a.name?.name)?.toLowerCase() === "online"
             );
             return {
               name: c.casherName,
@@ -224,7 +241,6 @@ setTotalShotSum(totalShot);
           }) || [];
 
         const totalOnline = onlineDetails.reduce((sum, c) => sum + c.amount, 0);
-
         const tooltipText = onlineDetails
           .map((c) => `${c.name}: ₹${c.amount}`)
           .join(" | ");
@@ -233,6 +249,7 @@ setTotalShotSum(totalShot);
           <div
             data-tooltip-id="global-tooltip"
             data-tooltip-content={tooltipText}
+            className="font-mono font-bold text-xs sm:text-sm cursor-help text-cyan-800"
           >
             {totalOnline ? formatINR(totalOnline) : "—"}
           </div>
@@ -250,7 +267,6 @@ setTotalShotSum(totalShot);
           })) || [];
 
         const totalShot = shotDetails.reduce((sum, c) => sum + c.shot, 0);
-
         const tooltipText = shotDetails
           .map((c) => `${c.name}: ${c.shot}`)
           .join(" | ");
@@ -259,141 +275,109 @@ setTotalShotSum(totalShot);
           <div
             data-tooltip-id="global-tooltip"
             data-tooltip-content={tooltipText}
+            className="font-mono font-bold text-xs sm:text-sm cursor-help text-red-600"
           >
-            {totalShot || "—"}
+            {totalShot ? formatINR(totalShot) : "—"}
           </div>
         );
       },
     },
-
     {
       name: "Actions",
       cell: (row) => (
         <button
           onClick={() => setSelectedExpense(row)}
-          className="bg-blue-600 text-white px-3 py-1 rounded text-xs sm:text-sm"
+          className="neo-btn neo-btn-cyan px-3 py-1 text-xs font-black flex items-center gap-1"
         >
-          View Details
+          <FiEye size={13} /> View
         </button>
       ),
     },
   ];
 
-  // Totals for modal
-  const totalCashersAmount = selectedExpense?.cashers?.reduce(
-    (sum, c) => sum + (parseFloat(c?.totalCashersAmount) || 0),
-    0,
-  );
-  const totalTeaExpensive = selectedExpense?.cashers?.reduce(
-    (sum, c) =>
-      sum +
-      (c.addons?.reduce(
-        (innerSum, a) =>
-          innerSum +
-          (a.name?.toLowerCase() === "tea" ? parseFloat(a.price) || 0 : 0),
-        0,
-      ) || 0),
-    0,
-  );
-
-  const totalJuiceExpensive = selectedExpense?.cashers?.reduce(
-    (sum, c) =>
-      sum +
-      (c.addons?.reduce(
-        (innerSum, a) =>
-          innerSum +
-          (a.name?.toLowerCase() === "juice" ? parseFloat(a.price) || 0 : 0),
-        0,
-      ) || 0),
-    0,
-  );
-
-  const totalOnlineAmount = selectedExpense?.cashers?.reduce((sum, c) => {
-    const onlineAddon = c.addons?.find(
-      (a) => a.name?.toLowerCase() === "online",
-    );
-    return sum + (parseFloat(onlineAddon?.price) || 0);
-  }, 0);
-
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center lg:mt-10 justify-center p-4 ${poppins.className}`}
-    >
-      <div className="w-full max-w-6xl mb-4 bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-2xl">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-28">
+      <Toaster position="top-right" />
+
+      {/* Header Neo Card */}
+      <div className="neo-card p-6 sm:p-8 bg-white mb-6">
+        <h1 className="text-2xl md:text-3xl font-black text-black mb-6 text-center tracking-tight">
           📊 Expense Report
         </h1>
 
-        <Toaster />
-
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Filter Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-white mb-1">Start Date</label>
+            <label className="block text-xs font-black uppercase text-black mb-1">
+              Start Date
+            </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full p-3 rounded border bg-white/20 backdrop-blur text-white"
+              className="neo-input text-xs font-bold py-2"
             />
           </div>
+
           <div>
-            <label className="block text-white mb-1">End Date</label>
+            <label className="block text-xs font-black uppercase text-black mb-1">
+              End Date
+            </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full p-3 rounded border bg-white/20 backdrop-blur text-white"
+              className="neo-input text-xs font-bold py-2"
             />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={fetchReports}
+              disabled={loading}
+              className="w-full py-2.5 neo-btn neo-btn-primary text-xs font-black flex items-center justify-center gap-1.5"
+            >
+              <FiSearch size={15} />
+              <span>{loading ? "Loading..." : "🔍 Get Reports"}</span>
+            </button>
           </div>
         </div>
 
-        <button
-          onClick={fetchReports}
-          disabled={loading}
-          className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:opacity-90 mb-8 transition"
-        >
-          {loading ? "Loading..." : "🔍 Get Reports"}
-        </button>
+        {/* Action Buttons: Clear Filters & Show / Hide Total */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          {startDate && endDate && (
+            <button
+              onClick={() => {
+                setStartDate("");
+                setEndDate("");
+                fetchReports();
+              }}
+              className="flex-1 py-2.5 neo-btn neo-btn-danger text-xs font-black flex items-center justify-center gap-1.5"
+            >
+              <FiX size={15} />
+              <span>❌ Clear Filters</span>
+            </button>
+          )}
 
-        {startDate && endDate && (
           <button
-            onClick={() => {
-              setStartDate("");
-              setEndDate("");
-              fetchReports();
-            }}
-            className="w-full bg-red-500 text-white p-3 rounded font-bold hover:opacity-90 mb-4 transition"
+            onClick={() => setShowTotal(!showTotal)}
+            className="flex-1 py-2.5 neo-btn neo-btn-secondary text-xs font-black flex items-center justify-center gap-1.5"
           >
-            ❌ Clear Filters
+            {showTotal ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+            <span>{showTotal ? "🙈 Hide Total" : "👀 Show Total"}</span>
           </button>
-        )}
+        </div>
 
-        <button
-          onClick={() => setShowTotal(!showTotal)}
-          className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded font-semibold hover:opacity-90 w-full transition"
-        >
-          {showTotal ? "🙈 Hide Total" : "👀 Show Total"}
-        </button>
-
+        {/* Show Total Payout Banner */}
         {showTotal && (
-          <div className="mb-4 text-center text-white text-lg font-bold bg-white/10 p-3 rounded space-y-2">
-            <div>💰 Total Remaining / Payout: {formatINR(totalRemaining)}</div>
-            <div>🥤 Total Shot: {totalShotSum}</div>
-
-            {/* <div className="mt-2 text-sm text-white/90">
-              {Object.entries(shotBreakdown).map(([name, shot]) => (
-                <div key={name}>
-                  {name}: {shot}
-                </div>
-              ))}
-            </div> */}
+          <div className="p-4 rounded-xl border-2 border-black bg-[#D4FF00] shadow-[3px_3px_0px_0px_#000] text-center mb-6 font-black text-black text-base sm:text-lg">
+            💰 Total Remaining / Payout: <span className="font-mono text-xl">{formatINR(totalRemaining)}</span>
           </div>
         )}
 
-        {/* DataTable */}
+        {/* DataTable Container with Contained Scroll */}
         {expenses.length > 0 ? (
-          <>
+          <div className="border-2 border-black rounded-xl overflow-hidden shadow-[4px_4px_0px_0px_#000] mt-4">
             <DataTable
               columns={columns}
               data={expenses}
@@ -403,217 +387,285 @@ setTotalShotSum(totalShot);
               paginationPerPage={30}
               defaultSortAsc={false}
               responsive
-              theme="dark"
               customStyles={{
                 headRow: {
-                  style: { backgroundColor: "rgba(255,255,255,0.1)" },
+                  style: {
+                    backgroundColor: "#F4F4F0",
+                    borderBottom: "2px solid #0A0A0A",
+                    fontWeight: "900",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    color: "#0A0A0A",
+                  },
                 },
                 rows: {
-                  style: { backgroundColor: "transparent", color: "white" },
-                  stripedStyle: { backgroundColor: "rgba(255,255,255,0.05)" },
+                  style: {
+                    backgroundColor: "#FFFFFF",
+                    borderBottom: "1px solid #E2E8F0",
+                    fontWeight: "600",
+                    color: "#0A0A0A",
+                    "&:hover": {
+                      backgroundColor: "#F8FAFC",
+                    },
+                  },
+                  stripedStyle: {
+                    backgroundColor: "#FAF9F5",
+                  },
                 },
                 headCells: {
-                  style: { color: "white" },
+                  style: {
+                    color: "#0A0A0A",
+                    fontWeight: "900",
+                  },
                 },
                 pagination: {
-                  style: { backgroundColor: "transparent", color: "white" },
+                  style: {
+                    backgroundColor: "#F4F4F0",
+                    borderTop: "2px solid #0A0A0A",
+                    fontWeight: "700",
+                    color: "#0A0A0A",
+                  },
                 },
               }}
             />
             <Tooltip id="global-tooltip" place="top" />
-          </>
+          </div>
         ) : (
-          <p className="text-center text-white/70">
-            {loading ? "" : "No records found. Please search!"}
+          <p className="text-center text-gray-500 font-bold py-12">
+            {loading ? "Fetching reports..." : "No records found. Please search!"}
           </p>
         )}
       </div>
 
-      {/* Modal */}
+      {/* Full Modal with 100% original breakdown details */}
       {selectedExpense && (
         <div
-          className="min-h-screen fixed inset-0 bg-black/50 backdrop-blur-md flex justify-center items-center z-50"
+          className="min-h-screen fixed inset-0 bg-black/65 backdrop-blur-xs flex justify-center items-center z-50 p-4"
           onClick={() => setSelectedExpense(null)}
         >
           <div
-            className="bg-white rounded-lg max-w-3xl w-full p-4 overflow-y-auto max-h-[90vh] text-gray-800"
+            className="bg-white border-[3px] border-black rounded-2xl max-w-3xl w-full p-6 overflow-y-auto max-h-[90vh] shadow-[8px_8px_0px_0px_#000] relative text-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4 border-b-2 border-black pb-3">
+              <h2 className="text-xl sm:text-2xl font-black text-black">
+                Daily Summary — {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
+              </h2>
               <button
                 onClick={() => setSelectedExpense(null)}
-                className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
+                className="py-1.5 px-4 neo-btn neo-btn-danger text-xs font-black"
               >
                 Close
               </button>
             </div>
-            <h2 className="text-2xl font-bold mb-4">
-              Daily Summary —{" "}
-              {new Date(selectedExpense.date).toLocaleDateString("en-GB")}
-            </h2>
-            <div className="mb-4 space-y-2">
-              <p>
-                <strong>1) Total Cashers Sale:</strong>{" "}
-                {formatINR(selectedExpense.totalCashersSale?.toFixed(2))}
+
+            {/* Top Metrics 1-4 & Payout & Online */}
+            <div className="mb-6 space-y-2 p-4 rounded-xl border-2 border-black bg-[#F4F4F0] text-xs sm:text-sm font-bold">
+              <p className="flex justify-between">
+                <span>1) Total Cashers Sale:</span>
+                <span className="font-mono font-black text-black">
+                  {formatINR(selectedExpense.totalCashersSale?.toFixed(2))}
+                </span>
               </p>
-              <p>
-                <strong>2) Total Drinks Amount:</strong>{" "}
-                {formatINR(selectedExpense.totalDrinksAmount?.toFixed(2))}
+              <p className="flex justify-between">
+                <span>2) Total Drinks Amount:</span>
+                <span className="font-mono font-black text-black">
+                  {formatINR(selectedExpense.totalDrinksAmount?.toFixed(2))}
+                </span>
               </p>
-              <p>
-                <strong>3) Total Shot:</strong>{" "}
-                {formatINR(selectedExpense.totalShot?.toFixed(2))}
+              <p className="flex justify-between">
+                <span>3) Total Shot:</span>
+                <span className="font-mono font-black text-red-600">
+                  {formatINR(selectedExpense.totalShot?.toFixed(2))}
+                </span>
               </p>
-              <p>
-                <strong>
-                  4) Total Cashers Expenses (Including Tea/Juice):
-                </strong>{" "}
-                {formatINR(totalCashersAmount?.toFixed(2))}
+              <p className="flex justify-between">
+                <span>4) Total Cashers Expenses (Including Tea/Juice):</span>
+                <span className="font-mono font-black text-black">
+                  {formatINR(totalCashersAmount?.toFixed(2))}
+                </span>
               </p>
 
-              <p className="bg-red-500 p-2 rounded">
-                <strong>Remaining / Payout:</strong>{" "}
-                {formatINR(selectedExpense?.payout?.toFixed(2))}
-              </p>
+              <div className="p-3 rounded-lg border-2 border-black bg-[#FF5A5F] text-white flex justify-between items-center text-sm font-black mt-2">
+                <span>Remaining / Payout:</span>
+                <span className="font-mono text-base">
+                  {formatINR(selectedExpense?.payout?.toFixed(2))}
+                </span>
+              </div>
 
-              {selectedExpense.cashers &&
-                selectedExpense.cashers.length > 0 && (
-                  <div className="mb-4 space-y-2 bg-gray-100 p-3 rounded">
-                    <h3 className="text-lg font-bold mb-2">
-                      Cashers Online Amount Summary
-                    </h3>
-                    <ul className="list-disc ml-5 space-y-1">
-                      {selectedExpense.cashers.map((c, idx) => {
-                        const onlineAddon = c.addons?.find(
-                          (a) => a.name?.toLowerCase() === "online",
-                        );
-                        return (
-                          <li key={idx}>
-                            {c.casherName}:{" "}
-                            {onlineAddon
-                              ? formatINR(onlineAddon.price)
-                              : "No Online Amount"}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
-              <div className="mt-2 font-semibold">
-                Total Online Amount: {formatINR(totalOnlineAmount) || 0}
+              {selectedExpense.cashers && selectedExpense.cashers.length > 0 && (
+                <div className="mt-3 p-3 rounded-lg border border-black bg-white space-y-1">
+                  <h3 className="text-xs font-black uppercase text-black mb-1">
+                    Cashers Online Amount Summary
+                  </h3>
+                  <ul className="list-disc ml-5 space-y-0.5 text-xs text-gray-800 font-semibold">
+                    {selectedExpense.cashers.map((c, idx) => {
+                      const onlineAddon = c.addons?.find(
+                        (a) => (typeof a.name === "string" ? a.name : a.name?.name)?.toLowerCase() === "online"
+                      );
+                      return (
+                        <li key={idx}>
+                          {c.casherName}:{" "}
+                          <strong className="font-mono font-bold text-black">
+                            {onlineAddon ? formatINR(onlineAddon.price) : "No Online Amount"}
+                          </strong>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-black flex justify-between font-black text-xs text-black">
+                <span>Total Online Amount:</span>
+                <span className="font-mono">{formatINR(totalOnlineAmount) || 0}</span>
               </div>
             </div>
-            <hr className="my-4" />
 
-            <h3 className="text-lg font-bold mb-2">Cashers</h3>
-            {selectedExpense?.cashers &&
-            selectedExpense?.cashers?.length > 0 ? (
-              selectedExpense?.cashers.map((c, idx) => (
-                <div
-                  key={idx}
-                  className="mb-4 p-3 border border-gray-300 rounded"
-                >
-                  <p className="font-semibold mb-1">{c?.casherName}</p>
-                  {c.items?.length > 0 && (
-                    <>
-                      <p className="underline text-sm">Main Items:</p>
-                      <ul className="ml-4 list-disc">
-                        {c?.items?.map((item, i) => (
-                          <li key={i}>
-                            {renderName(item.name)}: ₹{item.price}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+            <hr className="my-4 border-black" />
 
-                  {c?.addons?.length > 0 && (
-                    <>
-                      <p className="underline text-sm mt-2">
-                        Addons (Tea/Juice/Other):
-                      </p>
-                      <ul className="ml-4 list-disc">
-                        {c.addons.map((addon, i) => (
-                          <li key={i}>
-                            {renderName(addon.name)}: ₹{addon.price}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+            {/* Cashers Section */}
+            <h3 className="text-base font-black uppercase tracking-wider text-black mb-3">
+              Cashers
+            </h3>
+            {selectedExpense?.cashers && selectedExpense?.cashers?.length > 0 ? (
+              <div className="space-y-3 mb-6">
+                {selectedExpense?.cashers.map((c, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 border-2 border-black rounded-xl bg-white shadow-[2px_2px_0px_0px_#000] text-xs"
+                  >
+                    <p className="font-black text-sm text-black mb-2">{c?.casherName}</p>
 
-                  <div className="mt-2 font-bold  p-2   text-sm">
-                    <p>
-                      Total Cashers(expenses) Amount:{" "}
-                      {formatINR(c.totalCashersAmount)}
-                    </p>
-                    <p>Total Sale: {formatINR(c.totalSealAmount)}</p>
-                    <p>Money Lift: {formatINR(c.totalMoneyLift)}</p>
-                    <p>Shot: {formatINR(c.shot)}</p>
+                    {c.items?.length > 0 && (
+                      <div className="mb-2">
+                        <p className="font-bold underline text-gray-700 mb-1">Main Items:</p>
+                        <ul className="ml-4 list-disc space-y-0.5 font-semibold">
+                          {c?.items?.map((item, i) => (
+                            <li key={i}>
+                              {renderName(item.name)}: <span className="font-mono font-bold">₹{renderPrice(item.price)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {c?.addons?.length > 0 && (
+                      <div className="mb-2">
+                        <p className="font-bold underline text-gray-700 mb-1">
+                          Addons (Tea/Juice/Other):
+                        </p>
+                        <ul className="ml-4 list-disc space-y-0.5 font-semibold">
+                          {c.addons.map((addon, i) => (
+                            <li key={i}>
+                              {renderName(addon.name)}: <span className="font-mono font-bold">₹{renderPrice(addon.price)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="mt-3 p-3 rounded-lg border border-black bg-[#F4F4F0] font-bold text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span>Total Cashers(expenses) Amount:</span>
+                        <span className="font-mono font-black">{formatINR(c.totalCashersAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Sale:</span>
+                        <span className="font-mono font-black">{formatINR(c.totalSealAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Money Lift:</span>
+                        <span className="font-mono font-black">{formatINR(c.totalMoneyLift)}</span>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>Shot:</span>
+                        <span className="font-mono font-black">{formatINR(c.shot)}</span>
+                      </div>
+                    </div>
+
+                    {c.staffAdvances?.length > 0 && (
+                      <div className="mt-3">
+                        <p className="font-bold underline text-gray-700 mb-1">Staff Advances:</p>
+                        <ul className="ml-4 list-disc space-y-0.5 font-semibold">
+                          {c.staffAdvances.map((adv, i) => (
+                            <li key={i}>
+                              Staff ID: <strong>{renderName(adv.staffId)}</strong> — <span className="font-mono font-bold">₹{renderPrice(adv.amount)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-
-                  {c.staffAdvances?.length > 0 && (
-                    <>
-                      <p className="underline text-sm mt-2">Staff Advances:</p>
-                      <ul className="ml-4 list-disc">
-                        {c.staffAdvances.map((adv, i) => (
-                          <li key={i}>
-                            Staff ID: {renderName(adv.staffId)} — ₹{adv.amount}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
-              <p>No cashers recorded.</p>
+              <p className="text-xs font-bold text-gray-500 mb-6">No cashers recorded.</p>
             )}
 
-            <h3 className="text-lg font-bold mb-2">Drinks</h3>
+            {/* Drinks Section */}
+            <h3 className="text-base font-black uppercase tracking-wider text-black mb-3">
+              Drinks
+            </h3>
             {selectedExpense.drinks && selectedExpense.drinks.length > 0 ? (
-              selectedExpense.drinks.map((d, idx) => (
-                <div
-                  key={idx}
-                  className="mb-4 p-3 border border-gray-300 bg-[gray] rounded"
-                >
-                  <p className="font-semibold text-lg">
-                    {d.drinkType.toUpperCase()}
-                  </p>
-                  <p>Sold Amount: ₹{d.soldAmount}</p>
-                  <p>
-                    Commission:{" "}
-                    {d.drinkType === "tea"
-                      ? `${d.commissionPercent}%`
-                      : "Fixed"}{" "}
-                    → ₹{d.commissionValue}
-                  </p>
-
-                  {d.drinkType.toLowerCase() === "tea" && (
-                    <p>Total Tea Expensive: ₹{totalTeaExpensive}</p>
-                  )}
-
-                  {d.drinkType.toLowerCase() === "juice" && (
-                    <p>Total Juice Expensive: ₹{totalJuiceExpensive}</p>
-                  )}
-                  <p>
-                    Final Net (as saved): {formatINR(d.finalNetAmount || 0)}
-                  </p>
-
-                  <div className="mt-2 p-2 bg-yellow-50 rounded">
-                    <p className="text-yellow-800 font-medium">
-                      Includes Carry Forward from Yesterday: ₹
-                      {d.carryForwardFromYesterday || 0}
+              <div className="space-y-3 mb-6">
+                {selectedExpense.drinks.map((d, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 border-2 border-black rounded-xl bg-[#F4F4F0] text-xs font-bold space-y-1.5 shadow-[2px_2px_0px_0px_#000]"
+                  >
+                    <p className="font-black text-base text-black uppercase">
+                      {d.drinkType.toUpperCase()}
                     </p>
-                    <p className="text-yellow-800 font-medium">
-                      Will Carry Forward to Tomorrow: ₹{d.carryLoss || 0}
-                    </p>
+                    <div className="flex justify-between">
+                      <span>Sold Amount:</span>
+                      <span className="font-mono font-black">₹{d.soldAmount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Commission:</span>
+                      <span className="font-mono font-black">
+                        {d.drinkType === "tea" ? `${d.commissionPercent}%` : "Fixed"} → ₹{d.commissionValue}
+                      </span>
+                    </div>
+
+                    {d.drinkType.toLowerCase() === "tea" && (
+                      <div className="flex justify-between text-blue-700">
+                        <span>Total Tea Expensive:</span>
+                        <span className="font-mono font-black">₹{totalTeaExpensive}</span>
+                      </div>
+                    )}
+
+                    {d.drinkType.toLowerCase() === "juice" && (
+                      <div className="flex justify-between text-blue-700">
+                        <span>Total Juice Expensive:</span>
+                        <span className="font-mono font-black">₹{totalJuiceExpensive}</span>
+                      </div>
+                    )}
+
+                    <div className="p-2 rounded-lg bg-white border border-black flex justify-between font-black">
+                      <span>Final Net (as saved):</span>
+                      <span className="font-mono text-emerald-800">{formatINR(d.finalNetAmount || 0)}</span>
+                    </div>
+
+                    <div className="mt-2 p-2.5 bg-[#FFDE59] border border-black rounded-lg text-[11px] font-bold space-y-0.5 text-black">
+                      <p>Includes Carry Forward from Yesterday: ₹{d.carryForwardFromYesterday || 0}</p>
+                      <p>Will Carry Forward to Tomorrow: ₹{d.carryLoss || 0}</p>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
-              <p>No drinks recorded.</p>
+              <p className="text-xs font-bold text-gray-500 mb-6">No drinks recorded.</p>
             )}
+
+            <div className="pt-2 border-t-2 border-black flex justify-end">
+              <button
+                onClick={() => setSelectedExpense(null)}
+                className="py-2.5 px-6 neo-btn neo-btn-secondary text-xs font-black"
+              >
+                Close Summary
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSession } from "next-auth/react";
-
 import {
   FiChevronDown,
   FiUsers,
@@ -18,6 +16,10 @@ import {
   FiImage,
   FiCamera,
   FiTrash2,
+  FiGrid,
+  FiX,
+  FiCheckCircle,
+  FiMenu,
 } from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -26,10 +28,11 @@ export default function ResponsiveNav() {
   const { data: session, update } = useSession();
 
   const avatarSrc =
-    session?.user?.image || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    session?.user?.image || session?.user?.picture || "/icons/icon3-192.png";
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileSheetFor, setMobileSheetFor] = useState(null);
+  const [showAllModulesSheet, setShowAllModulesSheet] = useState(false);
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
@@ -54,8 +57,6 @@ export default function ResponsiveNav() {
       if (!res.ok) throw new Error("Upload failed");
 
       toast.success("Profile photo updated!", { id: toastId });
-
-      // Re-fetch NextAuth session to load the updated image path
       await update();
     } catch (err) {
       console.error(err);
@@ -79,8 +80,6 @@ export default function ResponsiveNav() {
       if (!res.ok) throw new Error("Delete failed");
 
       toast.success("Profile photo removed!", { id: toastId });
-
-      // Re-fetch NextAuth session to load the default image
       await update();
     } catch (err) {
       console.error(err);
@@ -90,10 +89,10 @@ export default function ResponsiveNav() {
     }
   };
 
-
-  let role =
+  const role =
     session?.user?.role ||
-    (typeof window !== "undefined" ? localStorage.getItem("userRole") : "");
+    (typeof window !== "undefined" ? localStorage.getItem("userRole") : "") ||
+    "staff";
 
   useEffect(() => {
     if (session?.user?.role) {
@@ -101,62 +100,94 @@ export default function ResponsiveNav() {
     }
   }, [session]);
 
-
-
   const ownerNavItems = [
+    { href: "/", label: "Dashboard", icon: <FiGrid size={18} /> },
+    { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
+    { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
+    { href: "/reports", label: "Reports", icon: <FiBarChart2 size={18} /> },
     {
-      label: "Staff",
-      icon: <FiUsers />,
+      label: "Staff & Users",
+      icon: <FiUsers size={18} />,
       children: [
-        { href: "/staff", label: "Add Staff Members " },
-        { href: "/staff-list", label: "Staff Members" },
+        { href: "/staff", label: "Add Staff Member" },
+        { href: "/staff-list", label: "Staff List & Advances" },
         { href: "/staffAdvancesPage", label: "Staff Advances" },
-        { href: "/staffAttendance", label: "Staff Attendence List" },
-        { href: "/staff-registation", label: "Staff login Creation" },
-        { href: "/dashboard-users", label: "login Staff List" },
-        { href: "/sign-up", label: "Admin user creation" },
-        { href: "/admin-users", label: "Admin users" },
-        { href: "/analytics", label: "Analytics" },
-        { href: "/extra-expenses", label: "Monthly Expenses" },
+        { href: "/staffAttendance", label: "Staff Attendance Overview" },
+        { href: "/staff-registation", label: "Create Staff Login" },
+        { href: "/dashboard-users", label: "Staff Accounts" },
+        { href: "/sign-up", label: "Create Admin User" },
+        { href: "/admin-users", label: "Admin Users" },
       ],
     },
-    { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
-    { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
-    { href: "/reports", label: "Reports", icon: <FiBarChart2 /> },
-    { href: "/monthly-reports", label: "Month Report", icon: <FiBarChart2 /> },
-
-
+    { href: "/monthly-reports", label: "Month Report", icon: <FiBarChart2 size={18} /> },
+    { href: "/analytics", label: "Analytics", icon: <FiBarChart2 size={18} /> },
+    { href: "/extra-expenses", label: "Monthly Extra", icon: <FiDollarSign size={18} /> },
     {
-      label: "upload",
-      icon: <FiImage />,
+      label: "Proofs",
+      icon: <FiImage size={18} />,
       children: [
         { href: "/proof", label: "Upload Proof" },
-        { href: "/images", label: "View Proofs (Table)" },
+        { href: "/images", label: "View Proofs" },
       ],
     },
   ];
 
   const staffNavItems = [
-    { href: "/attendence", label: "Attendance", icon: <FiCalendar /> },
-    { href: "/expenses", label: "Expenses", icon: <FiFolder /> },
-    { href: "/extra-expenses", label: " Monthly Expenses", icon: <FiDollarSign /> },
-    { href: "/proof", label: "Upload Proof", icon: <FiImage /> },
+    { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
+    { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
+    { href: "/extra-expenses", label: "Monthly Extra", icon: <FiDollarSign size={18} /> },
+    { href: "/proof", label: "Proof", icon: <FiImage size={18} /> },
   ];
 
-  const navItems =
-    role === "staff" || role === "staff123" ? staffNavItems : ownerNavItems;
+  const isOwner = role === "owner";
+  const navItems = isOwner ? ownerNavItems : staffNavItems;
 
-  // helper: is any child active?
   const isGroupActive = (item) =>
     Array.isArray(item.children) &&
     item.children.some((c) => pathname.startsWith(c.href));
 
+  // Quick primary items for mobile bottom dock
+  const mobileDockItems = isOwner
+    ? [
+        { href: "/", label: "Home", icon: <FiGrid size={18} /> },
+        { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
+        { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
+        { href: "/reports", label: "Reports", icon: <FiBarChart2 size={18} /> },
+      ]
+    : [
+        { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
+        { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
+        { href: "/extra-expenses", label: "Monthly", icon: <FiDollarSign size={18} /> },
+        { href: "/proof", label: "Proof", icon: <FiImage size={18} /> },
+      ];
+
   return (
     <>
-      {/* Desktop Nav */}
-      <nav className="hidden md:flex justify-between items-center bg-white text-black px-6 py-4 shadow fixed top-0 left-0 right-0 z-50">
-        <div className="text-xl font-bold text-blue-600"></div>
-        <div className="flex space-x-8 items-center">
+      <Toaster position="top-right" />
+
+      {/* Desktop Neo-Brutalist Top Navigation Bar */}
+      <nav className="hidden md:flex justify-between items-center bg-white border-b-[2.5px] border-[#0A0A0A] px-8 py-3.5 fixed top-0 left-0 right-0 z-50 shadow-[0px_4px_0px_0px_#0A0A0A]">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg border-2 border-black overflow-hidden shadow-[2px_2px_0px_0px_#000] bg-white">
+              <img
+                src="/icons/icon3-192.png"
+                alt="Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <span className="font-black text-sm tracking-tight text-black">
+              Sri Raghavendra Udupi Veg
+            </span>
+          </Link>
+
+          <span className="text-xs font-black px-2.5 py-0.5 rounded-full border-2 border-black bg-[#FFDE59] text-black">
+            {isOwner ? "👑 OWNER" : "STAFF"}
+          </span>
+        </div>
+
+        {/* Nav Links */}
+        <div className="flex space-x-2.5 items-center">
           {navItems.map((item, idx) =>
             item.children ? (
               <div
@@ -166,32 +197,41 @@ export default function ResponsiveNav() {
                 onMouseLeave={() => setOpenDropdown(null)}
               >
                 <button
-                  className={`flex items-center gap-1 ${isGroupActive(item) ? "text-blue-600" : "text-gray-600"
-                    }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 transition-all cursor-pointer ${
+                    isGroupActive(item)
+                      ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black"
+                      : "border-transparent hover:border-black hover:bg-[#F4F4F0] text-black"
+                  }`}
                 >
-                  {item.icon}
+                  <span>{item.icon}</span>
                   <span>{item.label}</span>
-                  <FiChevronDown className="ml-1" />
+                  <FiChevronDown className="ml-0.5 text-xs" />
                 </button>
 
                 <AnimatePresence>
                   {openDropdown === idx && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute left-0 top-full mt-2 bg-white border shadow rounded-md z-50 overflow-hidden"
+                      exit={{ opacity: 0, y: 6 }}
+                      className="absolute left-0 top-full mt-1.5 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] rounded-xl z-50 min-w-[220px] overflow-hidden py-1"
                     >
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          className={`block px-4 py-2 hover:bg-gray-100 whitespace-nowrap ${pathname.startsWith(child.href) ? "text-blue-600" : ""
+                      {item.children.map((child) => {
+                        const isActive = pathname.startsWith(child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={`block px-4 py-2 text-xs font-bold transition ${
+                              isActive
+                                ? "bg-[#D4FF00] text-black font-black"
+                                : "text-black hover:bg-[#F4F4F0]"
                             }`}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -200,117 +240,212 @@ export default function ResponsiveNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-1 ${pathname === item.href ? "text-blue-600" : "text-gray-600"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 transition-all ${
+                  pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+                    ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black"
+                    : "border-transparent hover:border-black hover:bg-[#F4F4F0] text-black"
+                }`}
               >
-                {item.icon}
+                <span>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             )
           )}
 
-          {/* Avatar + Profile Modal Trigger */}
-          <div className="flex items-center gap-3">
-            <img
-              src={avatarSrc}
-              alt="User Avatar"
-              width={36}
-              height={36}
-              className="rounded-full object-cover border border-gray-300 cursor-pointer hover:opacity-85 transition"
+          {/* User Avatar & Profile Trigger */}
+          <div className="flex items-center gap-3 pl-3 border-l-2 border-black">
+            <button
               onClick={() => setShowProfileModal(true)}
-            />
+              className="flex items-center gap-2 p-0.5 rounded-full border-2 border-black hover:shadow-[2px_2px_0px_0px_#000] transition bg-white cursor-pointer"
+              title="View Profile"
+            >
+              <img
+                src={avatarSrc}
+                alt="User Avatar"
+                width={30}
+                height={30}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.src = "/icons/icon3-192.png";
+                }}
+                className="w-7 h-7 rounded-full object-cover"
+              />
+            </button>
+
             <button
               onClick={() => signOut({ callbackUrl: "/sign-in" })}
-              className="flex items-center text-red-500 gap-1"
+              className="px-2.5 py-1 text-xs font-black border-2 border-black bg-[#FF5A5F] text-white rounded-lg shadow-[2px_2px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition flex items-center gap-1 cursor-pointer"
             >
-              <FiLogOut />
+              <FiLogOut size={13} />
               <span>Logout</span>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 text-sm z-50 md:hidden">
-        {navItems.map((item, idx) =>
-          item.children ? (
-            <button
-              key={idx}
-              onClick={() => setMobileSheetFor(idx)}
-              className={`flex flex-col items-center ${isGroupActive(item) ? "text-blue-600" : "text-black"
-                }`}
-            >
-              {/* use the item's own icon */}
-              <span className="text-lg">{item.icon}</span>
-              <span className="text-xs">{item.label}</span>
-            </button>
-          ) : (
+      {/* Mobile Neo-Brutalist Bottom Dock */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-[2.5px] border-[#0A0A0A] flex justify-around items-center py-2 px-1.5 z-50 md:hidden shadow-[0px_-4px_0px_0px_#000]">
+        {mobileDockItems.map((item) => {
+          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+          return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center ${pathname === item.href ? "text-blue-600" : "text-black"
-                }`}
+              className={`flex flex-col items-center py-1.5 px-3 rounded-xl border-2 transition-all ${
+                isActive
+                  ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black scale-105"
+                  : "border-transparent text-black font-bold opacity-80"
+              }`}
             >
-              {item.icon}
-              <span className="text-xs">{item.label}</span>
+              <span>{item.icon}</span>
+              <span className="text-[10px] font-black uppercase tracking-tight mt-0.5">{item.label}</span>
             </Link>
-          )
+          );
+        })}
+
+        {/* Mobile "More..." Modules Sheet Trigger for Owners */}
+        {isOwner && (
+          <button
+            onClick={() => setShowAllModulesSheet(true)}
+            className="flex flex-col items-center py-1.5 px-3 rounded-xl border-2 border-transparent text-black font-bold opacity-80 cursor-pointer"
+          >
+            <FiMenu size={18} />
+            <span className="text-[10px] font-black uppercase tracking-tight mt-0.5">More</span>
+          </button>
         )}
 
-        {/* Avatar + Profile Modal Trigger */}
+        {/* Profile Button */}
         <button
           onClick={() => setShowProfileModal(true)}
-          className={`flex flex-col items-center text-black`}
+          className="flex flex-col items-center py-1 px-2.5 rounded-xl border-2 border-transparent text-black cursor-pointer"
         >
           <img
             src={avatarSrc}
             alt="User Avatar"
-            width={40}
-            height={40}
-            className="rounded-full object-cover border border-gray-300"
+            width={22}
+            height={22}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.src = "/icons/icon3-192.png";
+            }}
+            className="w-5 h-5 rounded-full object-cover border-2 border-black"
           />
-          <span className="text-xs">Profile</span>
+          <span className="text-[10px] font-black uppercase tracking-tight mt-0.5">Profile</span>
         </button>
       </nav>
 
-      {/* Mobile Slide-Up Sheet — only for the tapped group */}
+      {/* Mobile "More..." Modules Slide-Up Sheet */}
       <AnimatePresence>
-        {mobileSheetFor !== null && (
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 bg-white text-black border-t shadow-lg z-50 rounded-t-lg"
+        {showAllModulesSheet && (
+          <div
+            className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+            onClick={() => setShowAllModulesSheet(false)}
           >
-            {navItems[mobileSheetFor]?.children?.map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                onClick={() => setMobileSheetFor(null)}
-                className={`block px-4 py-4 border-b hover:bg-gray-100 ${pathname.startsWith(child.href) ? "text-blue-600" : ""
-                  }`}
-              >
-                {child.label}
-              </Link>
-            ))}
-
-            <button
-              onClick={() => setMobileSheetFor(null)}
-              className="block w-full px-4 py-4 text-center text-red-500 font-semibold"
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-white border-t-[3px] border-black rounded-t-2xl max-h-[85vh] overflow-y-auto p-5 pb-10 shadow-[0px_-6px_0px_0px_#000]"
             >
-              Close
-            </button>
-          </motion.div>
+              <div className="flex justify-between items-center pb-3 mb-4 border-b-2 border-black">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-[#D4FF00] border-2 border-black">
+                    <FiGrid size={16} />
+                  </span>
+                  <h3 className="font-black text-base text-black uppercase tracking-wider">
+                    All Application Modules
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowAllModulesSheet(false)}
+                  className="p-1.5 rounded-md border-2 border-black bg-white hover:bg-gray-100 font-bold"
+                >
+                  <FiX size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Staff Section */}
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-gray-600 block mb-2">
+                    Staff & User Administration
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { href: "/staff", label: "Add Staff" },
+                      { href: "/staff-list", label: "Staff List" },
+                      { href: "/staffAdvancesPage", label: "Staff Advances" },
+                      { href: "/staffAttendance", label: "Staff Attendance" },
+                      { href: "/staff-registation", label: "Create Staff Login" },
+                      { href: "/dashboard-users", label: "Staff Accounts" },
+                      { href: "/sign-up", label: "Create Admin" },
+                      { href: "/admin-users", label: "Admin Users" },
+                    ].map((s) => (
+                      <Link
+                        key={s.href}
+                        href={s.href}
+                        onClick={() => setShowAllModulesSheet(false)}
+                        className={`p-2.5 rounded-xl border-2 border-black text-xs font-black text-center transition ${
+                          pathname === s.href
+                            ? "bg-[#D4FF00] shadow-[2px_2px_0px_0px_#000]"
+                            : "bg-[#F4F4F0] hover:bg-white"
+                        }`}
+                      >
+                        {s.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Reports & Financials */}
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-gray-600 block mb-2">
+                    Reports & Analytics
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { href: "/reports", label: "Daily Reports" },
+                      { href: "/monthly-reports", label: "Monthly Reports" },
+                      { href: "/analytics", label: "Visual Analytics" },
+                      { href: "/extra-expenses", label: "Monthly Extra" },
+                      { href: "/proof", label: "Upload Proof" },
+                      { href: "/images", label: "View Proofs" },
+                    ].map((s) => (
+                      <Link
+                        key={s.href}
+                        href={s.href}
+                        onClick={() => setShowAllModulesSheet(false)}
+                        className={`p-2.5 rounded-xl border-2 border-black text-xs font-black text-center transition ${
+                          pathname === s.href
+                            ? "bg-[#00F0FF] shadow-[2px_2px_0px_0px_#000]"
+                            : "bg-[#F4F4F0] hover:bg-white"
+                        }`}
+                      >
+                        {s.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowAllModulesSheet(false)}
+                className="w-full mt-6 py-3 neo-btn neo-btn-secondary text-sm font-black"
+              >
+                Close Menu
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Profile Modal */}
-      <Toaster />
+      {/* Neo-Brutalist Profile Modal */}
       <AnimatePresence>
         {showProfileModal && (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center z-50 p-4"
             onClick={() => setShowProfileModal(false)}
           >
             <motion.div
@@ -318,26 +453,32 @@ export default function ResponsiveNav() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl p-6 w-full max-w-sm border border-gray-150 shadow-2xl text-gray-800 relative"
+              className="bg-white rounded-2xl p-6 w-full max-w-sm border-[3px] border-black shadow-[8px_8px_0px_0px_#000] relative"
             >
               <button
                 onClick={() => setShowProfileModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg font-bold"
+                className="absolute top-4 right-4 w-8 h-8 rounded-full border-2 border-black flex items-center justify-center hover:bg-red-100 font-black cursor-pointer"
               >
                 ✕
               </button>
 
-              <h2 className="text-xl font-bold text-center text-gray-800 mb-6">User Profile</h2>
+              <div className="inline-block bg-[#D4FF00] border-2 border-black px-3 py-1 font-black text-xs uppercase rounded-md shadow-[2px_2px_0px_0px_#000] mb-4">
+                User Account
+              </div>
 
               <div className="flex flex-col items-center mb-6">
                 <div className="relative group">
                   <img
                     src={avatarSrc}
                     alt="Profile Picture"
-                    className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = "/icons/icon3-192.png";
+                    }}
+                    className="w-24 h-24 rounded-2xl object-cover border-[2.5px] border-black shadow-[4px_4px_0px_0px_#000]"
                   />
-                  <label className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-md transition duration-150">
-                    <FiCamera size={14} />
+                  <label className="absolute -bottom-2 -right-2 bg-[#D4FF00] hover:bg-lime-300 text-black p-2 rounded-lg border-2 border-black cursor-pointer shadow-[2px_2px_0px_0px_#000] transition active:translate-x-0.5 active:translate-y-0.5">
+                    <FiCamera size={16} />
                     <input
                       type="file"
                       accept="image/*"
@@ -348,12 +489,12 @@ export default function ResponsiveNav() {
                   </label>
                 </div>
 
-                <p className="mt-4 font-bold text-lg text-gray-900 capitalize">
+                <h3 className="mt-4 font-black text-xl text-black capitalize tracking-tight">
                   {session?.user?.username || session?.user?.name || "User"}
-                </p>
-                <p className="text-xs text-gray-500">{session?.user?.email}</p>
-                <span className="mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full capitalize">
-                  Role: {role || "staff"}
+                </h3>
+                <p className="text-xs font-semibold text-gray-600 mt-0.5">{session?.user?.email}</p>
+                <span className="mt-2.5 px-3 py-1 bg-black text-[#D4FF00] text-xs font-black rounded-full uppercase tracking-wider">
+                  Role: {role}
                 </span>
               </div>
 
@@ -362,9 +503,9 @@ export default function ResponsiveNav() {
                   <button
                     onClick={handleDeletePhoto}
                     disabled={updatingPhoto || deletingPhoto}
-                    className="w-full py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold flex items-center justify-center gap-2 transition"
+                    className="w-full py-2.5 rounded-xl border-2 border-black bg-white hover:bg-red-50 text-red-600 font-black text-xs shadow-[3px_3px_0px_0px_#000] flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 transition cursor-pointer"
                   >
-                    <FiTrash2 size={14} /> Remove Photo
+                    <FiTrash2 size={16} /> Remove Photo
                   </button>
                 )}
 
@@ -373,9 +514,9 @@ export default function ResponsiveNav() {
                     setShowProfileModal(false);
                     signOut({ callbackUrl: "/sign-in" });
                   }}
-                  className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center justify-center gap-2 transition"
+                  className="w-full py-2.5 neo-btn neo-btn-danger text-sm font-black cursor-pointer"
                 >
-                  <FiLogOut size={14} /> Logout
+                  <FiLogOut size={16} /> Sign Out
                 </button>
               </div>
             </motion.div>

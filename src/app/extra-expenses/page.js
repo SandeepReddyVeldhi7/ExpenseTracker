@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaCalendarAlt } from "react-icons/fa";
+import { FiCalendar, FiArrowRight, FiDollarSign } from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function ExtraExpensesHome() {
   const router = useRouter();
-  
-  // Default to current year and month
+
   const currentYear = new Date().getFullYear();
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, "0");
 
@@ -31,7 +30,7 @@ export default function ExtraExpensesHome() {
     { value: "12", name: "December" },
   ];
 
-  const years = Array.from({ length: 7 }, (_, i) => String(currentYear - 3 + i)); // +/- 3 years
+  const years = Array.from({ length: 7 }, (_, i) => String(currentYear - 3 + i));
 
   const handleProceed = async () => {
     setLoading(true);
@@ -57,65 +56,64 @@ export default function ExtraExpensesHome() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-lime-800 flex items-center justify-center p-4">
-      <Toaster />
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20 backdrop-blur-md">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-          📅 Select Month & Year
-        </h1>
+    <div className="max-w-xl mx-auto px-4 py-8 sm:py-14">
+      <Toaster position="top-right" />
+      <div className="neo-card p-6 sm:p-8 bg-white">
+        <div className="text-center mb-6">
+          <div className="inline-flex p-3 rounded-2xl bg-[#FFDE59] border-2 border-black shadow-[3px_3px_0px_0px_#000] mb-3">
+            <FiDollarSign size={28} className="text-black" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+            Monthly Extra Expenses
+          </h1>
+          <p className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">
+            Audit and record month-end fixed costs, vendor bills & deductions
+          </p>
+        </div>
 
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">
               Select Month
             </label>
-            <div className="relative">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full text-black bg-white pl-4 pr-10 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-              >
-                {months.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                <FaCalendarAlt />
-              </div>
-            </div>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="neo-input text-sm font-bold cursor-pointer"
+            >
+              {months.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">
               Select Year
             </label>
-            <div className="relative">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="w-full text-black bg-white pl-4 pr-10 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                <FaCalendarAlt />
-              </div>
-            </div>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="neo-input text-sm font-bold cursor-pointer"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         <button
           onClick={handleProceed}
           disabled={loading}
-          className="w-full py-3 rounded-xl text-white font-semibold transition bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full py-3.5 neo-btn neo-btn-primary text-base flex items-center justify-center gap-2"
         >
-          {loading ? "Loading..." : "Proceed"}
+          <span>{loading ? "Checking Month..." : "Proceed to Monthly Sheet"}</span>
+          <FiArrowRight />
         </button>
       </div>
     </div>

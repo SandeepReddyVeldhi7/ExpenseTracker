@@ -2,18 +2,20 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Poppins } from "next/font/google";
-import { FaArrowLeft, FaTrash, FaPlus, FaCheck } from "react-icons/fa";
+import {
+  FiArrowLeft,
+  FiTrash2,
+  FiPlus,
+  FiCheck,
+  FiDollarSign,
+  FiCalendar,
+  FiFileText,
+} from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
 import { useSession } from "next-auth/react";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
 export default function ExtraExpensesCategoryPage() {
-  const { monthYear } = useParams(); // format: YYYY-MM
+  const { monthYear } = useParams();
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -26,11 +28,10 @@ export default function ExtraExpensesCategoryPage() {
   const [totalOnline, setTotalOnline] = useState(0);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [step, setStep] = useState("edit"); // "edit" | "review"
+  const [step, setStep] = useState("edit");
 
   const localKey = `extra-expense-${monthYear}`;
 
-  // 1) Fetch month sales/payout from DailySummary collection
   useEffect(() => {
     if (!monthYear) return;
     const fetchSummary = async () => {
@@ -51,7 +52,6 @@ export default function ExtraExpensesCategoryPage() {
     fetchSummary();
   }, [monthYear]);
 
-  // 2) Load items from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(localKey);
@@ -68,7 +68,6 @@ export default function ExtraExpensesCategoryPage() {
     }
   }, [localKey]);
 
-  // Helper to save to localStorage
   const saveToLocal = (updatedItems) => {
     setItems(updatedItems);
     localStorage.setItem(localKey, JSON.stringify(updatedItems));
@@ -102,7 +101,6 @@ export default function ExtraExpensesCategoryPage() {
 
   const remainingBalance = totalPayout - itemsTotal;
 
-  // Format Month-Year for header
   const getFormattedMonthName = (my) => {
     if (!my) return "";
     const [year, month] = my.split("-");
@@ -114,11 +112,11 @@ export default function ExtraExpensesCategoryPage() {
     new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(num || 0);
 
   const handleContinue = () => {
-    // Basic validation: filter empty items first or warn user
     const validItems = items.filter((i) => i.name.trim() !== "" && parseFloat(i.price) > 0);
     if (validItems.length === 0) {
       toast.error("Please add at least one item with a valid name and price.");
@@ -151,15 +149,10 @@ export default function ExtraExpensesCategoryPage() {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to submit");
-      }
+      if (!res.ok) throw new Error("Failed to submit");
 
-      // Clear localStorage
       localStorage.removeItem(localKey);
       toast.success("Monthly expenses submitted successfully!", { id: toastId });
-
-      // Redirect
       router.push("/extra-expenses");
     } catch (err) {
       console.error(err);
@@ -170,177 +163,194 @@ export default function ExtraExpensesCategoryPage() {
   };
 
   return (
-    <div
-      className={`min-h-screen bg-cover bg-center bg-no-repeat ${poppins.className}`}
-      style={{ backgroundImage: "url('/image1.jpg')" }}
-    >
-      <Toaster />
-      <div className="min-h-screen lg:mt-14 overflow-y-auto bg-black/45 backdrop-blur-sm sm:mt-8 flex items-center justify-center p-4">
-        <div className="w-full relative max-w-2xl bg-slate-900/80 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border border-white/10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <Toaster position="top-right" />
 
-          {/* Back button */}
+      {/* Main Neo-Card */}
+      <div className="neo-card p-6 sm:p-8 bg-white mb-6">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 mb-6 border-b-2 border-black flex-wrap gap-3">
           <button
             onClick={() => {
-              if (step === "review") {
-                setStep("edit");
-              } else {
-                router.back();
-              }
+              if (step === "review") setStep("edit");
+              else router.back();
             }}
-            className="text-white absolute mt-2 mb-3 hover:bg-black/30 px-3 py-1.5 text-xl -top-2 -left-1 rounded-lg flex items-center"
+            className="neo-btn neo-btn-secondary px-3.5 py-2 text-xs flex items-center gap-1.5"
           >
-            <FaArrowLeft className="mr-2" />
-            <span className="text-sm font-semibold">Back</span>
+            <FiArrowLeft size={16} />
+            <span>{step === "review" ? "Back to Edit" : "Select Month"}</span>
           </button>
 
-          <h1 className="text-xl sm:text-2xl font-bold text-center text-white drop-shadow mb-6 mt-8">
+          <span className="neo-badge bg-[#D4FF00] text-black">
             {getFormattedMonthName(monthYear)}
-          </h1>
+          </span>
+        </div>
 
-          {loadingSummary ? (
-            <div className="text-center text-white py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
-              <p className="font-semibold">Loading monthly summary data...</p>
-            </div>
-          ) : step === "edit" ? (
-            /* --- STEP 1: EDIT ITEMS --- */
-            <div>
-              <div className="mb-6 p-4 rounded-xl bg-slate-950/40 border border-white/10 text-white space-y-3 text-xs sm:text-sm shadow-inner">
+        {loadingSummary ? (
+          <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="font-black text-xs uppercase tracking-wider text-black">
+              Loading Monthly Summaries...
+            </p>
+          </div>
+        ) : step === "edit" ? (
+          <div className="space-y-6">
+            {/* Prefilled Financial Summary */}
+            <div className="p-5 rounded-xl border-2 border-black bg-[#F4F4F0] shadow-[3px_3px_0px_0px_#000] space-y-2.5">
+              <span className="text-xs font-black uppercase tracking-wider text-black block mb-1">
+                Month-End Totals from Daily Summaries
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-bold">
                 {!isStaff && (
-                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                    <span className="text-white/80 font-medium">📈 Prefilled Total Sales:</span>
-                    <span className="font-bold text-emerald-400 text-sm sm:text-base">{formatINR(totalSales)}</span>
+                  <div className="p-3 rounded-lg border border-black bg-white flex justify-between items-center">
+                    <span className="text-gray-600">Total Sales:</span>
+                    <span className="font-mono font-black text-black">{formatINR(totalSales)}</span>
                   </div>
                 )}
-                <div className={`flex justify-between items-center ${!isStaff ? "pb-2 border-b border-white/5" : ""}`}>
-                  <span className="text-white/80 font-medium">💰 Prefilled Total Payout:</span>
-                  <span className="font-bold text-amber-400 text-sm sm:text-base">{formatINR(totalPayout)}</span>
+                <div className="p-3 rounded-lg border border-black bg-[#D4FF00] flex justify-between items-center">
+                  <span className="text-black">Total Payout:</span>
+                  <span className="font-mono font-black text-black">{formatINR(totalPayout)}</span>
                 </div>
                 {!isStaff && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/80 font-medium">💳 Prefilled Online Amount:</span>
-                    <span className="font-bold text-cyan-400 text-sm sm:text-base">{formatINR(totalOnline)}</span>
+                  <div className="p-3 rounded-lg border border-black bg-[#00F0FF] flex justify-between items-center">
+                    <span className="text-black">Online Total:</span>
+                    <span className="font-mono font-black text-black">{formatINR(totalOnline)}</span>
                   </div>
                 )}
               </div>
+            </div>
 
-              <h2 className="text-sm sm:text-lg font-semibold text-white mb-4">Add Extra Monthly Expenses</h2>
+            {/* Itemized Extra Expenses */}
+            <div className="p-5 rounded-xl border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] space-y-4">
+              <div className="flex justify-between items-center border-b-2 border-black pb-2">
+                <h2 className="text-sm font-black uppercase tracking-wider text-black">
+                  Itemized Fixed Expenses & Vendor Bills
+                </h2>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#F4F4F0] border border-black">
+                  Total: {formatINR(itemsTotal)}
+                </span>
+              </div>
 
-              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+              <div className="space-y-2.5">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 bg-slate-950/20 p-2 rounded-xl border border-white/5 text-xs sm:text-sm">
+                  <div key={item.id} className="grid grid-cols-[1fr_110px_42px] items-center gap-2">
                     <input
                       type="text"
                       value={item.name}
                       onChange={(e) => handleItemChange(item.id, "name", e.target.value)}
-                      placeholder="Expense Name (e.g. Electric Bill)"
-                      className="flex-1 p-2 sm:p-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium text-xs sm:text-sm"
+                      placeholder="Expense Name (e.g. Electric Bill, Rent, Gas)"
+                      className="neo-input text-sm bg-white font-semibold"
                     />
                     <input
                       type="number"
                       value={item.price}
                       onChange={(e) => handleItemChange(item.id, "price", e.target.value)}
-                      placeholder="Amount"
-                      className="w-1/3 p-2 sm:p-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm"
+                      placeholder="₹ Amount"
+                      className="neo-input text-sm font-mono font-bold bg-white"
                     />
                     <button
                       onClick={() => handleRemoveItem(item.id)}
-                      className="p-2 sm:p-3 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition duration-150"
-                      title="Delete expense item"
+                      className="h-[42px] w-[42px] flex items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-red-100 text-red-600 transition shadow-[1px_1px_0px_0px_#000]"
+                      title="Delete expense"
                     >
-                      <FaTrash size={14} />
+                      <FiTrash2 size={16} />
                     </button>
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-between items-center mt-6">
-                <button
-                  onClick={handleAddItem}
-                  className="flex items-center gap-2 bg-lime-600 hover:bg-lime-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow transition duration-200 text-xs sm:text-sm"
-                >
-                  <FaPlus size={12} /> Add Item
-                </button>
-                <div className="text-right">
-                  <p className="text-2xs sm:text-xs text-white/60">Total Added Items</p>
-                  <p className="text-base sm:text-xl font-bold text-lime-400">{formatINR(itemsTotal)}</p>
+              <button
+                onClick={handleAddItem}
+                className="mt-2 py-2 px-4 neo-btn neo-btn-secondary text-xs flex items-center gap-1.5"
+              >
+                <FiPlus size={14} />
+                <span>Add Expense Line</span>
+              </button>
+            </div>
+
+            {/* Action */}
+            <div className="pt-2">
+              <button
+                onClick={handleContinue}
+                className="w-full py-4 neo-btn neo-btn-primary text-base font-black flex items-center justify-center gap-2"
+              >
+                <span>Continue to Summary Review</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Step 2: Review */
+          <div className="space-y-6">
+            <h2 className="text-xl font-black text-black tracking-tight">
+              Review Monthly Summary Before Final Submission
+            </h2>
+
+            <div className="p-5 rounded-xl border-2 border-black bg-[#F4F4F0] shadow-[3px_3px_0px_0px_#000] space-y-3 text-xs sm:text-sm font-bold">
+              {!isStaff && (
+                <div className="flex justify-between items-center pb-2 border-b border-gray-300">
+                  <span className="text-gray-700">Gross Sales:</span>
+                  <span className="font-mono font-black text-black">{formatINR(totalSales)}</span>
                 </div>
+              )}
+              <div className="flex justify-between items-center pb-2 border-b border-gray-300">
+                <span className="text-gray-700">Total Payout:</span>
+                <span className="font-mono font-black text-black">{formatINR(totalPayout)}</span>
               </div>
-              <div className="flex justify-center">
-                <button
-                  onClick={handleContinue}
-                  className="w-[80%] mt-6 sm:mt-8 py-2.5 sm:py-3  rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-lg shadow-lg hover:shadow-xl transition duration-200"
-                >
-                  Continue
-                </button>
+              {!isStaff && (
+                <div className="flex justify-between items-center pb-2 border-b border-gray-300">
+                  <span className="text-gray-700">Online Total:</span>
+                  <span className="font-mono font-black text-black">{formatINR(totalOnline)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pb-2 border-b border-gray-300 text-red-600">
+                <span>Total Extra Expenses:</span>
+                <span className="font-mono font-black">-{formatINR(itemsTotal)}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-[#D4FF00] border-2 border-black mt-2">
+                <span className="text-base font-black text-black">Remaining Balance:</span>
+                <span className="text-xl font-mono font-black text-black">{formatINR(remainingBalance)}</span>
               </div>
             </div>
-          ) : (
-            /* --- STEP 2: SUMMARY REVIEW --- */
-            <div className="text-white">
-              <h2 className="text-lg sm:text-xl font-bold text-center mb-6">Review Submission</h2>
 
-              <div className="space-y-3.5 bg-slate-950/40 p-4 sm:p-6 rounded-2xl border border-white/10 mb-6 sm:mb-8 text-xs sm:text-sm shadow-inner">
-                {!isStaff && (
-                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                    <span className="text-white/70 font-medium">📈 Prefilled Total Sales:</span>
-                    <span className="font-semibold text-white">{formatINR(totalSales)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <span className="text-white/70 font-medium">💰 Prefilled Total Payout:</span>
-                  <span className="font-semibold text-white">{formatINR(totalPayout)}</span>
-                </div>
-                {!isStaff && (
-                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                    <span className="text-white/70 font-medium">💳 Prefilled Online Amount:</span>
-                    <span className="font-semibold text-white">{formatINR(totalOnline)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <span className="text-white/70 font-medium">💸 Total Added Expenses:</span>
-                  <span className="font-semibold text-rose-400">-{formatINR(itemsTotal)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 text-sm sm:text-base font-bold">
-                  <span className="text-white">Remaining Balance:</span>
-                  <span className={remainingBalance >= 0 ? "text-lime-400 text-base sm:text-lg" : "text-rose-400 text-base sm:text-lg"}>
-                    {formatINR(remainingBalance)}
-                  </span>
-                </div>
-              </div>
-
-              <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3">Itemized Expenses Detail:</h3>
-              <div className="max-h-[30vh] overflow-y-auto space-y-2 mb-6 sm:mb-8 pr-1">
+            {/* List */}
+            <div className="p-5 rounded-xl border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] space-y-2">
+              <span className="text-xs font-black uppercase tracking-wider text-black block mb-2">
+                Itemized Expenses:
+              </span>
+              <div className="space-y-1.5 max-h-[30vh] overflow-y-auto">
                 {items
                   .filter((i) => i.name.trim() !== "" && parseFloat(i.price) > 0)
-                  .map((item, index) => (
-                    <div key={item.id} className="flex justify-between bg-slate-950/20 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border border-white/5 text-xs sm:text-sm">
-                      <span className="font-medium text-white/90">
-                        {index + 1}. {item.name}
-                      </span>
-                      <span className="font-bold text-white">{formatINR(parseFloat(item.price))}</span>
+                  .map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between items-center p-2.5 rounded-lg border border-black bg-[#F4F4F0] text-xs font-bold"
+                    >
+                      <span className="text-black">{idx + 1}. {item.name}</span>
+                      <span className="font-mono font-black text-black">{formatINR(parseFloat(item.price))}</span>
                     </div>
                   ))}
               </div>
-
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setStep("edit")}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold transition duration-200 text-sm sm:text-base"
-                >
-                  Edit Items
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl bg-lime-600 hover:bg-lime-700 disabled:opacity-50 text-white font-bold transition duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <FaCheck size={12} /> {submitting ? "Submitting..." : "Submit Report"}
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={() => setStep("edit")}
+                className="flex-1 py-3.5 neo-btn neo-btn-secondary text-sm font-black"
+              >
+                Edit Expenses
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex-1 py-3.5 neo-btn neo-btn-primary text-sm font-black flex items-center justify-center gap-2"
+              >
+                <FiCheck size={16} />
+                <span>{submitting ? "Submitting Report..." : "🚀 Submit Monthly Report"}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

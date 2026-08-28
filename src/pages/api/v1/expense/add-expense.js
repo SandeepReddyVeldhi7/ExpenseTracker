@@ -1,8 +1,9 @@
 import { connectDB } from "@/lib/db";
 import DailySummary from "@/models/DailySummary";
 import dayjs from "dayjs";
+import { withAuth } from "@/lib/apiAuth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     const yesterdayDate = dayjs(todayDate).subtract(1, "day").format("YYYY-MM-DD");
 
     // 1️⃣ Get yesterday's carryLoss map
-    const yesterday = await DailySummary.findOne({ date: yesterdayDate });
+    const yesterday = await DailySummary.findOne({ date: yesterdayDate }).lean();
     const carryMap = {};
 
     if (yesterday && yesterday.drinks) {
@@ -43,8 +44,8 @@ export default async function handler(req, res) {
         return sum + matchingAddons.reduce((a, b) => a + (parseFloat(b.price) || 0), 0);
       }, 0);
 
-      const soldAmount = drink.soldAmount ?? 0;
-      const commissionValue = drink.commissionValue ?? 0;
+      const soldAmount = parseFloat(drink.soldAmount) || 0;
+      const commissionValue = parseFloat(drink.commissionValue) || 0;
 
       const todayRawNet = soldAmount - expenseAmount - commissionValue;
       const combinedNet = todayRawNet + previousCarry;
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
       return {
         drinkType: drink.drinkType,
         soldAmount,
-        commissionPercent: drink.commissionPercent ?? 0,
+        commissionPercent: parseFloat(drink.commissionPercent) || 0,
         commissionValue,
         finalNetAmount: combinedNet,
         carryForwardFromYesterday: previousCarry,
@@ -69,10 +70,10 @@ export default async function handler(req, res) {
       0
     );
 
-   const totalDrinksAmount = updatedDrinks.reduce(
-  (sum, d) => sum + Math.max(0, d.finalNetAmount || 0),
-  0
-);
+    const totalDrinksAmount = updatedDrinks.reduce(
+      (sum, d) => sum + Math.max(0, d.finalNetAmount || 0),
+      0
+    );
 
     const totalCashersSale = data.cashers.reduce(
       (sum, c) => sum + (parseFloat(c.totalSealAmount) || 0),
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
       (totalCashersSale - totalDrinksAmount - totalCashersAmount - totalShot).toFixed(2)
     );
 
-    // Optionally calculate online sales and tea/juice in cashers for audit
+    // Calculate online sales and tea/juice in cashers for audit
     const totalOnlineSale = data.cashers.reduce((sum, c) => {
       const online = c.addons?.find((a) => a.name?.toLowerCase() === "online");
       return sum + (parseFloat(online?.price) || 0);
@@ -131,3 +132,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 }
+
+export default withAuth(handler, { roles: ["owner", "staff", "staff123"] });

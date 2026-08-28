@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import { FiCalendar, FiSearch, FiDollarSign, FiCheck, FiX, FiInfo } from "react-icons/fi";
 
 export default function SalaryPage() {
   const today = new Date();
@@ -25,13 +26,18 @@ export default function SalaryPage() {
     if (!startDate || !endDate) return toast.error("Select dates");
 
     setLoading(true);
-    const res = await fetch(
-      `/api/v1/salary/prepare-range?start=${startDate}&end=${endDate}`,
-    );
-    const result = await res.json();
-
-    setData(result.map((r) => ({ ...r, ownerAdjust: 0, paid: false })));
-    setLoading(false);
+    try {
+      const res = await fetch(
+        `/api/v1/salary/prepare-range?start=${startDate}&end=${endDate}`,
+      );
+      const result = await res.json();
+      setData((result || []).map((r) => ({ ...r, ownerAdjust: 0, paid: false })));
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load salary settlement data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getDates = () => {
@@ -46,15 +52,11 @@ export default function SalaryPage() {
   };
 
   const dates = getDates();
-  const getDaysInMonth = (dateStr) => {
-    const d = new Date(dateStr);
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  };
 
- const earned = (r) => {
-  const perDaySalary = r.salary / 30;
-  return Math.round(perDaySalary * r.presentDays * 100) / 100;
-};
+  const earned = (r) => {
+    const perDaySalary = r.salary / 30;
+    return Math.round(perDaySalary * r.presentDays * 100) / 100;
+  };
 
   const payable = (r) =>
     Math.round(
@@ -65,39 +67,32 @@ export default function SalaryPage() {
   const handlePay = async (row) => {
     const pay = payable(row);
 
-    await fetch("/api/v1/salary/pay", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        staff: row._id,
-        startDate,
-        endDate,
-        presentDays: row.presentDays,
-        earnedSalary: earned(row),
-        advances: row.totalAdvance,
-        ownerAdjust: row.ownerAdjust,
-        paidAmount: pay,
-      }),
-    });
+    try {
+      await fetch("/api/v1/salary/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          staff: row._id,
+          startDate,
+          endDate,
+          presentDays: row.presentDays,
+          earnedSalary: earned(row),
+          advances: row.totalAdvance,
+          ownerAdjust: row.ownerAdjust,
+          paidAmount: pay,
+        }),
+      });
 
-    toast.success(`${row.name} paid`);
-
-    setData((prev) =>
-      prev.map((r) => (r._id === row._id ? { ...r, paid: true } : r)),
-    );
+      toast.success(`${row.name} paid`);
+      setData((prev) =>
+        prev.map((r) => (r._id === row._id ? { ...r, paid: true } : r)),
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to process payment");
+    }
   };
-  {
-    loading && (
-      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-        <div className="bg-white px-6 py-4 rounded shadow text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
-          <p className="text-sm font-semibold text-black">
-            Loading salary data...
-          </p>
-        </div>
-      </div>
-    );
-  }
+
   const money = (value) =>
     Number(value || 0).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
@@ -105,166 +100,194 @@ export default function SalaryPage() {
     });
 
   return (
-    <div className="min-h-screen  lg:mt-20 h-auto p-2 bg-gray-100">
-      <Toaster />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-28">
+      <Toaster position="top-right" />
 
-      <h1 className="text-center text-black text-lg font-bold mb-2">
-        💰 Salary Settlement
-      </h1>
+      {/* Main Neo Card */}
+      <div className="neo-card p-6 sm:p-8 bg-white mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b-2 border-black">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+              Salary Settlement Matrix
+            </h1>
+            <p className="text-xs sm:text-sm font-semibold text-gray-600">
+              Daily advances audit, earned compensation & instant pay settlement
+            </p>
+          </div>
+        </div>
 
-      {/* FILTER */}
-      <div className="flex flex-col sm:flex-row gap-2 mb-2">
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="border text-black p-2 rounded w-full"
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="border text-black p-2 rounded w-full"
-        />
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          {loading ? "Loading..." : "Load Salary Data"}
-        </button>
-      </div>
+        {/* Filter Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl border-2 border-black bg-[#F4F4F0] mb-6">
+          <div>
+            <label className="block text-[11px] font-black uppercase tracking-wider text-black mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="neo-input text-xs font-bold py-1.5"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-black uppercase tracking-wider text-black mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="neo-input text-xs font-bold py-1.5"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="w-full py-2.5 neo-btn neo-btn-primary text-xs font-black flex items-center justify-center gap-1.5"
+            >
+              <FiSearch size={14} />
+              <span>{loading ? "Calculating..." : "Load Settlement"}</span>
+            </button>
+          </div>
+        </div>
 
-      {/* TABLE */}
-      <div className="overflow-x-auto rounded shadow border  bg-white">
-        <table className="w-full text-xs border-collapse overflow-y-auto h-auto">
-          <thead className="bg-gray-900 text-white sticky top-0">
-            <tr>
-              <th className="border px-2 py-1 sticky left-0 bg-gray-900 z-20">
-                Name
-              </th>
-
-              {dates.map((d) => (
-                <th key={d} className="border px-2 py-1">
-                  {new Date(d).getDate()}
-                </th>
-              ))}
-
-              <th className="border px-2 py-1 ">Present</th>
-              <th className="border px-2 py-1">Total Advance</th>
-              <th className="border px-2 py-1">Earned Salary</th>
-              <th className="border px-2 py-1">Adjust</th>
-              <th className="border px-2 py-1">Payable</th>
-              <th className="border px-2 py-1">Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
+        {/* Table */}
+        <div className="overflow-x-auto table-scrollbar border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000]">
+          <table className="w-full text-xs border-collapse">
+            <thead className="bg-[#F4F4F0] border-b-2 border-black font-black uppercase text-black">
               <tr>
-                <td colSpan={dates.length + 6} className="text-center p-4">
-                  Loading...
-                </td>
+                <th className="p-3 border-r border-black sticky left-0 bg-[#F4F4F0] z-20 text-left">
+                  Staff Name
+                </th>
+                {dates.map((d) => (
+                  <th key={d} className="p-2 border-r border-black text-center min-w-[32px]">
+                    {new Date(d).getDate()}
+                  </th>
+                ))}
+                <th className="p-3 border-r border-black text-center">Present</th>
+                <th className="p-3 border-r border-black text-right">Total Advance</th>
+                <th className="p-3 border-r border-black text-right">Earned</th>
+                <th className="p-3 border-r border-black text-center">Adjust</th>
+                <th className="p-3 border-r border-black text-right">Payable</th>
+                <th className="p-3 text-center">Status</th>
               </tr>
-            ) : (
-              data.map((row) => (
-                <tr key={row._id} className="hover:bg-gray-100">
-                  <td className="border px-2 py-1 text-black font-medium text-left sticky left-0 bg-white z-10 max-w-[120px] truncate">
-                    {row.name}
-                  </td>
+            </thead>
 
-                  {dates.map((d) => {
-                    const list = row.advancesByDate[d] || [];
-                    const total = list.reduce((s, v) => s + v, 0);
-                    return (
-                      <td
-                        key={d}
-                        className="border px-2 py-1 text-center text-black cursor-pointer"
-                        onClick={() =>
-                          list.length && setAdvancePopup({ date: d, list })
-                        }
-                      >
-                        {total ? `₹${total}` : "-"}
-                      </td>
-                    );
-                  })}
-
-                  <td className="border px-2 text-black py-1 text-center">
-                    {row.presentDays}
-                  </td>
-                  <td className="border px-2 py-1 text-center text-red-600 font-semibold">
-                    ₹{row.totalAdvance || 0}
-                  </td>
-                  {/* EARNED SALARY = presentDays * salary */}
-                  <td className="border px-2 py-1 text-center text-blue-700 font-semibold">
-                    ₹{earned(row).toFixed(0)}
-                  </td>
-                  <td className="border px-2 py-1 text-center">
-                    <button
-                      disabled={row.paid}
-                      onClick={() => {
-                        setAdjustRow(row);
-                        setAdjustValue(row.ownerAdjust);
-                      }}
-                      className="bg-yellow-500 text-black px-2 py-1 rounded text-xs"
-                    >
-                      Adjust
-                    </button>
-                  </td>
-
-                  <td
-                    className={`border px-2 py-1 text-center font-bold ${
-                      payable(row) >= 0 ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    ₹{payable(row).toFixed(0)}
-                  </td>
-
-                  <td className="border px-2 py-1 text-center">
-                    {row.paid ? (
-                      <span className="text-green-700 font-bold">PAID</span>
-                    ) : (
-                      <button
-                        onClick={() => setPayConfirmRow(row)}
-                        className="bg-green-600 text-white px-3 py-1 rounded text-xs"
-                      >
-                        PAY
-                      </button>
-                    )}
+            <tbody className="divide-y divide-gray-200 font-bold">
+              {loading ? (
+                <tr>
+                  <td colSpan={dates.length + 7} className="text-center p-8 font-black text-black">
+                    Calculating salary settlement data...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : data.length === 0 ? (
+                <tr>
+                  <td colSpan={dates.length + 7} className="text-center p-8 text-gray-500 font-bold">
+                    Select a date range and click Load Settlement.
+                  </td>
+                </tr>
+              ) : (
+                data.map((row) => (
+                  <tr key={row._id} className="hover:bg-gray-50 transition">
+                    <td className="p-3 border-r border-gray-200 font-black text-black text-left sticky left-0 bg-white z-10 max-w-[130px] truncate shadow-[1px_0px_0px_0px_#000]">
+                      {row.name}
+                    </td>
+
+                    {dates.map((d) => {
+                      const list = row.advancesByDate[d] || [];
+                      const total = list.reduce((s, v) => s + v, 0);
+                      return (
+                        <td
+                          key={d}
+                          className={`p-2 border-r border-gray-200 text-center font-mono cursor-pointer ${
+                            total ? "bg-amber-50 font-black text-red-600 hover:bg-amber-100" : "text-gray-400"
+                          }`}
+                          onClick={() =>
+                            list.length && setAdvancePopup({ date: d, list })
+                          }
+                        >
+                          {total ? `₹${total}` : "-"}
+                        </td>
+                      );
+                    })}
+
+                    <td className="p-3 border-r border-gray-200 text-center font-mono">
+                      {row.presentDays}
+                    </td>
+                    <td className="p-3 border-r border-gray-200 text-right font-mono text-red-600">
+                      ₹{row.totalAdvance || 0}
+                    </td>
+                    <td className="p-3 border-r border-gray-200 text-right font-mono text-black">
+                      ₹{earned(row).toFixed(0)}
+                    </td>
+                    <td className="p-3 border-r border-gray-200 text-center">
+                      <button
+                        disabled={row.paid}
+                        onClick={() => {
+                          setAdjustRow(row);
+                          setAdjustValue(row.ownerAdjust);
+                        }}
+                        className="px-2 py-0.5 rounded text-[11px] neo-btn neo-btn-cyan font-black disabled:opacity-40"
+                      >
+                        Adjust
+                      </button>
+                    </td>
+
+                    <td
+                      className={`p-3 border-r border-gray-200 text-right font-mono font-black ${
+                        payable(row) >= 0 ? "text-emerald-800" : "text-red-600"
+                      }`}
+                    >
+                      ₹{payable(row).toFixed(0)}
+                    </td>
+
+                    <td className="p-3 text-center">
+                      {row.paid ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-black border border-black bg-gray-200 text-gray-700">
+                          PAID
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setPayConfirmRow(row)}
+                          className="px-3 py-1 neo-btn neo-btn-primary text-xs font-black"
+                        >
+                          PAY
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ADJUST POPUP */}
       {adjustRow && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white p-5 rounded-xl w-80 shadow-2xl text-black">
-            <h2 className="font-bold text-lg mb-2">Owner Adjustment</h2>
-
-            <p className="text-xs text-gray-600 mb-3">
-              Payable = Earned - Advance + Adjust - CarryForward
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm border-[3px] border-black shadow-[8px_8px_0px_0px_#000]">
+            <h2 className="font-black text-lg text-black mb-1">Owner Adjustment</h2>
+            <p className="text-xs font-semibold text-gray-600 mb-4">
+              Payable = Earned − Advance + Adjust − CarryForward
             </p>
 
             <input
               type="number"
               value={adjustValue}
               onChange={(e) => setAdjustValue(e.target.value)}
-              className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="neo-input text-base font-mono font-bold mb-4"
               autoFocus
             />
 
-            <div className="flex justify-between mt-4">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => setAdjustRow(null)}
-                className="px-4 py-1 border rounded-md hover:bg-gray-100"
+                className="py-2 px-4 neo-btn neo-btn-secondary text-xs font-black"
               >
                 Cancel
               </button>
-
               <button
                 onClick={() => {
                   setData((prev) =>
@@ -276,9 +299,9 @@ export default function SalaryPage() {
                   );
                   setAdjustRow(null);
                 }}
-                className="bg-green-600 text-white px-4 py-1 rounded-md hover:bg-green-700"
+                className="py-2 px-5 neo-btn neo-btn-primary text-xs font-black"
               >
-                OK
+                Save Adjustment
               </button>
             </div>
           </div>
@@ -287,15 +310,22 @@ export default function SalaryPage() {
 
       {/* ADVANCE POPUP */}
       {advancePopup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-4 rounded w-72 shadow">
-            <h2 className="font-bold mb-2">Advances on {advancePopup.date}</h2>
-            {advancePopup.list.map((a, i) => (
-              <div key={i}>₹{a}</div>
-            ))}
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-xs border-[3px] border-black shadow-[8px_8px_0px_0px_#000]">
+            <h2 className="font-black text-base text-black mb-2 border-b-2 border-black pb-2">
+              Advances on {advancePopup.date}
+            </h2>
+            <div className="space-y-1 my-3">
+              {advancePopup.list.map((a, i) => (
+                <div key={i} className="flex justify-between font-mono font-bold text-xs">
+                  <span>Entry #{i + 1}:</span>
+                  <span className="text-red-600 font-black">₹{a}</span>
+                </div>
+              ))}
+            </div>
             <button
               onClick={() => setAdvancePopup(null)}
-              className="mt-3 bg-blue-600 text-white px-3 py-1 rounded"
+              className="w-full mt-3 py-2 neo-btn neo-btn-secondary text-xs font-black"
             >
               Close
             </button>
@@ -305,51 +335,50 @@ export default function SalaryPage() {
 
       {/* PAY CONFIRM POPUP */}
       {payConfirmRow && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded w-80 shadow text-black">
-            <h2 className="font-bold text-lg mb-2">Confirm Payment</h2>
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm border-[3px] border-black shadow-[8px_8px_0px_0px_#000]">
+            <h2 className="font-black text-xl text-black mb-2">Confirm Payout</h2>
 
-            <div className="text-sm space-y-1">
-              <div>Earned Salary: ₹{earned(payConfirmRow).toFixed(0)}</div>
-              <div>Total Advance: ₹{payConfirmRow.totalAdvance}</div>
-              <div>Owner Adjust: ₹{payConfirmRow.ownerAdjust}</div>
-              <div>
-                Carry Forward: ₹{money(payConfirmRow.previousCarryForward)}
+            <div className="p-3.5 rounded-xl border-2 border-black bg-[#F4F4F0] text-xs font-bold space-y-1.5 mb-4">
+              <div className="flex justify-between">
+                <span>Earned Salary:</span>
+                <span className="font-mono text-black">₹{earned(payConfirmRow).toFixed(0)}</span>
               </div>
-              <hr />
-              <div className="font-bold text-green-600">
-                Payable: ₹{payable(payConfirmRow).toFixed(0)}
+              <div className="flex justify-between text-red-600">
+                <span>Total Advances:</span>
+                <span className="font-mono">-₹{payConfirmRow.totalAdvance}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Owner Adjustment:</span>
+                <span className="font-mono">{payConfirmRow.ownerAdjust >= 0 ? "+" : "−"}₹{Math.abs(payConfirmRow.ownerAdjust)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Carry Forward:</span>
+                <span className="font-mono">₹{money(payConfirmRow.previousCarryForward)}</span>
+              </div>
+              <div className="pt-2 border-t border-black flex justify-between text-sm font-black text-black">
+                <span>Net Payable:</span>
+                <span className="text-emerald-800 text-base font-mono">₹{payable(payConfirmRow).toFixed(0)}</span>
               </div>
             </div>
 
-            <div className="flex justify-between mt-4">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => setPayConfirmRow(null)}
-                className="border px-3 py-1 rounded"
+                className="py-2 px-4 neo-btn neo-btn-secondary text-xs font-black"
               >
                 Cancel
               </button>
-
               <button
                 onClick={async () => {
                   await handlePay(payConfirmRow);
                   setPayConfirmRow(null);
                 }}
-                className="bg-green-600 text-white px-4 py-1 rounded"
+                className="py-2 px-5 neo-btn neo-btn-primary text-xs font-black"
               >
-                Confirm Pay
+                Confirm Payout
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {loading && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white px-6 py-4 rounded shadow text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
-            <p className="text-sm font-semibold text-black">
-              Loading salary data...
-            </p>
           </div>
         </div>
       )}

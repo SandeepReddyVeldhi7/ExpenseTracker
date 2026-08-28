@@ -8,8 +8,12 @@ const DashboardUsersSchema = new mongoose.Schema({
   role: { type: String, default: "staff" },
   image: { type: String, default: null },
   forgotPasswordToken: { type: String, index: true },
+  forgotPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 DashboardUsersSchema.index({ createdAt: -1 });
+DashboardUsersSchema.index({ email: 1 });
+DashboardUsersSchema.index({ username: 1 });
+
 
 export default mongoose.models.DashboardUser || mongoose.model("DashboardUser", DashboardUsersSchema);

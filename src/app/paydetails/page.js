@@ -413,48 +413,99 @@ export default function PayDetailsPage() {
   };
 
   return (
-    <div className="relative max-w-7xl mx-auto p-4 sm:p-6 border border-gray-300 rounded-lg mt-6 sm:mt-10 pb-20 bg-gray-50 font-sans">
-      <Toaster />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-28">
+      <Toaster position="top-right" />
       {isUnauthed ? (
-        <p className="text-center text-lg text-gray-800 mt-10">You must be logged in.</p>
+        <p className="text-center text-lg font-bold text-black mt-10">You must be logged in.</p>
       ) : isNotOwner ? (
-        <p className="text-center text-lg text-gray-800 mt-10">Redirecting…</p>
+        <p className="text-center text-lg font-bold text-black mt-10">Redirecting…</p>
       ) : (
-        <>
-          <h1 className="text-xl sm:text-2xl text-gray-800 text-center font-bold mb-4">📒 Staff Payroll Ledger</h1>
-
-          {/* Controls */}
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* <button onClick={handleSelectThisMonth} className="px-4 py-2 bg-[#fa3e5e] text-white rounded text-base font-medium">This Month</button>
-              <span className="px-3 py-1 rounded bg-gray-200 text-gray-800 text-base">
-                {`${new Date(selectedYear, (selectedMonth || 1) - 1).toLocaleString("default", { month: "long" })} ${selectedYear}`}
-              </span> */}
-              <button onClick={() => setFilterModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded text-base font-medium">Set Filters</button>
+        <div className="neo-card p-6 sm:p-8 bg-white mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b-2 border-black">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+                Staff Payroll Ledger
+              </h1>
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">
+                Attendance days, earned salary, advance deductions & live payroll disbursement
+              </p>
             </div>
+
+            <button
+              onClick={() => setFilterModalOpen(true)}
+              className="py-2 px-4 neo-btn neo-btn-primary text-xs font-black self-start sm:self-auto"
+            >
+              📅 Set Date Filters
+            </button>
           </div>
 
           {/* Filter Modal */}
           {filterModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setFilterModalOpen(false)}>
-              <div className="w-full max-w-md rounded-lg bg-white shadow-lg p-4" onClick={(e) => e.stopPropagation()}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Set Filters</h3>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-base text-gray-800 font-medium">Attendance start:</label>
-                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="border p-2 rounded text-base text-gray-800" />
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4"
+              onClick={() => setFilterModalOpen(false)}
+            >
+              <div
+                className="w-full max-w-md bg-white border-[3px] border-black rounded-2xl shadow-[8px_8px_0px_0px_#000] p-6 relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center border-b-2 border-black pb-3 mb-4">
+                  <h3 className="text-lg font-black text-black">Filter Payroll Date Range</h3>
+                  <button
+                    onClick={() => setFilterModalOpen(false)}
+                    className="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center hover:bg-gray-100 font-black cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-3.5">
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1">
+                      Attendance Start:
+                    </label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="neo-input text-xs font-bold"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-base text-gray-800 font-medium">Attendance end:</label>
-                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="border p-2 rounded text-base text-gray-800" />
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1">
+                      Attendance End:
+                    </label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="neo-input text-xs font-bold"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-base text-gray-800 font-medium">Include advances up to:</label>
-                    <input type="date" value={advanceUntil} onChange={(e) => setAdvanceUntil(e.target.value)} className="border p-2 rounded text-base text-gray-800" />
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1">
+                      Include Advances Up To:
+                    </label>
+                    <input
+                      type="date"
+                      value={advanceUntil}
+                      onChange={(e) => setAdvanceUntil(e.target.value)}
+                      className="neo-input text-xs font-bold"
+                    />
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={applyFilters} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded text-base font-medium">Apply</button>
-                    <button onClick={clearFilters} className="flex-1 px-4 py-2 bg-gray-500 text-white rounded text-base font-medium">Clear</button>
+                  <div className="flex gap-2 pt-2 border-t-2 border-black mt-2">
+                    <button
+                      onClick={applyFilters}
+                      className="flex-1 py-2.5 neo-btn neo-btn-primary text-xs font-black"
+                    >
+                      Apply Filter
+                    </button>
+                    <button
+                      onClick={clearFilters}
+                      className="flex-1 py-2.5 neo-btn neo-btn-secondary text-xs font-black"
+                    >
+                      Clear
+                    </button>
                   </div>
                 </div>
               </div>
@@ -463,21 +514,33 @@ export default function PayDetailsPage() {
 
           {/* Conditional rendering */}
           {!activeFilters.start || !activeFilters.end || !activeFilters.until ? (
-            <p className="text-center text-lg text-gray-800 mt-10">Please select Attendance Start, Attendance End, and Include Advances Up To dates, then click Apply.</p>
+            <div className="text-center py-12 p-6 rounded-xl border-2 border-dashed border-black bg-[#F4F4F0]">
+              <p className="text-base font-black text-black mb-3">
+                Please configure the date filter range to view live payroll ledger.
+              </p>
+              <button
+                onClick={() => setFilterModalOpen(true)}
+                className="py-2.5 px-5 neo-btn neo-btn-primary text-xs font-black"
+              >
+                Set Date Range Filters
+              </button>
+            </div>
           ) : (
             <>
-              <div className="mb-4">
-                <h2 className="text-base sm:text-lg text-gray-800 font-semibold">
-                  Attendance period: {representativePayroll?.attendanceStart && representativePayroll?.attendanceEnd ? `${representativePayroll.attendanceStart} → ${representativePayroll.attendanceEnd}` : "—"}
-                </h2>
-                <h2 className="text-base sm:text-lg text-gray-800 font-semibold">
-                  Advances included: {representativePayroll?.advancesStart ? `${representativePayroll.advancesStart} → ${representativePayroll.advancesEnd}` : "—"}
-                </h2>
-              </div>
+              <div className="p-4 rounded-xl border-2 border-black bg-[#F4F4F0] mb-6 flex flex-wrap justify-between items-center gap-3">
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-gray-700">
+                    Attendance: <span className="font-black text-black">{representativePayroll?.attendanceStart || "—"} → {representativePayroll?.attendanceEnd || "—"}</span>
+                  </div>
+                  <div className="text-xs font-bold text-gray-700">
+                    Advances Included: <span className="font-black text-black">{representativePayroll?.advancesStart || "—"} → {representativePayroll?.advancesEnd || "—"}</span>
+                  </div>
+                </div>
 
-              <h2 className="text-base sm:text-lg text-gray-800 mb-4 font-semibold">
-                Showing Salary for: {headerLabel} {activeFilters.until ? `(Advances until: ${activeFilters.until})` : ""}
-              </h2>
+                <span className="neo-badge bg-[#D4FF00] text-black">
+                  Period: {headerLabel}
+                </span>
+              </div>
 
               {/* Mobile Card Layout */}
               <div className="block sm:hidden space-y-4">
@@ -500,103 +563,93 @@ export default function PayDetailsPage() {
                   const remainingRange = computeRemainingRange(existingCovered, activeFilters.until);
 
                   return (
-                    <div key={key} className="border rounded-lg p-4 bg-white shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold text-gray-800">{p.staffName || staff.name}</h3>
-                        <span className="text-sm text-gray-600">#{idx + 1}</span>
+                    <div key={key} className="p-4 rounded-xl border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] space-y-2.5">
+                      <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+                        <h3 className="text-base font-black text-black">{p.staffName || staff.name}</h3>
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#F4F4F0] border border-black">#{idx + 1}</span>
                       </div>
-                      <div className="space-y-2 text-base text-gray-800">
-                        {renderPayrollMonthCell(p)}
-                        <div><strong>Attendance:</strong> {presentDays} days</div>
-                        <div><strong>Earned Salary:</strong> ₹{earned.toLocaleString("en-IN")}</div>
-                        <div><strong>Prev. Carry Forward:</strong> ₹{prev.toLocaleString("en-IN")}</div>
-                        <div className="flex items-center gap-2">
-                          <span><strong>System Advances:</strong> ₹{systemAdv.toLocaleString("en-IN")}</span>
+                      <div className="space-y-1.5 text-xs font-bold text-gray-800">
+                        <div>Attendance: <span className="font-mono font-black text-black">{presentDays} days</span></div>
+                        <div>Earned Salary: <span className="font-mono font-black text-black">₹{earned.toLocaleString("en-IN")}</span></div>
+                        <div>Prev. Carry Forward: <span className="font-mono font-black text-black">₹{prev.toLocaleString("en-IN")}</span></div>
+                        <div className="flex items-center justify-between">
+                          <span>System Advances: <span className="font-mono font-black text-black">₹{systemAdv.toLocaleString("en-IN")}</span></span>
                           <button
                             type="button"
-                            className="text-sm text-blue-600 underline"
-                            title={advancesTooltip(p?.advances)}
+                            className="px-2 py-0.5 text-[10px] neo-btn neo-btn-cyan font-black"
                             onClick={() => openAdvancesModal(p?.staffName || staff.name, p?.advances)}
                           >
-                            ⓘ
+                            Details
                           </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span><strong>Owner Adjustment:</strong> {ownerAdj >= 0 ? "+" : "−"} ₹{Math.abs(ownerAdj).toLocaleString("en-IN")}</span>
+                        <div className="flex items-center justify-between">
+                          <span>Owner Adjustment: <span className="font-mono font-black text-black">{ownerAdj >= 0 ? "+" : "−"}₹{Math.abs(ownerAdj).toLocaleString("en-IN")}</span></span>
                           <button
                             type="button"
-                            className="text-sm text-blue-600 underline"
-                            title={ownerAdjTooltip(p?.ownerAdjustmentHistory)}
+                            className="px-2 py-0.5 text-[10px] neo-btn neo-btn-secondary font-black"
                             onClick={() => openOwnerModal(p?.staffName || staff.name, p?.ownerAdjustmentHistory)}
                           >
-                            ⓘ
+                            Details
                           </button>
                         </div>
-                        <div><strong>Final Advances:</strong> ₹{finalAdv.toLocaleString("en-IN")}</div>
-                        <div><strong>Payable:</strong> ₹{payableNow.toLocaleString("en-IN")}</div>
-                        <div className="flex items-center gap-2">
-                          <label><strong>Paid Amount:</strong></label>
+                        <div>Final Advances: <span className="font-mono font-black text-black">₹{finalAdv.toLocaleString("en-IN")}</span></div>
+                        <div className="p-2 rounded-lg bg-[#D4FF00] border border-black flex justify-between">
+                          <span className="font-black text-black">Net Payable:</span>
+                          <span className="font-mono font-black text-black">₹{payableNow.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="pt-2">
+                          <label className="block text-[11px] font-black uppercase text-black mb-1">Pay Amount</label>
                           <input
                             type="number"
                             min="0"
                             value={payAmounts[key] !== undefined && payAmounts[key] !== null ? payAmounts[key] : payableNow}
                             onChange={(e) => handlePayAmountChange(key, e.target.value)}
-                            className="border p-2 rounded w-full text-base text-gray-800"
+                            className="neo-input text-xs font-mono font-bold"
                             disabled={isPaid}
                           />
                         </div>
-                        <div className="flex flex-col gap-2">
+                        <div className="pt-2">
                           {isPaid ? (
-                            <span className="px-4 py-2 rounded bg-gray-600 text-white text-center text-base">Paid</span>
+                            <span className="w-full block py-2 rounded-xl border-2 border-black bg-gray-200 text-gray-700 text-center font-black text-xs">
+                              Paid
+                            </span>
                           ) : (
-                            <>
-                              <button
-                                onClick={() => handlePay(key, p.staffName || staff.name)}
-                                className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-base"
-                              >
-                                Pay
-                              </button>
-                              {existingCovered && (
-                                <div className="text-sm text-gray-600">
-                                  Already included up to: <strong>{existingCovered}</strong>
-                                </div>
-                              )}
-                              {remainingRange && (
-                                <div className="text-sm text-amber-700">
-                                  Will include: <strong>{remainingRange}</strong>
-                                </div>
-                              )}
-                            </>
+                            <button
+                              onClick={() => handlePay(key, p.staffName || staff.name)}
+                              className="w-full py-2.5 neo-btn neo-btn-primary text-xs font-black"
+                            >
+                              Disburse Payment
+                            </button>
                           )}
                         </div>
                       </div>
                     </div>
                   );
                 }) : (
-                  <p className="text-center text-lg text-gray-800 p-4">No staff found.</p>
+                  <p className="text-center text-sm font-bold text-gray-500 p-4">No staff found.</p>
                 )}
               </div>
 
               {/* Desktop Table Layout */}
-              <div className="hidden sm:block relative w-full overflow-x-auto border rounded-lg shadow-sm">
-                <table className="w-full border-collapse border text-sm">
-                  <thead className="bg-gray-300 text-gray-800">
+              <div className="hidden sm:block relative w-full overflow-x-auto table-scrollbar border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000]">
+                <table className="w-full border-collapse text-xs">
+                  <thead className="bg-[#F4F4F0] border-b-2 border-black font-black uppercase text-black">
                     <tr>
-                      <th className="p-2 border">S.no</th>
-                      <th className="p-2 border">Name</th>
-                      <th className="p-2 border">Payroll month / Period</th>
-                      <th className="p-2 border">Attendance</th>
-                      <th className="p-2 border">Earned Salary</th>
-                      <th className="p-2 border">Prev. Carry Forward</th>
-                      <th className="p-2 border">System Advances</th>
-                      <th className="p-2 border">Owner Adjustment</th>
-                      <th className="p-2 border">Final Advances</th>
-                      <th className="p-2 border">Payable</th>
-                      <th className="p-2 border">Paid Amount</th>
-                      <th className="p-2 border">Action</th>
+                      <th className="p-3 border-r border-black text-center">S.No</th>
+                      <th className="p-3 border-r border-black text-left">Staff Name</th>
+                      <th className="p-3 border-r border-black text-left">Period</th>
+                      <th className="p-3 border-r border-black text-center">Present</th>
+                      <th className="p-3 border-r border-black text-right">Earned</th>
+                      <th className="p-3 border-r border-black text-right">Prev Carry</th>
+                      <th className="p-3 border-r border-black text-right">Advances</th>
+                      <th className="p-3 border-r border-black text-right">Adjustment</th>
+                      <th className="p-3 border-r border-black text-right">Final Adv</th>
+                      <th className="p-3 border-r border-black text-right">Net Payable</th>
+                      <th className="p-3 border-r border-black text-center">Disburse Amount</th>
+                      <th className="p-3 text-center">Action</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-200 font-bold">
                     {staffList.length ? staffList.map((staff, idx) => {
                       const key = String(staff._id);
                       const p = payrollData[key] || {};
@@ -616,76 +669,66 @@ export default function PayDetailsPage() {
                       const remainingRange = computeRemainingRange(existingCovered, activeFilters.until);
 
                       return (
-                        <tr key={key}>
-                          <td className="p-2 border text-gray-800 text-center">{idx + 1}</td>
-                          <td className="p-2 border text-gray-800">{p.staffName || staff.name}</td>
-                          <td className="p-2 border text-gray-800">{renderPayrollMonthCell(p)}</td>
-                          <td className="p-2 border text-gray-800 text-center">{presentDays}</td>
-                          <td className="p-2 border text-gray-800 text-right">₹{earned.toLocaleString("en-IN")}</td>
-                          <td className="p-2 border text-gray-800 text-right">₹{prev.toLocaleString("en-IN")}</td>
-                          <td className="p-2 border text-gray-800 text-right whitespace-nowrap">
+                        <tr key={key} className="hover:bg-gray-50 transition">
+                          <td className="p-3 border-r border-gray-200 text-center font-mono">{idx + 1}</td>
+                          <td className="p-3 border-r border-gray-200 font-black text-black">{p.staffName || staff.name}</td>
+                          <td className="p-3 border-r border-gray-200 text-gray-700">{renderPayrollMonthCell(p)}</td>
+                          <td className="p-3 border-r border-gray-200 text-center font-mono">{presentDays}</td>
+                          <td className="p-3 border-r border-gray-200 text-right font-mono text-black">₹{earned.toLocaleString("en-IN")}</td>
+                          <td className="p-3 border-r border-gray-200 text-right font-mono text-black">₹{prev.toLocaleString("en-IN")}</td>
+                          <td className="p-3 border-r border-gray-200 text-right font-mono whitespace-nowrap">
                             ₹{systemAdv.toLocaleString("en-IN")}
                             <button
                               type="button"
-                              className="ml-1 text-sm text-blue-600 underline"
+                              className="ml-1 text-xs text-blue-600 font-black"
                               title={advancesTooltip(p?.advances)}
                               onClick={() => openAdvancesModal(p?.staffName || staff.name, p?.advances)}
                             >
                               ⓘ
                             </button>
                           </td>
-                          <td className="p-2 border text-gray-800 text-right whitespace-nowrap">
-                            {ownerAdj >= 0 ? "+" : "−"} ₹{Math.abs(ownerAdj).toLocaleString("en-IN")}
+                          <td className="p-3 border-r border-gray-200 text-right font-mono whitespace-nowrap">
+                            {ownerAdj >= 0 ? "+" : "−"}₹{Math.abs(ownerAdj).toLocaleString("en-IN")}
                             <button
                               type="button"
-                              className="ml-1 text-sm text-blue-600 underline"
+                              className="ml-1 text-xs text-blue-600 font-black"
                               title={ownerAdjTooltip(p?.ownerAdjustmentHistory)}
                               onClick={() => openOwnerModal(p?.staffName || staff.name, p?.ownerAdjustmentHistory)}
                             >
                               ⓘ
                             </button>
                           </td>
-                          <td className="p-2 border text-gray-800 text-right">₹{finalAdv.toLocaleString("en-IN")}</td>
-                          <td className="p-2 border text-gray-800 text-right">₹{payableNow.toLocaleString("en-IN")}</td>
-                          <td className="p-2 border text-gray-800 text-center">
+                          <td className="p-3 border-r border-gray-200 text-right font-mono text-black">₹{finalAdv.toLocaleString("en-IN")}</td>
+                          <td className="p-3 border-r border-gray-200 text-right font-mono font-black text-emerald-800">₹{payableNow.toLocaleString("en-IN")}</td>
+                          <td className="p-3 border-r border-gray-200 text-center">
                             <input
                               type="number"
                               min="0"
                               value={payAmounts[key] !== undefined && payAmounts[key] !== null ? payAmounts[key] : payableNow}
                               onChange={(e) => handlePayAmountChange(key, e.target.value)}
-                              className="border p-2 w-28 text-right rounded text-sm"
+                              className="neo-input text-xs w-28 text-right py-1 font-mono font-bold"
                               disabled={isPaid}
                             />
                           </td>
-                          <td className="p-2 border text-center">
+                          <td className="p-3 text-center">
                             {isPaid ? (
-                              <span className="px-4 py-2 rounded text-sm bg-gray-600 text-white">Paid</span>
+                              <span className="px-3 py-1 rounded-full text-xs font-black border border-black bg-gray-200 text-gray-700">
+                                Paid
+                              </span>
                             ) : (
-                              <div className="flex flex-col items-center gap-2">
-                                <button
-                                  onClick={() => handlePay(key, p.staffName || staff.name)}
-                                  className="px-4 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white"
-                                >
-                                  Pay
-                                </button>
-                                {existingCovered && (
-                                  <div className="text-xs text-gray-600">
-                                    Already included up to: <strong>{existingCovered}</strong>
-                                  </div>
-                                )}
-                                {remainingRange && (
-                                  <div className="text-xs text-amber-700">
-                                    Will include: <strong>{remainingRange}</strong>
-                                  </div>
-                                )}
-                              </div>
+                              <button
+                                onClick={() => handlePay(key, p.staffName || staff.name)}
+                                className="px-3 py-1 neo-btn neo-btn-primary text-xs font-black"
+                              >
+                                Pay
+                              </button>
                             )}
                           </td>
                         </tr>
                       );
                     }) : (
                       <tr>
-                        <td colSpan="12" className="text-center text-gray-800 p-4">No staff found.</td>
+                        <td colSpan="12" className="text-center text-gray-500 font-bold p-6">No staff found.</td>
                       </tr>
                     )}
                   </tbody>
@@ -693,10 +736,10 @@ export default function PayDetailsPage() {
               </div>
 
               {loading && (
-                <div className="fixed inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm z-50">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="h-12 w-12 rounded-full border-4 border-gray-300 border-t-transparent animate-spin" />
-                    <div className="text-base text-gray-800">Loading…</div>
+                <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs z-50">
+                  <div className="p-6 rounded-2xl border-[3px] border-black bg-white shadow-[6px_6px_0px_0px_#000] flex flex-col items-center gap-3">
+                    <div className="h-10 w-10 rounded-full border-4 border-black border-t-transparent animate-spin" />
+                    <div className="text-xs font-black uppercase text-black">Calculating Payroll Ledger…</div>
                   </div>
                 </div>
               )}
@@ -705,38 +748,38 @@ export default function PayDetailsPage() {
 
           {/* Advances Modal */}
           {advModal.open && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeAdvancesModal}>
-              <div className="w-full max-w-lg rounded-lg bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between border-b p-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Advances — {advModal.staffName}</h3>
-                  <button className="text-base px-4 py-2 rounded border bg-gray-50 hover:bg-gray-100 text-gray-800" onClick={closeAdvancesModal}>Close</button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4" onClick={closeAdvancesModal}>
+              <div className="w-full max-w-lg rounded-2xl bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_#000] p-6" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+                  <h3 className="text-base font-black text-black">Advances Record — {advModal.staffName}</h3>
+                  <button className="py-1 px-3 rounded-lg border border-black neo-btn neo-btn-secondary text-xs font-black" onClick={closeAdvancesModal}>Close</button>
                 </div>
-                <div className="max-h-[70vh] overflow-auto p-4">
+                <div className="max-h-[60vh] overflow-auto table-scrollbar border border-black rounded-lg">
                   {Array.isArray(advModal.list) && advModal.list.length > 0 ? (
-                    <table className="w-full text-base">
-                      <thead>
-                        <tr className="text-left text-gray-800">
-                          <th className="py-2">Date</th>
-                          <th className="py-2 text-right">Amount</th>
+                    <table className="w-full text-xs font-bold">
+                      <thead className="bg-[#F4F4F0] border-b border-black">
+                        <tr className="text-left text-black">
+                          <th className="p-2.5">Date</th>
+                          <th className="p-2.5 text-right">Amount</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y">
                         {advModal.list.map((a, i) => (
-                          <tr key={i} className="border-t">
-                            <td className="py-2">{String(a?.date ?? "")}</td>
-                            <td className="py-2 text-right">{INR.format(Number(a?.amount) || 0)}</td>
+                          <tr key={i}>
+                            <td className="p-2.5">{String(a?.date ?? "")}</td>
+                            <td className="p-2.5 text-right font-mono font-bold">{INR.format(Number(a?.amount) || 0)}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t">
-                          <td className="py-2 font-semibold">Total</td>
-                          <td className="py-2 text-right font-semibold">{INR.format(advModal.list.reduce((s, a) => s + (Number(a?.amount) || 0), 0))}</td>
+                        <tr className="border-t-2 border-black bg-[#D4FF00] font-black">
+                          <td className="p-2.5">Total Advances</td>
+                          <td className="p-2.5 text-right font-mono">{INR.format(advModal.list.reduce((s, a) => s + (Number(a?.amount) || 0), 0))}</td>
                         </tr>
                       </tfoot>
                     </table>
                   ) : (
-                    <div className="text-base text-gray-800">No advances in this range.</div>
+                    <div className="text-xs font-bold text-gray-500 p-4">No advances in this range.</div>
                   )}
                 </div>
               </div>
@@ -745,57 +788,58 @@ export default function PayDetailsPage() {
 
           {/* Owner Adjustments Modal */}
           {ownerModal.open && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeOwnerModal}>
-              <div className="w-full max-w-lg rounded-lg bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between border-b p-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Owner Adjustments — {ownerModal.staffName}</h3>
-                  <button className="text-base px-4 py-2 rounded border bg-gray-50 hover:bg-gray-100 text-gray-800" onClick={closeOwnerModal}>Close</button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4" onClick={closeOwnerModal}>
+              <div className="w-full max-w-lg rounded-2xl bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_#000] p-6" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+                  <h3 className="text-base font-black text-black">Owner Adjustments — {ownerModal.staffName}</h3>
+                  <button className="py-1 px-3 rounded-lg border border-black neo-btn neo-btn-secondary text-xs font-black" onClick={closeOwnerModal}>Close</button>
                 </div>
-                <div className="max-h-[70vh] overflow-auto p-4">
+                <div className="max-h-[60vh] overflow-auto table-scrollbar border border-black rounded-lg">
                   {Array.isArray(ownerModal.list) && ownerModal.list.length > 0 ? (
-                    <table className="w-full text-base">
-                      <thead>
-                        <tr className="text-left text-gray-800">
-                          <th className="py-2">Date</th>
-                          <th className="py-2">Note</th>
-                          <th className="py-2 text-right">Delta</th>
+                    <table className="w-full text-xs font-bold">
+                      <thead className="bg-[#F4F4F0] border-b border-black">
+                        <tr className="text-left text-black">
+                          <th className="p-2.5">Date</th>
+                          <th className="p-2.5">Note</th>
+                          <th className="p-2.5 text-right">Adjustment</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y">
                         {ownerModal.list.map((h, i) => {
                           const d = h?.at ? new Date(h.at) : null;
                           const dStr = d ? d.toISOString().slice(0, 10) : "";
                           const amt = Number(h?.amount) || 0;
                           return (
-                            <tr key={i} className="border-t">
-                              <td className="py-2">{dStr}</td>
-                              <td className="py-2">{(h?.note || "").trim()}</td>
-                              <td className="py-2 text-right">{amt >= 0 ? "+" : "−"} ₹{Math.abs(amt).toLocaleString("en-IN")}</td>
+                            <tr key={i}>
+                              <td className="p-2.5">{dStr}</td>
+                              <td className="p-2.5">{(h?.note || "").trim()}</td>
+                              <td className="p-2.5 text-right font-mono font-bold">{amt >= 0 ? "+" : "−"}₹{Math.abs(amt).toLocaleString("en-IN")}</td>
                             </tr>
                           );
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t">
-                          <td className="py-2 font-semibold" colSpan={2}>Total</td>
-                          <td className="py-2 text-right font-semibold">
+                        <tr className="border-t-2 border-black bg-[#D4FF00] font-black">
+                          <td className="p-2.5" colSpan={2}>Net Owner Adjustment</td>
+                          <td className="p-2.5 text-right font-mono">
                             {(() => {
                               const total = ownerModal.list.reduce((s, h) => s + (Number(h?.amount) || 0), 0);
-                              return `${total >= 0 ? "+" : "−"} ₹${Math.abs(total).toLocaleString("en-IN")}`;
+                              return `${total >= 0 ? "+" : "−"}₹${Math.abs(total).toLocaleString("en-IN")}`;
                             })()}
                           </td>
                         </tr>
                       </tfoot>
                     </table>
                   ) : (
-                    <div className="text-base text-gray-800">No owner adjustments this month.</div>
+                    <div className="text-xs font-bold text-gray-500 p-4">No owner adjustments this month.</div>
                   )}
                 </div>
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
+
 }

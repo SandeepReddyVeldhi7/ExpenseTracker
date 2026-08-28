@@ -1,7 +1,8 @@
 import { connectDB } from "@/lib/db";
 import MonthlyExpense from "@/models/MonthlyExpense";
+import { withAuth } from "@/lib/apiAuth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Only POST allowed" });
   }
@@ -30,16 +31,16 @@ export default async function handler(req, res) {
       month,
       year,
       key: monthYear,
-      items: items.map(item => ({
+      items: items.map((item) => ({
         name: item.name,
-        price: parseFloat(item.price) || 0
+        price: parseFloat(item.price) || 0,
       })),
       totalSales: parseFloat(totalSales) || 0,
       totalPayout: parseFloat(totalPayout) || 0,
       totalOnline: parseFloat(totalOnline) || 0,
       totalExpenses,
       remainingBalance,
-      submittedBy: submittedBy || "staff"
+      submittedBy: submittedBy || req.user?.username || "staff",
     };
 
     const saved = await MonthlyExpense.findOneAndUpdate(
@@ -50,10 +51,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       message: "Monthly expense submitted successfully",
-      data: saved
+      data: saved,
     });
   } catch (err) {
     console.error("Error in add monthly-expense:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+export default withAuth(handler, { roles: ["owner", "staff", "staff123"] });

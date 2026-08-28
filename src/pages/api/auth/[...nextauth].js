@@ -81,56 +81,63 @@ export default NextAuth({
     /**
      * Runs on login - both credentials & google
      */
-  async signIn({ user, account, profile }) {
-  if (account.provider === "google") {
-    
-    const dbUser = await findUserByEmailOrUsername(user.email);
-    if (!dbUser || !dbUser.role) {
-      console.log(`❌ Google SignIn blocked. Email not found or role missing in DB: ${user.email}`);
-      return false;
-    }
-    user.id = dbUser._id.toString();
-    user.username = dbUser.username || dbUser.email.split("@")[0];
-    user.role = dbUser.role;
-  }
-  return true;
-},
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        const dbUser = await findUserByEmailOrUsername(user.email);
+        if (!dbUser || !dbUser.role) {
+          console.log(`❌ Google SignIn blocked. Email not found or role missing in DB: ${user.email}`);
+          return false;
+        }
+        user.id = dbUser._id.toString();
+        user.username = dbUser.username || dbUser.email.split("@")[0];
+        user.role = dbUser.role;
+      }
+      return true;
+    },
 
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.username = user.username;
+        token.role = user.role;
+        token.image = user.image || user.picture || null;
+      }
 
-async jwt({ token, user }) {
-  if (user) {
-    token.id = user.id;
-    token.email = user.email;
-    token.username = user.username;
-    token.role = user.role;
-    token.image = user.image || user.picture || null;
-  } 
-  // Always re-validate role from DB on refresh
-  else if (token.email) {
-    const dbUser = await findUserByEmailOrUsername(token.email);
-    if (dbUser && dbUser.role) {
-      token.id = dbUser._id.toString();
-      token.username = dbUser.username || dbUser.email.split("@")[0];
-      token.role = dbUser.role;
-      token.image = dbUser.image || null;
-    } else {
-      // Fallback role for safety
-      token.role = "staff";
-    }
-  }
-  return token;
-},
+      // If explicit session update requested from client
+      if (trigger === "update" && session?.user) {
+        if (session.user.image) token.image = session.user.image;
+        if (session.user.username) token.username = session.user.username;
+        if (session.user.role) token.role = session.user.role;
+      }
 
+      // If token role is missing for any legacy reason, fetch once
+      if (!token.role && token.email) {
+        const dbUser = await findUserByEmailOrUsername(token.email);
+        if (dbUser && dbUser.role) {
+          token.id = dbUser._id.toString();
+          token.username = dbUser.username || dbUser.email.split("@")[0];
+          token.role = dbUser.role;
+          token.image = dbUser.image || null;
+        } else {
+          token.role = "staff";
+        }
+      }
 
+      return token;
+    },
 
     async session({ session, token }) {
-      session.user = {
-        id: token.id,
-        email: token.email,
-        username: token.username,
-        role: token.role,
-  image: token.image || null,
-      };
+      if (token) {
+        session.user = {
+          id: token.id,
+          email: token.email,
+          username: token.username,
+          role: token.role || "staff",
+          image: token.image || null,
+        };
+      }
       return session;
     },
   },

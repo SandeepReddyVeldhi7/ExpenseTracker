@@ -23,16 +23,17 @@ const userSchema = new mongoose.Schema(
       role: { type: String,  default: "staff" },
     image: { type: String, default: null },
     forgotPasswordToken: { type: String, index: true }, // For password reset token
+    forgotPasswordExpires: { type: Date }, // Expiry timestamp for reset token
     isActive: { type: Boolean, default: true }, // For user activation status
-    
   },
   {
-    
     timestamps: true,
   }
 );
 
 userSchema.index({ createdAt: -1 });
+userSchema.index({ email: 1 });
+
 
 // User schema model
 const User = mongoose.models.User || mongoose.model("User", userSchema);

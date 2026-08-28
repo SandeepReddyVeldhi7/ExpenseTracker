@@ -1,33 +1,35 @@
-
-
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { withAuth } from "@/lib/apiAuth";
 
-
-
-
-
-export default async function handler(req, res) {
+async function handler(req, res) {
   await connectDB();
 
   if (req.method === "GET") {
     try {
-      const users = await User.find().sort({ createdAt: -1 });
-      res.status(200).json(users);
+      const users = await User.find()
+        .select("-password -forgotPasswordToken")
+        .sort({ createdAt: -1 });
+      return res.status(200).json(users);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to fetch users" });
+      return res.status(500).json({ error: "Failed to fetch users" });
     }
   } 
   else if (req.method === "DELETE") {
     try {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: "Missing id" });
+
+      if (req.user?.id === id) {
+        return res.status(400).json({ error: "Cannot delete your own active owner account." });
+      }
+
       await User.findByIdAndDelete(id);
-      res.status(200).json({ message: "User deleted" });
+      return res.status(200).json({ message: "User deleted" });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to delete user" });
+      return res.status(500).json({ error: "Failed to delete user" });
     }
   } 
   else if (req.method === "PUT") {
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
       const { id } = req.query;
       const { email, username, role } = req.body;
       if (!id || !email || !username || !role) {
-        return res.status(400).json({ error: "Missing fields" });
+        return res.status(400).json({ error: "Missing required fields" });
       }
 
       const duplicateUser = await User.findOne({
@@ -53,7 +55,7 @@ export default async function handler(req, res) {
         id,
         { email, username, role },
         { new: true, runValidators: true }
-      );
+      ).select("-password -forgotPasswordToken");
 
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
@@ -67,8 +69,8 @@ export default async function handler(req, res) {
   } 
   else {
     res.setHeader("Allow", ["GET", "DELETE", "PUT"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
 
-
+export default withAuth(handler, { roles: ["owner"] });

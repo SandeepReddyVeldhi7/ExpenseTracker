@@ -10,9 +10,9 @@ import {
   Tooltip,
 } from "recharts";
 import toast, { Toaster } from "react-hot-toast";
+import { FiBarChart2, FiCalendar } from "react-icons/fi";
 
 export default function PieAnalyticsPage() {
-  // ---- Dates (defaults to this month → today) ----
   const initialStart = useMemo(() => {
     const now = new Date();
     const s = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -22,12 +22,9 @@ export default function PieAnalyticsPage() {
 
   const [start, setStart] = useState(initialStart);
   const [end, setEnd] = useState(initialEnd);
-
-  // ---- Data state ----
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
 
-  // ---- Debounce load on range change ----
   const debounceRef = useRef(null);
   const firstLoadDone = useRef(false);
 
@@ -51,26 +48,24 @@ export default function PieAnalyticsPage() {
       const res = await fetch(`/api/v1/analytics/pie?${params.toString()}`, {
         cache: "no-store",
       });
-      if (!res.ok) throw new Error("Failed to fetch analysis");
+      if (!res.ok) throw new Error("Failed to fetch analytics");
       const data = await res.json();
       setStats(data);
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to load analysis");
+      toast.error(err.message || "Failed to load analytics");
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial load
   useEffect(() => {
     if (!firstLoadDone.current) {
       firstLoadDone.current = true;
       load(start, end);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Debounced reload when start/end change
   useEffect(() => {
     if (new Date(end) < new Date(start)) {
       toast.error("End date cannot be before Start date.");
@@ -79,43 +74,68 @@ export default function PieAnalyticsPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => load(start, end), 300);
     return () => clearTimeout(debounceRef.current);
-  }, [start, end]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [start, end]);
 
   const pieData = stats?.pie || [];
-  const COLORS = ["#3b82f6", "#9ca3af", stats?.profit >= 0 ? "#10b981" : "#ef4444"];
+  const COLORS = ["#00F0FF", "#B794F4", stats?.profit >= 0 ? "#D4FF00" : "#FF5A5F"];
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 font-sans">
-      <Toaster />
-      <h1 className="text-xl sm:text-2xl font-bold mb-4">📊 Business Pie Analysis</h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <Toaster position="top-right" />
 
-      {/* Date pickers */}
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Start:</label>
-          <input
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="border p-1 rounded text-sm"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">End:</label>
-          <input
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            className="border p-1 rounded text-sm"
-          />
+      {/* Header Banner */}
+      <div className="neo-card p-6 sm:p-8 bg-white mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#D4FF00] border-2 border-black rounded-full text-xs font-black uppercase tracking-wider mb-2">
+              <FiBarChart2 />
+              <span>Profit & Expense Breakdown</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+              Business Analytics & Visuals
+            </h1>
+            <p className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">
+              Real-time revenue vs salary payouts vs operating expenses
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase text-black">From:</span>
+              <input
+                type="date"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                className="neo-input text-xs font-bold py-1.5 px-3"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase text-black">To:</span>
+              <input
+                type="date"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                className="neo-input text-xs font-bold py-1.5 px-3"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Chart + Totals */}
+      {/* Analytics Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pie */}
-        <div className="relative border rounded p-3">
-          <div className="h-80">
+        {/* Pie Chart Card */}
+        <div className="neo-card p-6 bg-white relative">
+          <h2 className="text-base font-extrabold text-black mb-4 flex items-center justify-between">
+            <span>Visual Share Breakdown</span>
+            {loading && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-[#FFDE59] border border-black animate-pulse">
+                Updating...
+              </span>
+            )}
+          </h2>
+
+          <div className="h-72 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -124,56 +144,76 @@ export default function PieAnalyticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={110}
-                  innerRadius={55}
-                  label={(entry) => `${entry.name}: ${INR.format(entry.value)}`}
+                  outerRadius={105}
+                  innerRadius={50}
+                  paddingAngle={3}
+                  stroke="#0A0A0A"
+                  strokeWidth={2}
                 >
                   {pieData.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value, name) => [INR.format(value), name]} />
+                <Tooltip
+                  formatter={(value, name) => [INR.format(value), name]}
+                  contentStyle={{
+                    backgroundColor: "#FFFFFF",
+                    border: "2px solid #0A0A0A",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    boxShadow: "3px 3px 0px 0px #0A0A0A",
+                  }}
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Loading overlay */}
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-10 w-10 rounded-full border-4 border-gray-300 border-t-transparent animate-spin" />
-                <div className="text-sm">Loading…</div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Totals */}
-        <div className="border rounded p-3">
-          <h2 className="font-semibold mb-3">
-            Totals ({stats?.start} → {stats?.end})
-          </h2>
-          {stats ? (
-            <ul className="space-y-2">
-              {[
-                { label: "Revenue", value: stats.revenue },
-                { label: "Staff Salary", value: stats.salaryPaid },
-                { label: "Other Expenses", value: stats.otherExpenses },
-                { label: stats.profit >= 0 ? "Profit" : "Loss", value: Math.abs(stats.profit) },
-              ].map((t) => (
-                <li key={t.label} className="flex items-center justify-between border-b pb-2">
-                  <span className="text-gray-700">{t.label}</span>
-                  <span className="font-semibold">{INR.format(t.value || 0)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500">No data.</p>
-          )}
+        {/* Totals & Breakdown Card */}
+        <div className="neo-card p-6 bg-white flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 mb-4 border-b-2 border-black">
+              <h2 className="text-base font-extrabold text-black">
+                Summary Metrics
+              </h2>
+              <span className="text-xs font-mono font-bold bg-[#F4F4F0] px-2 py-0.5 rounded border border-black">
+                {stats?.start} → {stats?.end}
+              </span>
+            </div>
 
-          <div className="mt-4 text-xs text-gray-500">
-            * Staff advances are included in Salary only (not counted separately).
+            {stats ? (
+              <div className="space-y-3">
+                {[
+                  { label: "Gross Sales Revenue", value: stats.revenue, bg: "bg-[#F4F4F0]" },
+                  { label: "Staff Salary Total", value: stats.salaryPaid, bg: "bg-[#00F0FF]" },
+                  { label: "Other Daily Expenses", value: stats.otherExpenses, bg: "bg-[#B794F4]" },
+                  {
+                    label: stats.profit >= 0 ? "Net Profit Payout" : "Net Loss",
+                    value: Math.abs(stats.profit),
+                    bg: stats.profit >= 0 ? "bg-[#D4FF00]" : "bg-[#FF5A5F] text-white",
+                  },
+                ].map((t) => (
+                  <div
+                    key={t.label}
+                    className={`flex items-center justify-between p-3 rounded-xl border-2 border-black ${t.bg} shadow-[2px_2px_0px_0px_#000]`}
+                  >
+                    <span className="font-extrabold text-sm">{t.label}</span>
+                    <span className="font-black font-mono text-base">{INR.format(t.value || 0)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 font-bold py-6 text-center text-sm">
+                No analytics available for this range.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-6 pt-3 border-t-2 border-dashed border-gray-200">
+            <p className="text-[11px] font-bold text-gray-500">
+              * Calculations include carry-forward adjustments and reconciled cashier deductions.
+            </p>
           </div>
         </div>
       </div>

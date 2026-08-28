@@ -1,8 +1,9 @@
 import { connectDB } from "@/lib/db";
 import MonthlyExpense from "@/models/MonthlyExpense";
 import DailySummary from "@/models/DailySummary";
+import { withAuth } from "@/lib/apiAuth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Only GET allowed" });
   }
@@ -51,3 +52,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+export default withAuth(handler, { roles: ["owner", "staff", "staff123"] });
