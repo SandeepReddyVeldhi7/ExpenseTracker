@@ -183,16 +183,7 @@ export default function ReportsPage() {
         </span>
       ),
     },
-    {
-      name: "Total Drinks Amount",
-      selector: (row) => row.totalDrinksAmount,
-      sortable: true,
-      cell: (row) => (
-        <span className="font-mono text-black font-semibold text-xs sm:text-sm">
-          {formatINR(row.totalDrinksAmount?.toFixed(2))}
-        </span>
-      ),
-    },
+
     {
       name: "Total Expenses",
       selector: (row) => {
@@ -255,6 +246,16 @@ export default function ReportsPage() {
           </div>
         );
       },
+    },
+    {
+      name: "Total Drinks Amount",
+      selector: (row) => row.totalDrinksAmount,
+      sortable: true,
+      cell: (row) => (
+        <span className="font-mono text-black font-semibold text-xs sm:text-sm">
+          {formatINR(row.totalDrinksAmount?.toFixed(2))}
+        </span>
+      ),
     },
     {
       name: "Total Shot",

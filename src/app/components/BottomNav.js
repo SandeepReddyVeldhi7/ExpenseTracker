@@ -102,7 +102,7 @@ export default function ResponsiveNav() {
 
   const ownerNavItems = [
     { href: "/", label: "Dashboard", icon: <FiGrid size={18} /> },
-    { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
+    { href: "/expenses", label: " Daily Expenses", icon: <FiFolder size={18} /> },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
     { href: "/reports", label: "Reports", icon: <FiBarChart2 size={18} /> },
     {
@@ -133,7 +133,7 @@ export default function ResponsiveNav() {
   ];
 
   const staffNavItems = [
-    { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
+    { href: "/expenses", label: "Daily Expenses", icon: <FiFolder size={18} /> },
     { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
     { href: "/extra-expenses", label: "Monthly Extra", icon: <FiDollarSign size={18} /> },
     { href: "/proof", label: "Proof", icon: <FiImage size={18} /> },
@@ -149,17 +149,17 @@ export default function ResponsiveNav() {
   // Quick primary items for mobile bottom dock
   const mobileDockItems = isOwner
     ? [
-        { href: "/", label: "Home", icon: <FiGrid size={18} /> },
-        { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
-        { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
-        { href: "/reports", label: "Reports", icon: <FiBarChart2 size={18} /> },
-      ]
+      { href: "/", label: "Home", icon: <FiGrid size={18} /> },
+      { href: "/expenses", label: "Daily Expenses", icon: <FiFolder size={18} /> },
+      { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
+      { href: "/reports", label: "Reports", icon: <FiBarChart2 size={18} /> },
+    ]
     : [
-        { href: "/expenses", label: "Expenses", icon: <FiFolder size={18} /> },
-        { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
-        { href: "/extra-expenses", label: "Monthly", icon: <FiDollarSign size={18} /> },
-        { href: "/proof", label: "Proof", icon: <FiImage size={18} /> },
-      ];
+      { href: "/expenses", label: "Daily Expenses", icon: <FiFolder size={18} /> },
+      { href: "/attendence", label: "Attendance", icon: <FiCalendar size={18} /> },
+      { href: "/extra-expenses", label: "Monthly", icon: <FiDollarSign size={18} /> },
+      { href: "/proof", label: "Proof", icon: <FiImage size={18} /> },
+    ];
 
   return (
     <>
@@ -197,11 +197,10 @@ export default function ResponsiveNav() {
                 onMouseLeave={() => setOpenDropdown(null)}
               >
                 <button
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 transition-all cursor-pointer ${
-                    isGroupActive(item)
-                      ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black"
-                      : "border-transparent hover:border-black hover:bg-[#F4F4F0] text-black"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 transition-all cursor-pointer ${isGroupActive(item)
+                    ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black"
+                    : "border-transparent hover:border-black hover:bg-[#F4F4F0] text-black"
+                    }`}
                 >
                   <span>{item.icon}</span>
                   <span>{item.label}</span>
@@ -222,11 +221,10 @@ export default function ResponsiveNav() {
                           <Link
                             key={child.href}
                             href={child.href}
-                            className={`block px-4 py-2 text-xs font-bold transition ${
-                              isActive
-                                ? "bg-[#D4FF00] text-black font-black"
-                                : "text-black hover:bg-[#F4F4F0]"
-                            }`}
+                            className={`block px-4 py-2 text-xs font-bold transition ${isActive
+                              ? "bg-[#D4FF00] text-black font-black"
+                              : "text-black hover:bg-[#F4F4F0]"
+                              }`}
                           >
                             {child.label}
                           </Link>
@@ -240,11 +238,10 @@ export default function ResponsiveNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 transition-all ${
-                  pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-                    ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black"
-                    : "border-transparent hover:border-black hover:bg-[#F4F4F0] text-black"
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 transition-all ${pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+                  ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black"
+                  : "border-transparent hover:border-black hover:bg-[#F4F4F0] text-black"
+                  }`}
               >
                 <span>{item.icon}</span>
                 <span>{item.label}</span>
@@ -291,11 +288,10 @@ export default function ResponsiveNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-1.5 px-3 rounded-xl border-2 transition-all ${
-                isActive
-                  ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black scale-105"
-                  : "border-transparent text-black font-bold opacity-80"
-              }`}
+              className={`flex flex-col items-center py-1.5 px-3 rounded-xl border-2 transition-all ${isActive
+                ? "bg-[#D4FF00] border-black shadow-[2px_2px_0px_0px_#000] text-black font-black scale-105"
+                : "border-transparent text-black font-bold opacity-80"
+                }`}
             >
               <span>{item.icon}</span>
               <span className="text-[10px] font-black uppercase tracking-tight mt-0.5">{item.label}</span>
@@ -387,11 +383,10 @@ export default function ResponsiveNav() {
                         key={s.href}
                         href={s.href}
                         onClick={() => setShowAllModulesSheet(false)}
-                        className={`p-2.5 rounded-xl border-2 border-black text-xs font-black text-center transition ${
-                          pathname === s.href
-                            ? "bg-[#D4FF00] shadow-[2px_2px_0px_0px_#000]"
-                            : "bg-[#F4F4F0] hover:bg-white"
-                        }`}
+                        className={`p-2.5 rounded-xl border-2 border-black text-xs font-black text-center transition ${pathname === s.href
+                          ? "bg-[#D4FF00] shadow-[2px_2px_0px_0px_#000]"
+                          : "bg-[#F4F4F0] hover:bg-white"
+                          }`}
                       >
                         {s.label}
                       </Link>
@@ -417,11 +412,10 @@ export default function ResponsiveNav() {
                         key={s.href}
                         href={s.href}
                         onClick={() => setShowAllModulesSheet(false)}
-                        className={`p-2.5 rounded-xl border-2 border-black text-xs font-black text-center transition ${
-                          pathname === s.href
-                            ? "bg-[#00F0FF] shadow-[2px_2px_0px_0px_#000]"
-                            : "bg-[#F4F4F0] hover:bg-white"
-                        }`}
+                        className={`p-2.5 rounded-xl border-2 border-black text-xs font-black text-center transition ${pathname === s.href
+                          ? "bg-[#00F0FF] shadow-[2px_2px_0px_0px_#000]"
+                          : "bg-[#F4F4F0] hover:bg-white"
+                          }`}
                       >
                         {s.label}
                       </Link>
